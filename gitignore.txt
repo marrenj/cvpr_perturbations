@@ -1,0 +1,8 @@
+*.pth
+*.png
+*.jpg
+*.jpeg
+*.csv
+*/__pycache__/
+/Data/
+/Data/*
