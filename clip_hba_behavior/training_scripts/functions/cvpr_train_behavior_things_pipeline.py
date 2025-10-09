@@ -576,83 +576,7 @@ def save_dora_parameters(model, dora_parameters_path, epoch):
     torch.save(dora_params, save_path)
 
 
-def generate_random_targets(targets_shape, device, mean, std, random_seed=None):
-    """
-    Generate completely random targets with the same shape as the original targets.
-    The random targets are seeded for reproducibility.
-    
-    Args:
-        targets_shape: Shape of the original targets tensor
-        device: Device to place the random targets on
-        mean: Mean to use for the random target distribution
-        std: Standard deviation to use for the random target distribution
-        random_seed: Seed for random number generation (if None, uses current state)
-    
-    Returns:
-        Random targets tensor with the same shape as original targets
-    """
-    
-    if random_seed is not None:
-        # Save current random states
-        torch_state = torch.get_rng_state()
-        np_state = np.random.get_state()
-        python_state = random.getstate()
-        
-        # Set seeds for reproducibility
-        torch.manual_seed(random_seed)
-        np.random.seed(random_seed)
-        random.seed(random_seed)
-    
-    # Generate random targets with the same shape
-    # Using normal distribution with mean 0 and std 1 (similar to typical target ranges)
-    random_targets = torch.randn(targets_shape, device=device, dtype=torch.float32) * std + mean
-    
-    if random_seed is not None:
-        # Restore original random states
-        torch.set_rng_state(torch_state)
-        np.random.set_state(np_state)
-        random.setstate(python_state)
-    
-    return random_targets
-
-
-def load_dora_parameters(model, checkpoint_path):
-    """
-    Load DoRA parameters from a checkpoint file.
-    
-    Args:
-        model: The model with DoRA layers already applied
-        checkpoint_path: Path to the DoRA parameters checkpoint file
-    """
-    print(f"Loading DoRA parameters from: {checkpoint_path}")
-        # Load the DoRA parameters
-    dora_params = torch.load(checkpoint_path, map_location='cpu')
-    
-    # Apply the DoRA parameters to the model
-    for param_name, param_value in dora_params.items():
-        # Split the parameter name to get module path and parameter name
-        # e.g., "clip_model.visual.transformer.resblocks.22.attn.out_proj.m"
-        parts = param_name.rsplit('.', 1)
-        module_path = parts[0]
-        param_key = parts[1]
-        
-        # Traverse to the module
-        module = model
-        for attr in module_path.split("."):
-            module = getattr(module, attr)
-        
-        # Set the parameter
-        if param_key == 'm':
-            module.m.data = param_value.to(module.m.device)
-        elif param_key == 'delta_D_A':
-            module.delta_D_A.data = param_value.to(module.delta_D_A.device)
-        elif param_key == 'delta_D_B':
-            module.delta_D_B.data = param_value.to(module.delta_D_B.device)
-    
-    print("DoRA parameters loaded successfully")
-
-
-def train_model(model, train_loader, test_loader, inference_loader, device, optimizer, criterion, epochs, training_res_path, logger=None, early_stopping_patience=5, checkpoint_path='clip_hba_model_cv.pth', dora_parameters_path='./dora_params', perturb_epoch=None, perturb_seed=42, resume_from_epoch=0, mean=None, std=None):
+def train_model(model, train_loader, test_loader, inference_loader, device, optimizer, criterion, epochs, training_res_path, logger=None, early_stopping_patience=5, checkpoint_path='clip_hba_model_cv.pth', dora_parameters_path='./dora_params'):
     model.train()
     best_test_loss = float('inf')
     epochs_no_improve = 0
@@ -670,15 +594,14 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
     # Create folder to store DoRA parameters
     os.makedirs(dora_parameters_path, exist_ok=True)
 
-    headers = ['epoch', 'train_loss', 'test_loss', 'behavioral_rsa_rho', 'behavioral_rsa_p_value', 'used_random_targets']
+    headers = ['epoch', 'train_loss', 'test_loss', 'behavioral_rsa_rho', 'behavioral_rsa_p_value']
 
     with open(training_res_path, 'w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(headers)
 
-    for epoch in range(resume_from_epoch, epochs):
+    for epoch in range(epochs):
         total_loss = 0.0
-        used_random_targets = False
 
         progress_bar = tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch+1}/{epochs}")
         for batch_idx, (_, images, targets) in progress_bar:
@@ -686,18 +609,11 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
             images = images.to(device)
             targets = targets.to(device)
 
-            # Check if this is the epoch where we should use random targets
-            if perturb_epoch is not None and epoch == perturb_epoch - 1:  # -1 because epochs are 0-indexed
-                print(f"\n*** USING RANDOM TARGETS FOR EPOCH {epoch+1} ***")
-                print(f"Random target seed: {perturb_seed}")
-                targets = generate_random_targets(targets.shape, device, mean, std, perturb_seed)
-                used_random_targets = True
-
             optimizer.zero_grad()
             predictions = model(images)
             
             loss = criterion(predictions, targets)
-            progress_bar.set_postfix({'loss': loss.item(), 'random_targets': used_random_targets})
+            progress_bar.set_postfix({'loss': loss.item()})
             loss.backward()
             optimizer.step()
             
@@ -713,13 +629,9 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
         rho, p_value, model_rdm = behavioral_RSA(model, inference_loader, device)
         log(f"Behavioral RSA Correlation & p-value: {rho:.4f}, {p_value:.4f}")
         model.train() # put the model back in training mode
-        
-        # Log if random targets were used
-        if used_random_targets:
-            log(f"*** RANDOM TARGETS WERE USED IN THIS EPOCH ***")
 
         # Prepare the data row with the epoch number and loss values
-        data_row = [epoch + 1, avg_train_loss, avg_test_loss, rho, p_value, used_random_targets]
+        data_row = [epoch + 1, avg_train_loss, avg_test_loss, rho, p_value]
 
         # Append the data row to the CSV file
         with open(training_res_path, 'a', newline='') as file:
@@ -783,25 +695,6 @@ def run_behavioral_traning(config):
     train_loader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=config['batch_size'], shuffle=False)
     inference_loader = DataLoader(inference_dataset, batch_size=config['batch_size'], shuffle=False)
-
-    embeddings = train_dataset.annotations.iloc[:, 1:].values.astype('float32')
-
-    if config['perturb_distribution'] == 'global':
-        # Calculate global statistics
-        mean = np.mean(embeddings)
-        std = np.std(embeddings)
-    elif config['perturb_distribution'] == 'normal':
-        mean = 0
-        std = 1
-
-    print("="*60)
-    print("GLOBAL STATISTICS FOR ALL EMBEDDING VALUES")
-    print("="*60)
-    print(f"Mean:               {mean:.6f}")
-    print(f"Standard Deviation: {std:.6f}")
-    print(f"Dataset Shape:      {embeddings.shape}")
-    print(f"Total Values:       {embeddings.size}")
-    print("="*60)
     
     # Determine pos_embedding based on backbone
     pos_embedding = False if config['backbone'] == 'RN50' else True
@@ -828,11 +721,6 @@ def run_behavioral_traning(config):
                       r=config['rank'],
                       dora_dropout=0.1)
     switch_dora_layers(model, freeze_all=True, dora_state=True)
-
-    # Load checkpoint if specified
-    if config.get('load_checkpoint') is not None:
-        load_dora_parameters(model, config['load_checkpoint'])
-        print(f"Resuming training from epoch {config.get('resume_from_epoch', 0)}")
     
     # Use DataParallel if using all GPUs
     if config['cuda'] == -1:
@@ -854,13 +742,6 @@ def run_behavioral_traning(config):
         if param.requires_grad:
             logger.info(name)
     logger.info(f"\nNumber of trainable parameters: {count_trainable_parameters(model)}\n")
-
-    # Print random target information if specified
-    if config.get('perturb_epoch') is not None:
-        print(f"*** RANDOM TARGET CONFIGURATION ***")
-        print(f"Random targets will be used in epoch: {config['perturb_epoch']}")
-        print(f"Random target seed: {config.get('perturb_seed', 42)}")
-        print("*** END RANDOM TARGET CONFIGURATION ***\n")
     
     # Train model
     train_model(model, train_loader, test_loader, inference_loader, device, optimizer, 
@@ -869,10 +750,5 @@ def run_behavioral_traning(config):
                 logger=logger,
                 early_stopping_patience=config['early_stopping_patience'],
                 checkpoint_path=config['checkpoint_path'],
-                dora_parameters_path=config['dora_parameters_path'],
-                perturb_epoch=config.get('perturb_epoch'),
-                perturb_seed=config.get('perturb_seed', 42),
-                resume_from_epoch=config.get('resume_from_epoch', 0),
-                global_mean=global_mean,
-                global_std=global_std
+                dora_parameters_path=config['dora_parameters_path']
                 )
