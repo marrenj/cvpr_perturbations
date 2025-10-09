@@ -23,6 +23,14 @@ from src.models.CLIPs.clip_hba import clip
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
+import logging
+import sys
+from datetime import datetime
+import csv
+import os
+import scipy.io
+from scipy.stats import spearmanr
+
 
 def seed_everything(seed):
     # Set the seed for PyTorch's random number generators
@@ -557,22 +565,21 @@ def save_dora_parameters(model, dora_parameters_path, epoch):
         dora_params[f'{module_path}.delta_D_A'] = module.delta_D_A.detach().cpu()
         dora_params[f'{module_path}.delta_D_B'] = module.delta_D_B.detach().cpu()
 
-        # Save the parameters
-        save_path = os.path.join(dora_parameters_path, f"epoch{epoch + 1}_dora_params.pth")
-        torch.save(dora_params, save_path)
-
         # Print parameter shapes
         print(f"\n{module_name} parameter shapes:")
         print(f"  m: shape {dora_params[f'{module_path}.m'].shape}")
         print(f"  delta_D_A: shape {dora_params[f'{module_path}.delta_D_A'].shape}")
         print(f"  delta_D_B: shape {dora_params[f'{module_path}.delta_D_B'].shape}")
+    
+    # Save the parameters
+    save_path = os.path.join(dora_parameters_path, f"epoch{epoch + 1}_dora_params.pth")
+    torch.save(dora_params, save_path)
 
 
 def train_model(model, train_loader, test_loader, inference_loader, device, optimizer, criterion, epochs, training_res_path, logger=None, early_stopping_patience=5, checkpoint_path='clip_hba_model_cv.pth', dora_parameters_path='./dora_params'):
     model.train()
     best_test_loss = float('inf')
     epochs_no_improve = 0
-    loss_data = []  # To store loss data for plotting
 
     # Use logger if provided, otherwise use print
     log = logger.info if logger else print
@@ -583,9 +590,6 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
     best_test_loss = evaluate_model(model, test_loader, device, criterion)
     log(f"Initial Validation Loss: {best_test_loss:.4f}")
     log("*********************************\n")
-
-    # Create folder to store training results
-    os.makedirs(training_res_path, exist_ok=True)
 
     # Create folder to store DoRA parameters
     os.makedirs(dora_parameters_path, exist_ok=True)
@@ -624,7 +628,7 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
         # Conduct behavioral RSA at every epoch
         rho, p_value, model_rdm = behavioral_RSA(model, inference_loader, device)
         log(f"Behavioral RSA Correlation & p-value: {rho:.4f}, {p_value:.4f}")
-        #model.train() # put the model back in training mode
+        model.train() # put the model back in training mode
 
         # Prepare the data row with the epoch number and loss values
         data_row = [epoch + 1, avg_train_loss, avg_test_loss, rho, p_value]
@@ -634,18 +638,13 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
             writer = csv.writer(file)
             writer.writerow(data_row)
 
-        # Save the DoRA parameters
-        save_dora_parameters(model, dora_parameters_path, epoch)
-
         # Check for early stopping and saving checkpoint
         if avg_test_loss < best_test_loss:
+            # Save the DoRA parameters
+            save_dora_parameters(model, dora_parameters_path, epoch)
+            log(f"DoRA parameters saved for epoch {epoch+1}")
             best_test_loss = avg_test_loss
             epochs_no_improve = 0
-            # Save the model checkpoint
-            torch.save(model.state_dict(),checkpoint_path)
-            log("\n\n-----------------------------------")
-            log(f"Checkpoint saved for epoch {epoch+1}")
-            log("-----------------------------------\n\n")
         else:
             epochs_no_improve += 1
 
@@ -653,6 +652,11 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
             log("\n\n*********************************")
             log(f"Early stopping triggered at epoch {epoch+1}")
             log("*********************************\n\n")
+            # Save the model checkpoint
+            torch.save(model.state_dict(),checkpoint_path)
+            log("\n\n-----------------------------------")
+            log(f"Checkpoint saved for epoch {epoch+1}")
+            log("-----------------------------------\n\n")
             break
 
 
@@ -743,6 +747,8 @@ def run_behavioral_traning(config):
     train_model(model, train_loader, test_loader, inference_loader, device, optimizer, 
                 config['criterion'], config['epochs'], 
                 config['training_res_path'],
-                config['early_stopping_patience'],
-                config['checkpoint_path'],
+                logger=logger,
+                early_stopping_patience=config['early_stopping_patience'],
+                checkpoint_path=config['checkpoint_path'],
+                dora_parameters_path=config['dora_parameters_path']
                 )
