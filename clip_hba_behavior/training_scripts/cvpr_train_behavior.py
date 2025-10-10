@@ -139,7 +139,7 @@ def main():
     failed_runs = 0
     failed_run_list = []
 
-    for training_run in range(3, 94):  # set the training runs you'd like to loop through
+    for training_run in range(3, 94):  # for every epoch in epochs 1 - 93...
         main_logger.info("-"*80)
         main_logger.info(f"TRAINING RUN {training_run}/93")
         main_logger.info(f"  Perturbing epoch: {training_run}")
