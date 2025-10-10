@@ -488,10 +488,13 @@ def evaluate_model(model, data_loader, device, criterion):
     return avg_loss
 
 
-def behavioral_RSA(model, inference_loader, device):
+def behavioral_RSA(model, inference_loader, device, logger=None):
     model.eval()
     image_names = []
     predictions = []
+    
+    # Use logger if provided, otherwise use print
+    log = logger.info if logger else print
 
     with torch.no_grad():
         for batch_idx, (image_name, image) in enumerate(inference_loader):
@@ -503,33 +506,33 @@ def behavioral_RSA(model, inference_loader, device):
 
             predictions.extend(output.cpu().numpy())
 
-        print(f"First 10 image names: {image_names[:5]}")
+        log(f"First 10 image names: {image_names[:5]}")
 
         predictions_emb = np.array(predictions) 
 
-        print(f"Embedding matrix shape: {predictions_emb.shape}\n")
+        log(f"Embedding matrix shape: {predictions_emb.shape}\n")
 
         model_rdm = 1 - np.corrcoef(predictions_emb)
         np.fill_diagonal(model_rdm, 0)
-        print(f"RDM shape: {model_rdm.shape}\n")
-        print("First 5x5 of the RDM:")
-        print(model_rdm[:5, :5])
-        print("\n")
+        log(f"RDM shape: {model_rdm.shape}\n")
+        log("First 5x5 of the RDM:")
+        log(model_rdm[:5, :5])
+        log("\n")
 
         reference_rdm_dict = scipy.io.loadmat(inference_loader.dataset.RDM48_triplet_dir)
         reference_rdm = reference_rdm_dict['RDM48_triplet']
-        print("First 5x5 of the reference RDM:")
-        print(reference_rdm[:5, :5])
-        print("\n")
+        log("First 5x5 of the reference RDM:")
+        log(reference_rdm[:5, :5])
+        log("\n")
         
         # Extract upper triangular elements (excluding diagonal) for correlation
         # This avoids double-counting and diagonal elements
         upper_tri_indices = np.triu_indices_from(reference_rdm, k=1)
     
         reference_values = reference_rdm[upper_tri_indices]
-        print(f"First 5 reference rdm values: {reference_values[:5]}\n")
+        log(f"First 5 reference rdm values: {reference_values[:5]}\n")
         model_values = model_rdm[upper_tri_indices]
-        print(f"First 5 model rdm values: {model_values[:5]}\n")
+        log(f"First 5 model rdm values: {model_values[:5]}\n")
     
         # Compute Spearman correlation
         rho, p_value = spearmanr(reference_values, model_values)
@@ -537,11 +540,14 @@ def behavioral_RSA(model, inference_loader, device):
         return rho, p_value, model_rdm
 
 
-def save_dora_parameters(model, dora_parameters_path, epoch):
+def save_dora_parameters(model, dora_parameters_path, epoch, logger=None):
     """
     Save DoRA parameters for specific modules in the model.
     Each module's parameters are saved to a separate file to avoid overwriting.
     """
+    # Use logger if provided, otherwise use print
+    log = logger.info if logger else print
+    
     modules_to_save = [
         ("clip_model.visual.transformer.resblocks.22.attn.out_proj", "visual_resblock_22_attn"),
         ("clip_model.visual.transformer.resblocks.23.attn.out_proj", "visual_resblock_23_attn"),
@@ -565,18 +571,104 @@ def save_dora_parameters(model, dora_parameters_path, epoch):
         dora_params[f'{module_path}.delta_D_A'] = module.delta_D_A.detach().cpu()
         dora_params[f'{module_path}.delta_D_B'] = module.delta_D_B.detach().cpu()
 
-        # Print parameter shapes
-        print(f"\n{module_name} parameter shapes:")
-        print(f"  m: shape {dora_params[f'{module_path}.m'].shape}")
-        print(f"  delta_D_A: shape {dora_params[f'{module_path}.delta_D_A'].shape}")
-        print(f"  delta_D_B: shape {dora_params[f'{module_path}.delta_D_B'].shape}")
+        # Log parameter shapes
+        log(f"\n{module_name} parameter shapes:")
+        log(f"  m: shape {dora_params[f'{module_path}.m'].shape}")
+        log(f"  delta_D_A: shape {dora_params[f'{module_path}.delta_D_A'].shape}")
+        log(f"  delta_D_B: shape {dora_params[f'{module_path}.delta_D_B'].shape}")
     
     # Save the parameters
     save_path = os.path.join(dora_parameters_path, f"epoch{epoch + 1}_dora_params.pth")
     torch.save(dora_params, save_path)
 
 
-def train_model(model, train_loader, test_loader, inference_loader, device, optimizer, criterion, epochs, training_res_path, logger=None, early_stopping_patience=5, checkpoint_path='clip_hba_model_cv.pth', dora_parameters_path='./dora_params'):
+def generate_random_targets(targets_shape, device, mean, std, perturb_seed=None, perturb_distribution='normal'):
+    """
+    Generate completely random targets with the same shape as the original targets.
+    The random targets are seeded for reproducibility.
+    
+    Args:
+        targets_shape: Shape of the original targets tensor
+        device: Device to place the random targets on
+        random_seed: Seed for random number generation (if None, uses current state)
+    
+    Returns:
+        Random targets tensor with the same shape as original targets
+    """
+    
+    if perturb_seed is not None:
+        # Save current random states
+        torch_state = torch.get_rng_state()
+        np_state = np.random.get_state()
+        python_state = random.getstate()
+        
+        # Set seeds for reproducibility
+        torch.manual_seed(perturb_seed)
+        np.random.seed(perturb_seed)
+        random.seed(perturb_seed)
+    
+    # Generate random targets with the same shape
+    # Using normal distribution with mean 0 and std 1 (similar to typical target ranges)
+    if perturb_distribution == 'normal':
+        random_targets = torch.randn(targets_shape, device=device, dtype=torch.float32)
+    elif perturb_distribution == 'target':
+        random_targets = torch.randn(targets_shape, device=device, dtype=torch.float32) * std + mean
+    
+    if perturb_seed is not None:
+        # Restore original random states
+        torch.set_rng_state(torch_state)
+        np.random.set_state(np_state)
+        random.setstate(python_state)
+    
+    return random_targets
+
+
+def shuffle_targets(targets, perturb_seed=None):
+    """
+    Shuffle the targets tensor while preserving the same target values.
+    This breaks the image-target correspondence by randomly reassigning targets to different images.
+    
+    Args:
+        targets: Original targets tensor of shape [batch_size, num_targets]
+        shuffle_seed: Seed for random number generation (if None, uses current state)
+    
+    Returns:
+        Shuffled targets tensor with the same values but different assignments
+    """
+    
+    if perturb_seed is not None:
+        # Save current random states
+        torch_state = torch.get_rng_state()
+        np_state = np.random.get_state()
+        python_state = random.getstate()
+        
+        # Set seeds for reproducibility
+        torch.manual_seed(perturb_seed)
+        np.random.seed(perturb_seed)
+        random.seed(perturb_seed)
+    
+    # Create a copy of the targets to avoid modifying the original
+    shuffled_targets = targets.clone()
+    
+    # Get batch size
+    batch_size = targets.shape[0]
+    
+    # Generate random permutation indices for the batch dimension
+    perm_indices = torch.randperm(batch_size, device=targets.device)
+    
+    # Shuffle the targets by reordering the batch dimension
+    shuffled_targets = shuffled_targets[perm_indices]
+    
+    if perturb_seed is not None:
+        # Restore original random states
+        torch.set_rng_state(torch_state)
+        np.random.set_state(np_state)
+        random.setstate(python_state)
+    
+    return shuffled_targets
+
+
+def train_model(model, train_loader, test_loader, inference_loader, device, optimizer, criterion, epochs, training_res_path, training_run, perturb_seed, mean, std, perturb_distribution, perturb_type, logger=None, early_stopping_patience=5, checkpoint_path='clip_hba_model_cv.pth', dora_parameters_path='./dora_params', resume_from_epoch=0):
     model.train()
     best_test_loss = float('inf')
     epochs_no_improve = 0
@@ -594,20 +686,38 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
     # Create folder to store DoRA parameters
     os.makedirs(dora_parameters_path, exist_ok=True)
 
-    headers = ['epoch', 'train_loss', 'test_loss', 'behavioral_rsa_rho', 'behavioral_rsa_p_value']
+    headers = ['epoch', 'train_loss', 'test_loss', 'behavioral_rsa_rho', 'behavioral_rsa_p_value', 'used_random_targets', 'used_shuffled_targets']
 
     with open(training_res_path, 'w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(headers)
 
-    for epoch in range(epochs):
+    for epoch in range(resume_from_epoch, epochs):
         total_loss = 0.0
+        used_random_targets = False
+        used_shuffled_targets = False
+
+        # Check if this is the epoch where we should use perturbations (log once before batch loop)
+        if epoch == training_run - 1 and perturb_type == 'random_target':
+            log(f"\n*** USING RANDOM TARGETS FOR EPOCH {epoch+1} ***")
+            log(f"Random target seed: {perturb_seed}")
+            used_random_targets = True
+        elif epoch == training_run - 1 and perturb_type == 'label_shuffle':
+            log(f"\n*** USING SHUFFLED TARGETS FOR EPOCH {epoch+1} ***")
+            log(f"Shuffle target seed: {perturb_seed}")
+            used_shuffled_targets = True
 
         progress_bar = tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch+1}/{epochs}")
         for batch_idx, (_, images, targets) in progress_bar:
 
             images = images.to(device)
             targets = targets.to(device)
+
+            # Apply perturbations if this is the perturbation epoch
+            if used_random_targets:
+                targets = generate_random_targets(targets.shape, device, mean, std, perturb_seed, perturb_distribution)
+            elif used_shuffled_targets:
+                targets = shuffle_targets(targets, perturb_seed)
 
             optimizer.zero_grad()
             predictions = model(images)
@@ -622,27 +732,33 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
 
         # Evaluate after every epoch
         avg_test_loss = evaluate_model(model, test_loader, device, criterion)
-        print(f"Epoch {epoch+1}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_test_loss:.4f}")
         log(f"Epoch {epoch+1}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_test_loss:.4f}")
-
+        
         # Conduct behavioral RSA at every epoch
-        rho, p_value, model_rdm = behavioral_RSA(model, inference_loader, device)
+        rho, p_value, model_rdm = behavioral_RSA(model, inference_loader, device, logger=logger)
         log(f"Behavioral RSA Correlation & p-value: {rho:.4f}, {p_value:.4f}")
         model.train() # put the model back in training mode
+        
+        # Log if perturbations were used
+        if used_random_targets:
+            log(f"*** RANDOM TARGETS WERE USED IN THIS EPOCH ***")
+        if used_shuffled_targets:
+            log(f"*** SHUFFLED TARGETS WERE USED IN THIS EPOCH ***")
 
         # Prepare the data row with the epoch number and loss values
-        data_row = [epoch + 1, avg_train_loss, avg_test_loss, rho, p_value]
+        data_row = [epoch + 1, avg_train_loss, avg_test_loss, rho, p_value, used_random_targets, used_shuffled_targets]
 
         # Append the data row to the CSV file
         with open(training_res_path, 'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(data_row)
 
+        # Save the DoRA parameters
+        save_dora_parameters(model, dora_parameters_path, epoch, logger=logger)
+        log(f"DoRA parameters saved for epoch {epoch+1}")
+
         # Check for early stopping and saving checkpoint
         if avg_test_loss < best_test_loss:
-            # Save the DoRA parameters
-            save_dora_parameters(model, dora_parameters_path, epoch)
-            log(f"DoRA parameters saved for epoch {epoch+1}")
             best_test_loss = avg_test_loss
             epochs_no_improve = 0
         else:
@@ -660,7 +776,7 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
             break
 
 
-def run_behavioral_traning(config):
+def run_behavioral_training(config):
     """
     Run behavioral training with the given configuration.
     
@@ -682,6 +798,15 @@ def run_behavioral_traning(config):
     
     # Initialize dataset
     dataset = ThingsDataset(csv_file=config['csv_file'], img_dir=config['img_dir'])
+
+    embeddings = dataset.annotations.iloc[:, 1:].values.astype('float32')
+
+    if config['perturb_distribution'] == 'normal':
+        mean = 0
+        std = 1
+    elif config['perturb_distribution'] == 'target':
+        mean = np.mean(embeddings)
+        std = np.std(embeddings)
     
     # Split dataset
     train_size = int(config['train_portion'] * len(dataset))
@@ -698,7 +823,7 @@ def run_behavioral_traning(config):
     
     # Determine pos_embedding based on backbone
     pos_embedding = False if config['backbone'] == 'RN50' else True
-    print(f"pos_embedding is {pos_embedding}")
+    logger.info(f"pos_embedding is {pos_embedding}")
     
     # Initialize model
     model = CLIPHBA(classnames=classnames66, backbone_name=config['backbone'], 
@@ -721,10 +846,24 @@ def run_behavioral_traning(config):
                       r=config['rank'],
                       dora_dropout=0.1)
     switch_dora_layers(model, freeze_all=True, dora_state=True)
+
+    training_run = config['training_run']
+    
+    dora_checkpoint = training_run - 1
+    dora_params_path = os.path.join(config['baseline_dora_directory'], f"epoch{dora_checkpoint}_dora_params.pth")
+
+    # Load the DoRA parameter checkpoint from the previous epoch (training_run - 1) only if training_run > 1
+    if config['training_run'] > 1:
+        # Replace the keys and values in model_state_dict only for the dora layers listed in the dora_params_path
+        dora_params_state_dict = torch.load(dora_params_path)
+        model.load_state_dict(dora_params_state_dict, strict=False)
+        logger.info(f"Loaded DoRA parameters from {dora_params_path}")
+    elif config['training_run'] == 1:
+        logger.info(f"Using original DoRA parameters from model initialization")
     
     # Use DataParallel if using all GPUs
     if config['cuda'] == -1:
-        print(f"Using {torch.cuda.device_count()} GPUs")
+        logger.info(f"Using {torch.cuda.device_count()} GPUs")
         model = DataParallel(model)
     
     model.to(device)
@@ -745,10 +884,12 @@ def run_behavioral_traning(config):
     
     # Train model
     train_model(model, train_loader, test_loader, inference_loader, device, optimizer, 
-                config['criterion'], config['epochs'], 
-                config['training_res_path'],
+                criterion=config['criterion'], epochs=config['epochs'], 
+                training_res_path=config['training_res_path'], training_run=training_run, perturb_seed=config['perturb_seed'],
+                mean=mean, std=std, perturb_distribution=config['perturb_distribution'], perturb_type=config['perturb_type'],
                 logger=logger,
                 early_stopping_patience=config['early_stopping_patience'],
                 checkpoint_path=config['checkpoint_path'],
-                dora_parameters_path=config['dora_parameters_path']
+                dora_parameters_path=config['dora_parameters_path'],
+                resume_from_epoch=config.get('resume_from_epoch', 0)
                 )
