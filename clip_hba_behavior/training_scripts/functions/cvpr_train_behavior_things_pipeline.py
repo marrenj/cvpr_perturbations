@@ -540,10 +540,17 @@ def behavioral_RSA(model, inference_loader, device, logger=None):
         return rho, p_value, model_rdm
 
 
-def save_dora_parameters(model, dora_parameters_path, epoch, logger=None):
+def save_dora_parameters(model, dora_parameters_path, epoch, logger=None, save_rng_state=True):
     """
     Save DoRA parameters for specific modules in the model.
-    Each module's parameters are saved to a separate file to avoid overwriting.
+    Optionally also saves random number generator states for reproducibility.
+    
+    Args:
+        model: The model to save parameters from
+        dora_parameters_path: Directory to save parameters to
+        epoch: Current epoch number
+        logger: Optional logger for output
+        save_rng_state: If True, save RNG states for perfect reproducibility
     """
     # Use logger if provided, otherwise use print
     log = logger.info if logger else print
@@ -577,9 +584,141 @@ def save_dora_parameters(model, dora_parameters_path, epoch, logger=None):
         log(f"  delta_D_A: shape {dora_params[f'{module_path}.delta_D_A'].shape}")
         log(f"  delta_D_B: shape {dora_params[f'{module_path}.delta_D_B'].shape}")
     
+    # Save RNG states for perfect reproducibility of DataLoader shuffle
+    if save_rng_state:
+        dora_params['rng_state'] = {
+            'torch_rng_state': torch.get_rng_state(),
+            'numpy_rng_state': np.random.get_state(),
+            'python_rng_state': random.getstate(),
+        }
+        # Save CUDA RNG state if using CUDA
+        if torch.cuda.is_available():
+            dora_params['rng_state']['cuda_rng_state_all'] = torch.cuda.get_rng_state_all()
+        
+        log("\nSaved RNG states for reproducibility")
+    
     # Save the parameters
     save_path = os.path.join(dora_parameters_path, f"epoch{epoch + 1}_dora_params.pth")
     torch.save(dora_params, save_path)
+
+
+def reconstruct_rng_state_for_epoch(target_epoch, dataset_size, train_portion, batch_size, seed=1, logger=None):
+    """
+    Reconstruct the RNG state for a given epoch by replaying random operations.
+    
+    This allows you to recreate the exact RNG state that would exist at the start of 
+    any epoch, even if you don't have the checkpoint from the previous epoch!
+    
+    Args:
+        target_epoch: The epoch number to reconstruct RNG state for (1-indexed)
+        dataset_size: Total size of the dataset
+        train_portion: Portion of dataset used for training (e.g., 0.8)
+        batch_size: Batch size used for training
+        seed: Initial random seed (default: 1)
+        logger: Optional logger for output
+    
+    Returns:
+        dict: Dictionary containing reconstructed RNG states
+    """
+    log = logger.info if logger else print
+    
+    log(f"Reconstructing RNG state for epoch {target_epoch}...")
+    
+    # Start from the initial seed
+    seed_everything(seed)
+    
+    # Replay the random_split operation
+    # This is what happens at the start of training to split train/test
+    train_size = int(train_portion * dataset_size)
+    test_size = dataset_size - train_size
+    
+    # random_split uses torch.randperm internally, so we need to call it
+    _ = torch.randperm(dataset_size).tolist()
+    
+    # Now replay the DataLoader shuffles for each epoch up to (but not including) target_epoch
+    # Each epoch's DataLoader with shuffle=True creates a permutation
+    for epoch in range(target_epoch - 1):
+        # DataLoader shuffle creates a permutation of indices
+        _ = torch.randperm(train_size).tolist()
+    
+    # Capture the RNG state at this point
+    rng_state = {
+        'torch_rng_state': torch.get_rng_state(),
+        'numpy_rng_state': np.random.get_state(),
+        'python_rng_state': random.getstate(),
+    }
+    
+    if torch.cuda.is_available():
+        rng_state['cuda_rng_state_all'] = torch.cuda.get_rng_state_all()
+    
+    log(f"✓ Reconstructed RNG state for epoch {target_epoch}")
+    log(f"  Replayed: 1 random_split + {target_epoch - 1} DataLoader shuffles")
+    
+    return rng_state
+
+
+def load_and_restore_rng_state(checkpoint_dict, logger=None):
+    """
+    Load and restore RNG states from a checkpoint for reproducibility.
+    
+    Args:
+        checkpoint_dict: Dictionary containing checkpoint data (should have 'rng_state' key)
+        logger: Optional logger for output
+    
+    Returns:
+        bool: True if RNG states were restored, False otherwise
+    """
+    log = logger.info if logger else print
+    
+    if 'rng_state' not in checkpoint_dict:
+        log("Warning: No RNG states found in checkpoint. Shuffle order will differ.")
+        return False
+    
+    rng_state = checkpoint_dict['rng_state']
+    
+    # Restore PyTorch RNG state
+    if 'torch_rng_state' in rng_state:
+        torch.set_rng_state(rng_state['torch_rng_state'])
+    
+    # Restore NumPy RNG state
+    if 'numpy_rng_state' in rng_state:
+        np.random.set_state(rng_state['numpy_rng_state'])
+    
+    # Restore Python RNG state
+    if 'python_rng_state' in rng_state:
+        random.setstate(rng_state['python_rng_state'])
+    
+    # Restore CUDA RNG states
+    if 'cuda_rng_state_all' in rng_state and torch.cuda.is_available():
+        torch.cuda.set_rng_state_all(rng_state['cuda_rng_state_all'])
+    
+    log("✓ Restored RNG states from checkpoint for reproducible shuffle order")
+    return True
+
+
+def restore_rng_state_dict(rng_state_dict, logger=None):
+    """
+    Restore RNG states from a dictionary (used when RNG state is reconstructed).
+    
+    Args:
+        rng_state_dict: Dictionary containing RNG states
+        logger: Optional logger for output
+    """
+    log = logger.info if logger else print
+    
+    if 'torch_rng_state' in rng_state_dict:
+        torch.set_rng_state(rng_state_dict['torch_rng_state'])
+    
+    if 'numpy_rng_state' in rng_state_dict:
+        np.random.set_state(rng_state_dict['numpy_rng_state'])
+    
+    if 'python_rng_state' in rng_state_dict:
+        random.setstate(rng_state_dict['python_rng_state'])
+    
+    if 'cuda_rng_state_all' in rng_state_dict and torch.cuda.is_available():
+        torch.cuda.set_rng_state_all(rng_state_dict['cuda_rng_state_all'])
+    
+    log("✓ Restored reconstructed RNG states")
 
 
 def generate_random_targets(targets_shape, device, mean, std, perturb_seed=None, perturb_distribution='normal'):
@@ -708,6 +847,10 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
             used_shuffled_targets = True
 
         progress_bar = tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch+1}/{epochs}")
+        
+        # Flag to log shuffle verification only once per epoch
+        shuffle_verified = False
+        
         for batch_idx, (_, images, targets) in progress_bar:
 
             images = images.to(device)
@@ -717,7 +860,46 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
             if used_random_targets:
                 targets = generate_random_targets(targets.shape, device, mean, std, perturb_seed, perturb_distribution)
             elif used_shuffled_targets:
-                targets = shuffle_targets(targets, perturb_seed)
+                # Verify shuffle on the first batch only
+                if not shuffle_verified:
+                    log("\n" + "="*80)
+                    log("LABEL SHUFFLE VERIFICATION")
+                    log("="*80)
+                    
+                    # Store original targets before shuffling
+                    original_targets = targets.clone()
+                    log(f"\nBatch size: {targets.shape[0]}, Target dimensions: {targets.shape[1]}")
+                    log(f"\nOriginal targets (first 3 samples, first 5 dimensions):")
+                    for i in range(min(3, targets.shape[0])):
+                        log(f"  Sample {i}: {original_targets[i, :5].cpu().numpy()}")
+                    
+                    # Shuffle targets
+                    targets = shuffle_targets(targets, perturb_seed)
+                    
+                    log(f"\nShuffled targets (first 3 samples, first 5 dimensions):")
+                    for i in range(min(3, targets.shape[0])):
+                        log(f"  Sample {i}: {targets[i, :5].cpu().numpy()}")
+                    
+                    # Verify that targets changed
+                    targets_changed = not torch.allclose(original_targets, targets)
+                    log(f"\nTargets were modified: {targets_changed}")
+                    
+                    # Verify that all original values still exist (set comparison)
+                    original_flat = original_targets.flatten().cpu().numpy()
+                    shuffled_flat = targets.flatten().cpu().numpy()
+                    original_sorted = np.sort(original_flat)
+                    shuffled_sorted = np.sort(shuffled_flat)
+                    values_preserved = np.allclose(original_sorted, shuffled_sorted)
+                    log(f"All original values preserved (just reordered): {values_preserved}")
+                    
+                    # Check how many samples have different targets
+                    samples_changed = (~torch.all(torch.isclose(original_targets, targets), dim=1)).sum().item()
+                    log(f"Number of samples with changed targets: {samples_changed}/{targets.shape[0]}")
+                    
+                    log("="*80 + "\n")
+                    shuffle_verified = True
+                else:
+                    targets = shuffle_targets(targets, perturb_seed)
 
             optimizer.zero_grad()
             predictions = model(images)
@@ -858,6 +1040,9 @@ def run_behavioral_training(config):
         dora_params_state_dict = torch.load(dora_params_path)
         model.load_state_dict(dora_params_state_dict, strict=False)
         logger.info(f"Loaded DoRA parameters from {dora_params_path}")
+        
+        # Restore RNG states for reproducible shuffle order
+        load_and_restore_rng_state(dora_params_state_dict, logger=logger)
     elif config['training_run'] == 1:
         logger.info(f"Using original DoRA parameters from model initialization")
     
