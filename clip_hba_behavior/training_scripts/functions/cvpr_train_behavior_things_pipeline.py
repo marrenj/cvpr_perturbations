@@ -668,122 +668,7 @@ def shuffle_targets(targets, perturb_seed=None):
     return shuffled_targets
 
 
-def save_random_states(optimizer, epoch, checkpoint_dir, logger=None):
-    """
-    Save all random states and optimizer state for 100% reproducibility.
-    
-    Args:
-        optimizer: The optimizer whose state to save
-        epoch: Current epoch number
-        checkpoint_dir: Directory to save the checkpoint
-        logger: Optional logger for logging messages
-    """
-    log = logger.info if logger else print
-    
-    # Create checkpoint with all random states
-    checkpoint = {
-        'epoch': epoch,
-        'optimizer_state_dict': optimizer.state_dict(),
-        'torch_rng_state': torch.get_rng_state(),
-        'numpy_rng_state': np.random.get_state(),
-        'python_rng_state': random.getstate(),
-    }
-    
-    # Save CUDA random states for all GPUs if available
-    if torch.cuda.is_available():
-        checkpoint['cuda_rng_state'] = torch.cuda.get_rng_state()
-        checkpoint['cuda_rng_state_all'] = torch.cuda.get_rng_state_all()
-    
-    # Save the checkpoint
-    os.makedirs(checkpoint_dir, exist_ok=True)
-    checkpoint_file = os.path.join(checkpoint_dir, f"epoch{epoch + 1}_random_states.pth")
-    torch.save(checkpoint, checkpoint_file)
-    log(f"Random states saved: {checkpoint_file}")
-
-
-def load_random_states(checkpoint_path, optimizer, device, logger=None):
-    """
-    Load all random states and optimizer state for resuming training.
-    
-    Args:
-        checkpoint_path: Path to the checkpoint file
-        optimizer: The optimizer to load state into
-        device: Device to load CUDA states onto
-        logger: Optional logger for logging messages
-        
-    Returns:
-        epoch: The epoch number to resume from
-    """
-    log = logger.info if logger else print
-    
-    checkpoint = torch.load(checkpoint_path, map_location='cpu')
-    
-    # Restore optimizer state
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    log(f"Optimizer state restored from epoch {checkpoint['epoch']}")
-    
-    # Restore random states
-    torch.set_rng_state(checkpoint['torch_rng_state'])
-    np.random.set_state(checkpoint['numpy_rng_state'])
-    random.setstate(checkpoint['python_rng_state'])
-    log("Random states restored (torch, numpy, python)")
-    
-    # Restore CUDA random states if available
-    if torch.cuda.is_available() and 'cuda_rng_state' in checkpoint:
-        torch.cuda.set_rng_state(checkpoint['cuda_rng_state'])
-        if 'cuda_rng_state_all' in checkpoint:
-            torch.cuda.set_rng_state_all(checkpoint['cuda_rng_state_all'])
-        log("CUDA random states restored")
-    
-    return checkpoint['epoch']
-
-
-def load_dora_parameters(model, dora_checkpoint_path, logger=None):
-    """
-    Load DoRA parameters into the model.
-    
-    Args:
-        model: The model to load DoRA parameters into
-        dora_checkpoint_path: Path to the DoRA parameters file
-        logger: Optional logger for logging messages
-    """
-    log = logger.info if logger else print
-    
-    # Handle DataParallel wrapper
-    if isinstance(model, torch.nn.DataParallel):
-        model_module = model.module
-    else:
-        model_module = model
-    
-    # Load the saved parameters
-    dora_params = torch.load(dora_checkpoint_path, map_location='cpu')
-    
-    # Load parameters into each DoRA layer
-    for param_name, param_value in dora_params.items():
-        # Parse the parameter name to navigate to the right module
-        # e.g., "clip_model.visual.transformer.resblocks.22.attn.out_proj.m"
-        parts = param_name.split('.')
-        param_type = parts[-1]  # 'm', 'delta_D_A', or 'delta_D_B'
-        module_path = '.'.join(parts[:-1])  # Everything except the last part
-        
-        # Navigate to the module
-        module = model_module
-        for attr in module_path.split('.'):
-            module = getattr(module, attr)
-        
-        # Load the parameter
-        if isinstance(module, DoRALayer):
-            if param_type == 'm':
-                module.m.data.copy_(param_value)
-            elif param_type == 'delta_D_A':
-                module.delta_D_A.data.copy_(param_value)
-            elif param_type == 'delta_D_B':
-                module.delta_D_B.data.copy_(param_value)
-    
-    log(f"DoRA parameters loaded from {dora_checkpoint_path}")
-
-
-def train_model(model, train_loader, test_loader, inference_loader, device, optimizer, criterion, epochs, training_res_path, training_run, perturb_seed, mean, std, perturb_distribution, perturb_type, logger=None, early_stopping_patience=5, checkpoint_path='clip_hba_model_cv.pth', dora_parameters_path='./dora_params', random_states_path='./random_states', resume_from_epoch=0):
+def train_model(model, train_loader, test_loader, inference_loader, device, optimizer, criterion, epochs, training_res_path, training_run, perturb_seed, mean, std, perturb_distribution, perturb_type, logger=None, early_stopping_patience=5, checkpoint_path='clip_hba_model_cv.pth', dora_parameters_path='./dora_params', resume_from_epoch=0):
     model.train()
     best_test_loss = float('inf')
     epochs_no_improve = 0
@@ -813,10 +698,7 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
         used_shuffled_targets = False
 
         # Check if this is the epoch where we should use perturbations (log once before batch loop)
-        if perturb_type == 'none':
-            # No perturbations - running normal training (useful for reproducibility testing)
-            pass
-        elif epoch == training_run - 1 and perturb_type == 'random_target':
+        if epoch == training_run - 1 and perturb_type == 'random_target':
             log(f"\n*** USING RANDOM TARGETS FOR EPOCH {epoch+1} ***")
             log(f"Random target seed: {perturb_seed}")
             used_random_targets = True
@@ -875,9 +757,6 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
         save_dora_parameters(model, dora_parameters_path, epoch, logger=logger)
         log(f"DoRA parameters saved for epoch {epoch+1}")
 
-        # Save random states and optimizer after every epoch for full reproducibility
-        save_random_states(optimizer, epoch, random_states_path, logger=logger)
-
         # Check for early stopping and saving checkpoint
         if avg_test_loss < best_test_loss:
             best_test_loss = avg_test_loss
@@ -915,8 +794,6 @@ def run_behavioral_training(config):
     logger.info("="*80)
     logger.info("Starting Training Run")
     logger.info(f"Log file: {log_file}")
-    if config.get('perturb_type') == 'none':
-        logger.info("PERTURBATION TYPE: NONE (No perturbations/normal training)")
     logger.info("="*80)
     
     # Initialize dataset
@@ -924,18 +801,12 @@ def run_behavioral_training(config):
 
     embeddings = dataset.annotations.iloc[:, 1:].values.astype('float32')
 
-    # Set mean and std based on perturbation distribution
-    # (only used if perturb_type is 'random_target', but we set them regardless for safety)
     if config['perturb_distribution'] == 'normal':
         mean = 0
         std = 1
     elif config['perturb_distribution'] == 'target':
         mean = np.mean(embeddings)
         std = np.std(embeddings)
-    else:
-        # Default to normal distribution
-        mean = 0
-        std = 1
     
     # Split dataset
     train_size = int(config['train_portion'] * len(dataset))
@@ -982,18 +853,11 @@ def run_behavioral_training(config):
     dora_params_path = os.path.join(config['baseline_dora_directory'], f"epoch{dora_checkpoint}_dora_params.pth")
 
     # Load the DoRA parameter checkpoint from the previous epoch (training_run - 1) only if training_run > 1
-    # AND only if we're not doing a fresh training run (perturb_type != 'none')
-    if training_run > 1 and config.get('perturb_type') != 'none':
-        logger.info(f"Loading DoRA parameters from epoch {training_run - 1}")
-        dora_checkpoint_path = os.path.join(config['baseline_dora_directory'], 
-            f"epoch{training_run - 1}_dora_params.pth")
-        load_dora_parameters(model, dora_checkpoint_path, logger=logger)
+    if config['training_run'] > 1:
         # Replace the keys and values in model_state_dict only for the dora layers listed in the dora_params_path
-        # dora_params_state_dict = torch.load(dora_params_path)
-        # model.load_state_dict(dora_params_state_dict, strict=False)
-        # logger.info(f"Loaded DoRA parameters from {dora_params_path}")
-    elif config.get('perturb_type') == 'none':
-        logger.info(f"Starting fresh training (perturb_type='none') - using original DoRA parameters from model initialization")
+        dora_params_state_dict = torch.load(dora_params_path)
+        model.load_state_dict(dora_params_state_dict, strict=False)
+        logger.info(f"Loaded DoRA parameters from {dora_params_path}")
     elif config['training_run'] == 1:
         logger.info(f"Using original DoRA parameters from model initialization")
     
@@ -1006,23 +870,6 @@ def run_behavioral_training(config):
     
     # Initialize optimizer
     optimizer = AdamW(model.parameters(), lr=config['lr'])
-
-    # Load random states if resuming (but not when doing fresh training with perturb_type='none')
-    if training_run > 1 and config.get('perturb_type') != 'none':
-        # Determine the baseline random states directory
-        # First try the new 'baseline_random_states_directory' parameter
-        # If not provided, fall back to 'baseline_checkpoint_directory' for backward compatibility
-        baseline_random_states_dir = config.get('baseline_random_states_directory')
-        if baseline_random_states_dir is None:
-            baseline_random_states_dir = config.get('baseline_checkpoint_directory', 
-                                        os.path.dirname(config['baseline_dora_directory']))
-        random_state_path = os.path.join(baseline_random_states_dir, 
-                                        f'epoch{training_run - 1}_random_states.pth')
-        logger.info(f"Loading random states from: {random_state_path}")
-        loaded_epoch = load_random_states(random_state_path, optimizer, device, logger=logger)
-        logger.info(f"Successfully restored all states from epoch {loaded_epoch}")
-    elif config.get('perturb_type') == 'none':
-        logger.info(f"Starting fresh training (perturb_type='none') - using newly initialized optimizer and random states")
     
     # Print training information
     logger.info("\nModel Configuration:")
@@ -1036,9 +883,6 @@ def run_behavioral_training(config):
     logger.info(f"\nNumber of trainable parameters: {count_trainable_parameters(model)}\n")
     
     # Train model
-    # If perturb_type is 'none', always start from epoch 0 (fresh training)
-    resume_epoch = 0 if config.get('perturb_type') == 'none' else config.get('resume_from_epoch', 0)
-    
     train_model(model, train_loader, test_loader, inference_loader, device, optimizer, 
                 criterion=config['criterion'], epochs=config['epochs'], 
                 training_res_path=config['training_res_path'], training_run=training_run, perturb_seed=config['perturb_seed'],
@@ -1047,6 +891,5 @@ def run_behavioral_training(config):
                 early_stopping_patience=config['early_stopping_patience'],
                 checkpoint_path=config['checkpoint_path'],
                 dora_parameters_path=config['dora_parameters_path'],
-                random_states_path=config['random_states_path'],
-                resume_from_epoch=resume_epoch
+                resume_from_epoch=config.get('resume_from_epoch', 0)
                 )
