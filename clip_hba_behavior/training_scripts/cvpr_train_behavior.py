@@ -7,7 +7,7 @@ import sys
 
 ## THINGS THAT WILL BE THE SAME FOR ALL TRAINING RUNS:
 # DoRA parameter checkpoint directory (also determines the number of training runs)
-# Perturbation types: label_shuffle, random_target
+# Perturbation types: label_shuffle, random_target, none (for no perturbations)
 # Perturb_length: 1 (one epoch per run)
 # Perturb_distribution: normal (for random_target runs) or target (for label_shuffle runs)
 # Seed: 42 for now
@@ -111,9 +111,10 @@ def main():
         'transformer_layers': 1, # Last n transformer layers to be trained, default CLIP-HBA-Behavior is 1
         'rank': 32, # Rank of the feature reweighting matrix, default CLIP-HBA-Behavior is 32
         'criterion': nn.MSELoss(), # MSE Loss
-        'cuda': 1,  # -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
+        'cuda': 0,  # -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
         'baseline_dora_directory': '/home/wallacelab/teba/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_artifacts/dora_params/dora_params_20251008_211424', # location of the DoRA parameters for the baseline training run
-        'perturb_type': 'random_target', # either 'random_target' or 'label_shuffle'
+        'baseline_random_states_directory': '/home/wallacelab/teba/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_artifacts/random_states/random_states_20251008_211424', # location of the random states from the baseline training run (NEW: for training_artifacts structure)
+        'perturb_type': 'random_target', # Options: 'random_target', 'label_shuffle', or 'none' (no perturbations)
         'perturb_distribution': 'normal', # draw from either the 'normal' or 'target' distribution when generating random targets (only used for random_target runs)
         'perturb_seed': 42, # seed for the random target generator
         'output_base_directory': f'/home/wallacelab/teba/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/{timestamp}', # base directory for saving the training results and artifacts
@@ -139,7 +140,7 @@ def main():
     failed_runs = 0
     failed_run_list = []
 
-    for training_run in range(3, 94):  # for every epoch in epochs 1 - 93...
+    for training_run in range(1, 94):  # for every epoch in epochs 1 - 93...
         main_logger.info("-"*80)
         main_logger.info(f"TRAINING RUN {training_run}/93")
         main_logger.info(f"  Perturbing epoch: {training_run}")
@@ -153,6 +154,7 @@ def main():
         config['checkpoint_path'] = os.path.join(training_run_directory, f'model_checkpoint_run{training_run}.pth')
         config['training_res_path'] = os.path.join(training_run_directory, f'training_res_run{training_run}.csv')
         config['dora_parameters_path'] = os.path.join(training_run_directory, f'dora_params_run{training_run}')
+        config['random_states_path'] = os.path.join(training_run_directory, f'random_states_run{training_run}')
         config['resume_from_epoch'] = training_run - 1
 
         try:
