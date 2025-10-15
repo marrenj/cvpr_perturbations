@@ -54,6 +54,52 @@ import sys
 # |   |   |   |   |-- training_artifacts
 # |   |   |   |   |    |-- dora_params
 
+def generate_midpoint_order(start=1, end=98):
+    """
+    Generate training order that fills in midpoints progressively.
+    Starts with 1, 98, 49, then recursively fills in intervals.
+    
+    Returns a list of epochs in the order they should be trained.
+    """
+
+    if start > end:
+        return []
+
+    epochs = []
+    # Use a queue to track intervals to process (breadth-first approach)
+    from collections import deque
+
+    # Start with the first and last epochs
+    epochs.append(start)
+    if start != end:
+        epochs.append(end)
+
+    # Calculate and add the middle
+    mid = (start + end) // 2
+    if mid != start and mid != end:
+        epochs.append(mid)
+
+    # Now process intervals recursively using a queue
+    queue = deque()
+    if mid > start + 1:
+        queue.append((start, mid))
+    if end > mid + 1:
+        queue.append((mid, end))
+
+    while queue:
+        left, right = queue.popleft()
+        new_mid = (left + right) // 2
+        # Only add if it's not already one of the boundaries
+        if new_mid != left and new_mid != right:
+            epochs.append(new_mid)
+            # Add new intervals to process
+            if new_mid > left + 1:
+                queue.append((left, new_mid))
+            if right > new_mid + 1:
+                queue.append((new_mid, right))
+
+    return epochs
+
 def setup_main_logger(log_file_path):
     """
     Set up logger for the main training loop to track all 93 runs.
@@ -112,11 +158,13 @@ def main():
         'rank': 32, # Rank of the feature reweighting matrix, default CLIP-HBA-Behavior is 32
         'criterion': nn.MSELoss(), # MSE Loss
         'cuda': 1,  # -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
-        'baseline_dora_directory': '/home/wallacelab/teba/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_artifacts/dora_params/dora_params_20251008_211424', # location of the DoRA parameters for the baseline training run
-        'perturb_type': 'random_target', # either 'random_target' or 'label_shuffle'
+        'baseline_dora_directory': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_artifacts/dora_params/dora_params_20251013_220330', # location of the DoRA parameters for the baseline training run
+        'baseline_random_state_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_artifacts/random_states/random_states_20251013_220330', # location of the random states for the baseline training run
+        'baseline_split_indices_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_artifacts/random_states/random_states_20251013_220330/dataset_split_indices.pth', # location of the train/test split indices from baseline training
+        'perturb_type': 'label_shuffle', # either 'random_target' or 'label_shuffle'
         'perturb_distribution': 'normal', # draw from either the 'normal' or 'target' distribution when generating random targets (only used for random_target runs)
         'perturb_seed': 42, # seed for the random target generator
-        'output_base_directory': f'/home/wallacelab/teba/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/{timestamp}', # base directory for saving the training results and artifacts
+        'output_base_directory': f'/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/{timestamp}', # base directory for saving the training results and artifacts
     }
 
     # Set up main logger for the entire loop
@@ -124,7 +172,7 @@ def main():
     main_logger = setup_main_logger(main_log_path)
 
     main_logger.info("="*80)
-    main_logger.info("STARTING MAIN TRAINING LOOP - 93 TRAINING RUNS")
+    main_logger.info("STARTING MAIN TRAINING LOOP - MIDPOINT-BASED TRAINING ORDER")
     main_logger.info(f"Timestamp: {timestamp}")
     main_logger.info(f"Perturbation Type: {config['perturb_type']}")
     main_logger.info(f"Perturbation Distribution: {config['perturb_distribution']}")
@@ -139,9 +187,22 @@ def main():
     failed_runs = 0
     failed_run_list = []
 
-    for training_run in range(3, 94):  # for every epoch in epochs 1 - 93...
+    # # Generate the midpoint-based training order
+    # training_order = generate_midpoint_order(start=1, end=98)
+
+    # Generate full order but only run from 98 onwards
+    full_order = generate_midpoint_order(start=1, end=98)
+    # Find where 98 appears and slice from there
+    start_idx = full_order.index(98)
+    training_order = full_order[start_idx:]
+    
+    main_logger.info(f"Training order (first 20 epochs): {training_order[:20]}")
+    main_logger.info(f"Total epochs to train: {len(training_order)}")
+    main_logger.info("")
+
+    for idx, training_run in enumerate(training_order, 1):  # Loop through midpoint order
         main_logger.info("-"*80)
-        main_logger.info(f"TRAINING RUN {training_run}/93")
+        main_logger.info(f"TRAINING RUN {idx}/{len(training_order)} (Epoch {training_run})")
         main_logger.info(f"  Perturbing epoch: {training_run}")
         main_logger.info(f"  Resume from epoch: {training_run - 1}")
         
@@ -153,6 +214,7 @@ def main():
         config['checkpoint_path'] = os.path.join(training_run_directory, f'model_checkpoint_run{training_run}.pth')
         config['training_res_path'] = os.path.join(training_run_directory, f'training_res_run{training_run}.csv')
         config['dora_parameters_path'] = os.path.join(training_run_directory, f'dora_params_run{training_run}')
+        config['random_state_path'] = os.path.join(training_run_directory, f'random_states_run{training_run}')
         config['resume_from_epoch'] = training_run - 1
 
         try:
@@ -177,7 +239,7 @@ def main():
     # Final summary
     main_logger.info("="*80)
     main_logger.info("MAIN TRAINING LOOP COMPLETED")
-    main_logger.info(f"Total runs: 93")
+    main_logger.info(f"Total runs: {len(training_order)}")
     main_logger.info(f"Successful: {successful_runs}")
     main_logger.info(f"Failed: {failed_runs}")
     if failed_run_list:

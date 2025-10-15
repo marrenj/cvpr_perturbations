@@ -85,98 +85,6 @@ def setup_logger(log_file_path):
     return logger
 
 
-def load_random_states(random_state_path, epoch, optimizer=None, dataloader_generator=None, logger=None):
-    """
-    Load all random states from a checkpoint for 100% reproducibility.
-    
-    Args:
-        random_state_path: Directory where checkpoints are saved
-        epoch: Epoch number to load from
-        optimizer: Optional optimizer to restore state
-        dataloader_generator: Optional generator to restore state
-        logger: Optional logger for logging messages
-    
-    Returns:
-        bool: True if successful, False otherwise
-    """
-    log = logger.info if logger else print
-    
-    checkpoint_file = os.path.join(random_state_path, f"epoch{epoch}_random_states.pth")
-    
-    if not os.path.exists(checkpoint_file):
-        log(f"Warning: Random state checkpoint not found: {checkpoint_file}")
-        return False
-    
-    checkpoint = torch.load(checkpoint_file)
-    
-    # Restore all random states
-    torch.set_rng_state(checkpoint['torch_rng_state'])
-    np.random.set_state(checkpoint['numpy_rng_state'])
-    random.setstate(checkpoint['python_rng_state'])
-
-    # Restore CUDA random states if available
-    if torch.cuda.is_available() and 'cuda_rng_state' in checkpoint:
-        torch.cuda.set_rng_state(checkpoint['cuda_rng_state'])
-        if 'cuda_rng_state_all' in checkpoint:
-            torch.cuda.set_rng_state_all(checkpoint['cuda_rng_state_all'])
-    
-    # Restore optimizer state if provided
-    if optimizer is not None and 'optimizer_state_dict' in checkpoint:
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        log(f"Restored optimizer state from epoch {epoch}")
-    
-    # Restore DataLoader generator state if provided
-    if dataloader_generator is not None and 'dataloader_generator_state' in checkpoint:
-        dataloader_generator.set_state(checkpoint['dataloader_generator_state'])
-        log(f"Restored DataLoader generator state from epoch {epoch}")
-    
-    log(f"Random states loaded from: {checkpoint_file}")
-    return True
-
-
-def load_dataset_split_indices(split_indices_path, logger=None):
-    """
-    Load dataset split indices from a saved checkpoint.
-    
-    Args:
-        split_indices_path: Path to the saved split indices file
-        logger: Optional logger for logging messages
-    
-    Returns:
-        dict: Dictionary containing train_indices, test_indices, and metadata
-              or None if file doesn't exist
-    """
-    log = logger.info if logger else print
-    
-    if not os.path.exists(split_indices_path):
-        log(f"Split indices file not found: {split_indices_path}")
-        return None
-    
-    split_info = torch.load(split_indices_path)
-    log(f"Loaded dataset split indices from: {split_indices_path}")
-    log(f"  Train samples: {len(split_info['train_indices'])}")
-    log(f"  Test samples: {len(split_info['test_indices'])}")
-    log(f"  Random seed used: {split_info['random_seed']}")
-    
-    return split_info
-
-
-class SubsetWithIndices(Dataset):
-    """
-    Subset of a dataset at specified indices, similar to torch.utils.data.Subset
-    but allows explicit index specification.
-    """
-    def __init__(self, dataset, indices):
-        self.dataset = dataset
-        self.indices = indices
-    
-    def __getitem__(self, idx):
-        return self.dataset[self.indices[idx]]
-    
-    def __len__(self):
-        return len(self.indices)
-
-
 class ThingsDataset(Dataset):
     def __init__(self, csv_file, img_dir):
         self.img_dir = img_dir
@@ -580,13 +488,10 @@ def evaluate_model(model, data_loader, device, criterion):
     return avg_loss
 
 
-def behavioral_RSA(model, inference_loader, device, logger=None):
+def behavioral_RSA(model, inference_loader, device):
     model.eval()
     image_names = []
     predictions = []
-    
-    # Use logger if provided, otherwise use print
-    log = logger.info if logger else print
 
     with torch.no_grad():
         for batch_idx, (image_name, image) in enumerate(inference_loader):
@@ -598,33 +503,33 @@ def behavioral_RSA(model, inference_loader, device, logger=None):
 
             predictions.extend(output.cpu().numpy())
 
-        log(f"First 10 image names: {image_names[:5]}")
+        print(f"First 10 image names: {image_names[:5]}")
 
         predictions_emb = np.array(predictions) 
 
-        log(f"Embedding matrix shape: {predictions_emb.shape}\n")
+        print(f"Embedding matrix shape: {predictions_emb.shape}\n")
 
         model_rdm = 1 - np.corrcoef(predictions_emb)
         np.fill_diagonal(model_rdm, 0)
-        log(f"RDM shape: {model_rdm.shape}\n")
-        log("First 5x5 of the RDM:")
-        log(model_rdm[:5, :5])
-        log("\n")
+        print(f"RDM shape: {model_rdm.shape}\n")
+        print("First 5x5 of the RDM:")
+        print(model_rdm[:5, :5])
+        print("\n")
 
         reference_rdm_dict = scipy.io.loadmat(inference_loader.dataset.RDM48_triplet_dir)
         reference_rdm = reference_rdm_dict['RDM48_triplet']
-        log("First 5x5 of the reference RDM:")
-        log(reference_rdm[:5, :5])
-        log("\n")
+        print("First 5x5 of the reference RDM:")
+        print(reference_rdm[:5, :5])
+        print("\n")
         
         # Extract upper triangular elements (excluding diagonal) for correlation
         # This avoids double-counting and diagonal elements
         upper_tri_indices = np.triu_indices_from(reference_rdm, k=1)
     
         reference_values = reference_rdm[upper_tri_indices]
-        log(f"First 5 reference rdm values: {reference_values[:5]}\n")
+        print(f"First 5 reference rdm values: {reference_values[:5]}\n")
         model_values = model_rdm[upper_tri_indices]
-        log(f"First 5 model rdm values: {model_values[:5]}\n")
+        print(f"First 5 model rdm values: {model_values[:5]}\n")
     
         # Compute Spearman correlation
         rho, p_value = spearmanr(reference_values, model_values)
@@ -632,14 +537,11 @@ def behavioral_RSA(model, inference_loader, device, logger=None):
         return rho, p_value, model_rdm
 
 
-def save_dora_parameters(model, dora_parameters_path, epoch, logger=None):
+def save_dora_parameters(model, dora_parameters_path, epoch):
     """
     Save DoRA parameters for specific modules in the model.
     Each module's parameters are saved to a separate file to avoid overwriting.
     """
-    # Use logger if provided, otherwise use print
-    log = logger.info if logger else print
-    
     modules_to_save = [
         ("clip_model.visual.transformer.resblocks.22.attn.out_proj", "visual_resblock_22_attn"),
         ("clip_model.visual.transformer.resblocks.23.attn.out_proj", "visual_resblock_23_attn"),
@@ -663,11 +565,11 @@ def save_dora_parameters(model, dora_parameters_path, epoch, logger=None):
         dora_params[f'{module_path}.delta_D_A'] = module.delta_D_A.detach().cpu()
         dora_params[f'{module_path}.delta_D_B'] = module.delta_D_B.detach().cpu()
 
-        # Log parameter shapes
-        log(f"\n{module_name} parameter shapes:")
-        log(f"  m: shape {dora_params[f'{module_path}.m'].shape}")
-        log(f"  delta_D_A: shape {dora_params[f'{module_path}.delta_D_A'].shape}")
-        log(f"  delta_D_B: shape {dora_params[f'{module_path}.delta_D_B'].shape}")
+        # Print parameter shapes
+        print(f"\n{module_name} parameter shapes:")
+        print(f"  m: shape {dora_params[f'{module_path}.m'].shape}")
+        print(f"  delta_D_A: shape {dora_params[f'{module_path}.delta_D_A'].shape}")
+        print(f"  delta_D_B: shape {dora_params[f'{module_path}.delta_D_B'].shape}")
     
     # Save the parameters
     save_path = os.path.join(dora_parameters_path, f"epoch{epoch + 1}_dora_params.pth")
@@ -682,7 +584,6 @@ def save_random_states(optimizer, epoch, random_state_path, dataloader_generator
         optimizer: The optimizer whose state to save
         epoch: Current epoch number
         random_state_path: Directory to save the checkpoint
-        dataloader_generator: The generator used for DataLoader shuffling
         logger: Optional logger for logging messages
     """
     log = logger.info if logger else print
@@ -709,134 +610,7 @@ def save_random_states(optimizer, epoch, random_state_path, dataloader_generator
     log(f"Random states saved: {checkpoint_file}")
 
 
-def generate_random_targets(targets_shape, device, mean, std, perturb_seed=None, perturb_distribution='normal'):
-    """
-    Generate completely random targets with the same shape as the original targets.
-    The random targets are seeded for reproducibility.
-    
-    Args:
-        targets_shape: Shape of the original targets tensor
-        device: Device to place the random targets on
-        random_seed: Seed for random number generation (if None, uses current state)
-    
-    Returns:
-        Random targets tensor with the same shape as original targets
-    """
-    
-    if perturb_seed is not None:
-        # Save current random states
-        torch_state = torch.get_rng_state()
-        np_state = np.random.get_state()
-        python_state = random.getstate()
-        
-        # Set seeds for reproducibility
-        torch.manual_seed(perturb_seed)
-        np.random.seed(perturb_seed)
-        random.seed(perturb_seed)
-    
-    # Generate random targets with the same shape
-    # Using normal distribution with mean 0 and std 1 (similar to typical target ranges)
-    if perturb_distribution == 'normal':
-        random_targets = torch.randn(targets_shape, device=device, dtype=torch.float32)
-    elif perturb_distribution == 'target':
-        random_targets = torch.randn(targets_shape, device=device, dtype=torch.float32) * std + mean
-    
-    if perturb_seed is not None:
-        # Restore original random states
-        torch.set_rng_state(torch_state)
-        np.random.set_state(np_state)
-        random.setstate(python_state)
-    
-    return random_targets
-
-
-def create_shuffled_target_mapping(train_dataset, batch_size, perturb_seed, device, logger=None):
-    
-    """
-    Create a complete shuffled mapping of targets for the entire training dataset.
-    This shuffles all targets once at the dataset level, ensuring each image gets a 
-    different (shuffled) target for the entire epoch.
-    
-    Args:
-        train_dataset: Training dataset (not DataLoader)
-        batch_size: Batch size for creating a temporary DataLoader        
-        perturb_seed: Seed for reproducible shuffling
-        device: Device to place tensors on
-        logger: Optional logger for logging messages
-    
-    Returns:
-        Dictionary mapping image names to shuffled targets
-    """
-
-    log = logger.info if logger else print
-    
-    # Save current random states
-    torch_state = torch.get_rng_state()
-    np_state = np.random.get_state()
-    python_state = random.getstate()
-    
-    # Set seed for reproducibility
-    torch.manual_seed(perturb_seed)
-    np.random.seed(perturb_seed)
-    random.seed(perturb_seed)
-    
-    log("Creating shuffled target mapping for entire training dataset...")
-
-    # Create a non-shuffled DataLoader with the same generator as training to ensure consistency
-    temp_generator = torch.Generator()
-    temp_generator.manual_seed(42)  # Use a fixed seed for consistent ordering
-    temp_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, generator=temp_generator)
-    
-    # Collect all image names and targets from the dataset
-    all_image_names = []
-    all_targets = []
-    
-    for batch_idx, (image_names, _, targets) in enumerate(temp_loader):
-        all_image_names.extend(image_names)
-        all_targets.append(targets)
-    
-    # Concatenate all targets
-    all_targets = torch.cat(all_targets, dim=0)
-    log(f"Total training samples: {len(all_image_names)}")
-    log(f"Targets shape: {all_targets.shape}")
-    
-    # Create shuffled indices for the entire dataset
-    num_samples = len(all_image_names)
-    shuffled_indices = torch.randperm(num_samples)
-    
-    # Create shuffled targets by reordering with the permutation
-    shuffled_targets = all_targets[shuffled_indices]
-    
-    # Create mapping from image names to shuffled targets
-    target_mapping = {name: shuffled_targets[i].to(device) for i, name in enumerate(all_image_names)}
-    
-    log(f"Created shuffled target mapping with {len(target_mapping)} entries")
-    log(f"Example: First image '{all_image_names[0]}' gets targets from position {shuffled_indices[0].item()}")
-    
-    # Verify all images in dataset are in mapping
-    dataset_images = set()
-    for i in range(len(train_dataset)):
-        dataset_images.add(train_dataset.dataset.annotations.iloc[train_dataset.indices[i], 0])
-    
-    mapping_images = set(target_mapping.keys())
-    if dataset_images != mapping_images:
-        log(f"WARNING: Mapping mismatch! Dataset has {len(dataset_images)} images, mapping has {len(mapping_images)}")
-        missing_in_mapping = dataset_images - mapping_images
-        extra_in_mapping = mapping_images - dataset_images
-        if missing_in_mapping:
-            log(f"Missing in mapping: {list(missing_in_mapping)[:5]}...")
-        if extra_in_mapping:
-            log(f"Extra in mapping: {list(extra_in_mapping)[:5]}...")
-    
-    # Restore original random states
-    torch.set_rng_state(torch_state)
-    np.random.set_state(np_state)
-    random.setstate(python_state)
-    
-    return target_mapping
-
-
-def train_model(model, train_loader, test_loader, inference_loader, device, optimizer, criterion, epochs, training_res_path, training_run, perturb_seed, mean, std, perturb_distribution, perturb_type, logger=None, early_stopping_patience=5, checkpoint_path='clip_hba_model_cv.pth', dora_parameters_path='./dora_params', random_state_path='./random_states', dataloader_generator=None, resume_from_epoch=0):
+def train_model(model, train_loader, test_loader, inference_loader, device, optimizer, criterion, epochs, training_res_path, logger=None, early_stopping_patience=5, checkpoint_path='clip_hba_model_cv.pth', dora_parameters_path='./dora_params', random_state_path='./random_states', dataloader_generator=None):
     model.train()
     best_test_loss = float('inf')
     epochs_no_improve = 0
@@ -854,48 +628,20 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
     # Create folder to store DoRA parameters
     os.makedirs(dora_parameters_path, exist_ok=True)
 
-    headers = ['epoch', 'train_loss', 'test_loss', 'behavioral_rsa_rho', 'behavioral_rsa_p_value', 'used_random_targets', 'used_shuffled_targets']
+    headers = ['epoch', 'train_loss', 'test_loss', 'behavioral_rsa_rho', 'behavioral_rsa_p_value']
 
     with open(training_res_path, 'w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(headers)
 
-    for epoch in range(resume_from_epoch, epochs):
+    for epoch in range(epochs):
         total_loss = 0.0
-        used_random_targets = False
-        used_shuffled_targets = False
-        shuffled_target_mapping = None
-
-        # Check if this is the epoch where we should use perturbations (log once before batch loop)
-        if epoch == training_run - 1 and perturb_type == 'random_target':
-            log(f"\n*** USING RANDOM TARGETS FOR EPOCH {epoch+1} ***")
-            log(f"Random target seed: {perturb_seed}")
-            used_random_targets = True
-        elif epoch == training_run - 1 and perturb_type == 'label_shuffle':
-            log(f"\n*** USING SHUFFLED TARGETS FOR EPOCH {epoch+1} ***")
-            log(f"Shuffle target seed: {perturb_seed}")
-            used_shuffled_targets = True
-            # Create the shuffled target mapping once for the entire epoch
-            shuffled_target_mapping = create_shuffled_target_mapping(train_loader.dataset, train_loader.batch_size, perturb_seed, device, logger)
 
         progress_bar = tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch+1}/{epochs}")
-        for batch_idx, (image_names, images, targets) in progress_bar:
+        for batch_idx, (_, images, targets) in progress_bar:
 
             images = images.to(device)
             targets = targets.to(device)
-
-            # Apply perturbations if this is the perturbation epoch
-            if used_random_targets:
-                targets = generate_random_targets(targets.shape, device, mean, std, perturb_seed, perturb_distribution)
-            elif used_shuffled_targets:
-                # Use the pre-computed shuffled targets from the mapping
-                try:
-                    targets = torch.stack([shuffled_target_mapping[name] for name in image_names])
-                except KeyError as e:
-                    log(f"ERROR: Image name not found in shuffled target mapping: {e}")
-                    log(f"Available keys: {list(shuffled_target_mapping.keys())[:5]}...")
-                    log(f"Batch image names: {image_names}")
-                    raise KeyError(f"Image name not found in shuffled target mapping: {e}")
 
             optimizer.zero_grad()
             predictions = model(images)
@@ -910,34 +656,28 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
 
         # Evaluate after every epoch
         avg_test_loss = evaluate_model(model, test_loader, device, criterion)
+        print(f"Epoch {epoch+1}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_test_loss:.4f}")
         log(f"Epoch {epoch+1}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_test_loss:.4f}")
-        
+
         # Conduct behavioral RSA at every epoch
-        rho, p_value, model_rdm = behavioral_RSA(model, inference_loader, device, logger=logger)
+        rho, p_value, model_rdm = behavioral_RSA(model, inference_loader, device)
         log(f"Behavioral RSA Correlation & p-value: {rho:.4f}, {p_value:.4f}")
         model.train() # put the model back in training mode
-        
-        # Log if perturbations were used
-        if used_random_targets:
-            log(f"*** RANDOM TARGETS WERE USED IN THIS EPOCH ***")
-        if used_shuffled_targets:
-            log(f"*** SHUFFLED TARGETS WERE USED IN THIS EPOCH ***")
 
         # Prepare the data row with the epoch number and loss values
-        data_row = [epoch + 1, avg_train_loss, avg_test_loss, rho, p_value, used_random_targets, used_shuffled_targets]
+        data_row = [epoch + 1, avg_train_loss, avg_test_loss, rho, p_value]
 
         # Append the data row to the CSV file
         with open(training_res_path, 'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(data_row)
 
-        # Save the DoRA parameters
-        save_dora_parameters(model, dora_parameters_path, epoch, logger=logger)
-        log(f"DoRA parameters saved for epoch {epoch+1}")
-
         # Save random states and optimizer after every epoch for full reproducibility
-        if dataloader_generator is not None:
-            save_random_states(optimizer, epoch, random_state_path, dataloader_generator, logger=logger)
+        save_random_states(optimizer, epoch, random_state_path, dataloader_generator, logger=logger)
+
+        # Save the DoRA parameters
+        save_dora_parameters(model, dora_parameters_path, epoch)
+        log(f"DoRA parameters saved for epoch {epoch+1}")
 
         # Check for early stopping and saving checkpoint
         if avg_test_loss < best_test_loss:
@@ -975,40 +715,37 @@ def run_behavioral_training(config):
     
     # Initialize dataset
     dataset = ThingsDataset(csv_file=config['csv_file'], img_dir=config['img_dir'])
-
-    embeddings = dataset.annotations.iloc[:, 1:].values.astype('float32')
-
-    if config['perturb_distribution'] == 'normal':
-        mean = 0
-        std = 1
-    elif config['perturb_distribution'] == 'target':
-        mean = np.mean(embeddings)
-        std = np.std(embeddings)
     
-    # Split dataset using baseline split
-    baseline_split_path = config.get('baseline_split_indices_path')
-    # Load the split indices from baseline training
-    split_info = load_dataset_split_indices(baseline_split_path, logger=logger)
-    train_dataset = SubsetWithIndices(dataset, split_info['train_indices'])
-    test_dataset = SubsetWithIndices(dataset, split_info['test_indices'])
-    logger.info("Using baseline dataset split")
+    # Split dataset
+    train_size = int(config['train_portion'] * len(dataset))
+    test_size = len(dataset) - train_size
+    train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+
+    split_info = {
+        'train_indices': train_dataset.indices.copy() if hasattr(train_dataset, 'indices') else list(train_dataset.indices),
+        'test_indices': test_dataset.indices.copy() if hasattr(test_dataset, 'indices') else list(test_dataset.indices),
+        'random_seed': config['random_seed'],
+        'train_portion': config['train_portion']
+    }
+    split_file = os.path.join(config['random_state_path'], 'dataset_split_indices.pth')
+    os.makedirs(config['random_state_path'], exist_ok=True)
+    torch.save(split_info, split_file)
+    logger.info(f"Dataset split indices saved: {split_file}")
 
     # Initialize inference dataset
     inference_dataset = ThingsInferenceDataset(inference_csv_file=config['inference_csv_file'], img_dir=config['img_dir'], RDM48_triplet_dir=config['RDM48_triplet_dir'])
-    
+
     # Create a generator for reproducible DataLoader shuffling
     dataloader_generator = torch.Generator()
     dataloader_generator.manual_seed(config['random_seed'])
-    
-    # Create data loaders
-    train_loader = DataLoader(train_dataset, batch_size=config['batch_size'], 
-                             shuffle=True, generator=dataloader_generator)
+
+    train_loader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True, generator=dataloader_generator)
     test_loader = DataLoader(test_dataset, batch_size=config['batch_size'], shuffle=False)
     inference_loader = DataLoader(inference_dataset, batch_size=config['batch_size'], shuffle=False)
     
     # Determine pos_embedding based on backbone
     pos_embedding = False if config['backbone'] == 'RN50' else True
-    logger.info(f"pos_embedding is {pos_embedding}")
+    print(f"pos_embedding is {pos_embedding}")
     
     # Initialize model
     model = CLIPHBA(classnames=classnames66, backbone_name=config['backbone'], 
@@ -1031,50 +768,16 @@ def run_behavioral_training(config):
                       r=config['rank'],
                       dora_dropout=0.1)
     switch_dora_layers(model, freeze_all=True, dora_state=True)
-
-    training_run = config['training_run']
-    
-    dora_checkpoint = training_run - 1
-    dora_params_path = os.path.join(config['baseline_dora_directory'], f"epoch{dora_checkpoint}_dora_params.pth")
-
-    # Load the DoRA parameter checkpoint from the previous epoch (training_run - 1) only if training_run > 1
-    if config['training_run'] > 1:
-        # Replace the keys and values in model_state_dict only for the dora layers listed in the dora_params_path
-        dora_params_state_dict = torch.load(dora_params_path)
-        model.load_state_dict(dora_params_state_dict, strict=False)
-        logger.info(f"Loaded DoRA parameters from {dora_params_path}")
-    elif config['training_run'] == 1:
-        logger.info(f"Using original DoRA parameters from model initialization")
     
     # Use DataParallel if using all GPUs
     if config['cuda'] == -1:
-        logger.info(f"Using {torch.cuda.device_count()} GPUs")
+        print(f"Using {torch.cuda.device_count()} GPUs")
         model = DataParallel(model)
     
     model.to(device)
     
     # Initialize optimizer
     optimizer = AdamW(model.parameters(), lr=config['lr'])
-
-    # If resuming from a specific epoch, load the random states from baseline
-    resume_from_epoch = config.get('resume_from_epoch', 0)
-    if resume_from_epoch > 0:
-        baseline_random_state_path = config.get('baseline_random_state_path')
-        if baseline_random_state_path:
-            logger.info(f"Resuming from epoch {resume_from_epoch}")
-            success = load_random_states(
-                baseline_random_state_path, 
-                resume_from_epoch, 
-                optimizer=optimizer,
-                dataloader_generator=dataloader_generator,
-                logger=logger
-            )
-            if success:
-                logger.info(f"Successfully restored all random states from baseline epoch {resume_from_epoch}")
-            else:
-                logger.warning(f"Could not load random states - starting with fresh random state")
-        else:
-            logger.warning("baseline_random_state_path not provided in config, cannot restore random states")
     
     # Print training information
     logger.info("\nModel Configuration:")
@@ -1089,14 +792,12 @@ def run_behavioral_training(config):
     
     # Train model
     train_model(model, train_loader, test_loader, inference_loader, device, optimizer, 
-                criterion=config['criterion'], epochs=config['epochs'], 
-                training_res_path=config['training_res_path'], training_run=training_run, perturb_seed=config['perturb_seed'],
-                mean=mean, std=std, perturb_distribution=config['perturb_distribution'], perturb_type=config['perturb_type'],
+                config['criterion'], config['epochs'], 
+                config['training_res_path'],
                 logger=logger,
                 early_stopping_patience=config['early_stopping_patience'],
                 checkpoint_path=config['checkpoint_path'],
                 dora_parameters_path=config['dora_parameters_path'],
-                random_state_path=config.get('random_state_path', './random_states'),
-                dataloader_generator=dataloader_generator,
-                resume_from_epoch=config.get('resume_from_epoch', 0)
+                random_state_path=config['random_state_path'],
+                dataloader_generator=dataloader_generator
                 )
