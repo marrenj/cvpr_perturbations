@@ -205,87 +205,6 @@ class ThingsDataset(Dataset):
         return image_name, image, targets
 
 
-# class RandomTargetsDataset(ThingsDataset):
-#     def __init__(self, original_dataset, random_seed=None, perturb_distribution='normal'):
-#         """
-#         Create a dataset with the same images but completely random targets.
-        
-#         Args:
-#             original_dataset: The original training dataset (can be ThingsDataset or SubsetWithIndices)
-#             random_seed: Seed for reproducible random target generation
-#             perturb_distribution: 'normal' or 'target' distribution for random targets
-#         """
-#         # Get the underlying dataset and its parameters
-#         if hasattr(original_dataset, 'dataset'):
-#             # It's a SubsetWithIndices, get the underlying dataset
-#             underlying_dataset = original_dataset.dataset
-#             csv_file = '../Data/spose_embedding66d_rescaled_1806train.csv'  # Use default path
-#             img_dir = '../Data/Things1854'  # Use default path
-#         else:
-#             # It's a ThingsDataset
-#             csv_file = '../Data/spose_embedding66d_rescaled_1806train.csv'  # Use default path
-#             img_dir = '../Data/Things1854'  # Use default path
-        
-#         super().__init__(csv_file, img_dir)
-        
-#         # Copy the annotations from the original dataset
-#         if hasattr(original_dataset, 'dataset'):
-#             # It's a SubsetWithIndices
-#             self.annotations = original_dataset.dataset.annotations.iloc[original_dataset.indices].copy()
-#         else:
-#             # It's a ThingsDataset
-#             self.annotations = original_dataset.annotations.copy()
-        
-#         if random_seed is not None:
-#             # Save current random states
-#             torch_state = torch.get_rng_state()
-#             np_state = np.random.get_state()
-#             python_state = random.getstate()
-            
-#             # Set seeds for reproducibility
-#             torch.manual_seed(random_seed)
-#             np.random.seed(random_seed)
-#             random.seed(random_seed)
-        
-#         # Calculate mean and std from original targets for 'target' distribution
-#         all_original_targets = []
-#         for i in range(len(self.annotations)):
-#             targets = torch.tensor(self.annotations.iloc[i, 1:].values.astype('float32'))
-#             all_original_targets.append(targets)
-        
-#         all_targets_tensor = torch.stack(all_original_targets)
-#         mean = all_targets_tensor.mean().item()
-#         std = all_targets_tensor.std().item()
-        
-#         # Generate random targets for the entire dataset
-#         dataset_size = len(self.annotations)
-#         target_dim = all_original_targets[0].shape[0]  # Get dimension from first target
-        
-#         if perturb_distribution == 'normal':
-#             # Generate random targets from standard normal distribution
-#             random_targets = torch.randn(dataset_size, target_dim, dtype=torch.float32)
-#         elif perturb_distribution == 'target':
-#             # Generate random targets with same mean/std as original targets
-#             random_targets = torch.randn(dataset_size, target_dim, dtype=torch.float32) * std + mean
-        
-#         # Update annotations with random targets
-#         for i in range(len(self.annotations)):
-#             # Replace all target columns (columns 1 onwards) with random values
-#             self.annotations.iloc[i, 1:] = random_targets[i].numpy()
-        
-#         if random_seed is not None:
-#             # Restore original random states
-#             torch.set_rng_state(torch_state)
-#             np.random.set_state(np_state)
-#             random.setstate(python_state)
-        
-#         # Store metadata for logging
-#         self.random_seed = random_seed
-#         self.perturb_distribution = perturb_distribution
-#         self.target_mean = mean
-#         self.target_std = std
-
-
 # create another dataset class for the inference data (48 Things images)
 class ThingsInferenceDataset(Dataset):
     def __init__(self, inference_csv_file, img_dir, RDM48_triplet_dir):
@@ -831,49 +750,90 @@ def generate_random_targets(targets_shape, device, mean, std, perturb_seed=None,
     return random_targets
 
 
-def shuffle_targets(targets, perturb_seed=None):
+def create_shuffled_target_mapping(train_dataset, batch_size, perturb_seed, device, logger=None):
+    
     """
-    Shuffle the targets tensor while preserving the same target values.
-    This breaks the image-target correspondence by randomly reassigning targets to different images.
+    Create a complete shuffled mapping of targets for the entire training dataset.
+    This shuffles all targets once at the dataset level, ensuring each image gets a 
+    different (shuffled) target for the entire epoch.
     
     Args:
-        targets: Original targets tensor of shape [batch_size, num_targets]
-        perturb_seed: Seed for random number generation (if None, uses current state)
+        train_dataset: Training dataset (not DataLoader)
+        batch_size: Batch size for creating a temporary DataLoader        
+        perturb_seed: Seed for reproducible shuffling
+        device: Device to place tensors on
+        logger: Optional logger for logging messages
     
     Returns:
-        Shuffled targets tensor with the same values but different assignments
+        Dictionary mapping image names to shuffled targets
     """
+
+    log = logger.info if logger else print
     
-    if perturb_seed is not None:
-        # Save current random states
-        torch_state = torch.get_rng_state()
-        np_state = np.random.get_state()
-        python_state = random.getstate()
-        
-        # Set seeds for reproducibility
-        torch.manual_seed(perturb_seed)
-        np.random.seed(perturb_seed)
-        random.seed(perturb_seed)
+    # Save current random states
+    torch_state = torch.get_rng_state()
+    np_state = np.random.get_state()
+    python_state = random.getstate()
     
-    # Create a copy of the targets to avoid modifying the original
-    shuffled_targets = targets.clone()
+    # Set seed for reproducibility
+    torch.manual_seed(perturb_seed)
+    np.random.seed(perturb_seed)
+    random.seed(perturb_seed)
     
-    # Get batch size
-    batch_size = targets.shape[0]
+    log("Creating shuffled target mapping for entire training dataset...")
+
+    # Create a non-shuffled DataLoader with the same generator as training to ensure consistency
+    temp_generator = torch.Generator()
+    temp_generator.manual_seed(42)  # Use a fixed seed for consistent ordering
+    temp_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, generator=temp_generator)
     
-    # Generate random permutation indices for the batch dimension
-    perm_indices = torch.randperm(batch_size, device=targets.device)
+    # Collect all image names and targets from the dataset
+    all_image_names = []
+    all_targets = []
     
-    # Shuffle the targets by reordering the batch dimension
-    shuffled_targets = shuffled_targets[perm_indices]
+    for batch_idx, (image_names, _, targets) in enumerate(temp_loader):
+        all_image_names.extend(image_names)
+        all_targets.append(targets)
     
-    if perturb_seed is not None:
-        # Restore original random states
-        torch.set_rng_state(torch_state)
-        np.random.set_state(np_state)
-        random.setstate(python_state)
+    # Concatenate all targets
+    all_targets = torch.cat(all_targets, dim=0)
+    log(f"Total training samples: {len(all_image_names)}")
+    log(f"Targets shape: {all_targets.shape}")
     
-    return shuffled_targets
+    # Create shuffled indices for the entire dataset
+    num_samples = len(all_image_names)
+    shuffled_indices = torch.randperm(num_samples)
+    
+    # Create shuffled targets by reordering with the permutation
+    shuffled_targets = all_targets[shuffled_indices]
+    
+    # Create mapping from image names to shuffled targets
+    target_mapping = {name: shuffled_targets[i].to(device) for i, name in enumerate(all_image_names)}
+    
+    log(f"Created shuffled target mapping with {len(target_mapping)} entries")
+    log(f"Example: First image '{all_image_names[0]}' gets targets from position {shuffled_indices[0].item()}")
+    
+    # Verify all images in dataset are in mapping
+    dataset_images = set()
+    for i in range(len(train_dataset)):
+        dataset_images.add(train_dataset.dataset.annotations.iloc[train_dataset.indices[i], 0])
+    
+    mapping_images = set(target_mapping.keys())
+    if dataset_images != mapping_images:
+        log(f"WARNING: Mapping mismatch! Dataset has {len(dataset_images)} images, mapping has {len(mapping_images)}")
+        missing_in_mapping = dataset_images - mapping_images
+        extra_in_mapping = mapping_images - dataset_images
+        if missing_in_mapping:
+            log(f"Missing in mapping: {list(missing_in_mapping)[:5]}...")
+        if extra_in_mapping:
+            log(f"Extra in mapping: {list(extra_in_mapping)[:5]}...")
+    
+    # Restore original random states
+    torch.set_rng_state(torch_state)
+    np.random.set_state(np_state)
+    random.setstate(python_state)
+    
+    return target_mapping
 
 
 def train_model(model, train_loader, test_loader, inference_loader, device, optimizer, criterion, epochs, training_res_path, training_run, perturb_seed, mean, std, perturb_distribution, perturb_type, logger=None, early_stopping_patience=5, checkpoint_path='clip_hba_model_cv.pth', dora_parameters_path='./dora_params', random_state_path='./random_states', dataloader_generator=None, resume_from_epoch=0):
@@ -887,11 +847,9 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
     # initial evaluation
     log("*********************************")
     log("Evaluating initial model")
-    #best_test_loss = evaluate_model(model, test_loader, device, criterion)
-    #log(f"Initial Validation Loss: {best_test_loss:.4f}")
+    best_test_loss = evaluate_model(model, test_loader, device, criterion)
+    log(f"Initial Validation Loss: {best_test_loss:.4f}")
     log("*********************************\n")
-
-    best_test_loss = 500000
 
     # Create folder to store DoRA parameters
     os.makedirs(dora_parameters_path, exist_ok=True)
@@ -906,6 +864,7 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
         total_loss = 0.0
         used_random_targets = False
         used_shuffled_targets = False
+        shuffled_target_mapping = None
 
         # Check if this is the epoch where we should use perturbations (log once before batch loop)
         if epoch == training_run - 1 and perturb_type == 'random_target':
@@ -916,6 +875,8 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
             log(f"\n*** USING SHUFFLED TARGETS FOR EPOCH {epoch+1} ***")
             log(f"Shuffle target seed: {perturb_seed}")
             used_shuffled_targets = True
+            # Create the shuffled target mapping once for the entire epoch
+            shuffled_target_mapping = create_shuffled_target_mapping(train_loader.dataset, train_loader.batch_size, perturb_seed, device, logger)
 
         progress_bar = tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch+1}/{epochs}")
         for batch_idx, (image_names, images, targets) in progress_bar:
@@ -923,144 +884,29 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
             images = images.to(device)
             targets = targets.to(device)
 
+            # Apply perturbations if this is the perturbation epoch
             if used_random_targets:
-                batch_generator = torch.Generator(device=device)
-                batch_generator.manual_seed(perturb_seed + training_run * 1000 + batch_idx)
-                
-                # Generate random targets using the epoch generator (different for each batch)
-                if perturb_distribution == 'normal':
-                    random_targets = torch.randn(targets.shape, device=device, dtype=torch.float32, generator=batch_generator)
-                elif perturb_distribution == 'target':
-                    random_targets = torch.randn(targets.shape, device=device, dtype=torch.float32, generator=batch_generator) * std + mean
-                targets = random_targets
-
-                # DEBUG: Check if random targets are valid
-                log(f"Random targets stats: min={targets.min().item():.6f}, max={targets.max().item():.6f}, mean={targets.mean().item():.6f}")
-                if torch.isnan(targets).any():
-                    log(f"ERROR: NaN detected in random targets!")
-                    log(f"Random targets sample: {targets[0][:5]}")
-                    break
+                targets = generate_random_targets(targets.shape, device, mean, std, perturb_seed, perturb_distribution)
+            elif used_shuffled_targets:
+                # Use the pre-computed shuffled targets from the mapping
+                try:
+                    targets = torch.stack([shuffled_target_mapping[name] for name in image_names])
+                except KeyError as e:
+                    log(f"ERROR: Image name not found in shuffled target mapping: {e}")
+                    log(f"Available keys: {list(shuffled_target_mapping.keys())[:5]}...")
+                    log(f"Batch image names: {image_names}")
+                    raise KeyError(f"Image name not found in shuffled target mapping: {e}")
 
             optimizer.zero_grad()
             predictions = model(images)
-
-            # DEBUG: Check if predictions are valid
-            log(f"Predictions stats: min={predictions.min().item():.6f}, max={predictions.max().item():.6f}, mean={predictions.mean().item():.6f}")
-            if torch.isnan(predictions).any():
-                log(f"ERROR: NaN detected in model predictions!")
-                log(f"Predictions sample: {predictions[0][:5]}")
-                break
             
             loss = criterion(predictions, targets)
-            # DEBUG: Check if loss is valid
-            log(f"Loss value: {loss.item()}")
-            if torch.isnan(loss) or torch.isinf(loss):
-                log(f"ERROR: NaN/Inf detected in loss!")
-                break
             progress_bar.set_postfix({'loss': loss.item()})
             loss.backward()
             optimizer.step()
             
             total_loss += loss.item() * images.size(0)
         avg_train_loss = total_loss / len(train_loader.dataset)
-
-        # # Apply random target perturbation if this is the perturbation epoch
-        # if epoch == training_run - 1 and perturb_type == 'random_target':
-        #     log(f"\n*** USING RANDOM TARGETS FOR EPOCH {epoch+1} ***")
-        #     log(f"Random target seed: {perturb_seed}")
-        #     log(f"Random target distribution: {perturb_distribution}")
-            
-        #     # Create random targets dataset
-        #     random_targets_dataset = RandomTargetsDataset(
-        #         train_loader.dataset, 
-        #         random_seed=perturb_seed, 
-        #         perturb_distribution=perturb_distribution
-        #     )
-            
-        #     # Create a fresh generator for the random targets dataset to avoid state conflicts
-        #     # This prevents issues with the restored dataloader generator state from baseline epochs
-        #     fresh_generator = torch.Generator()
-        #     fresh_generator.manual_seed(42 + training_run)  # Use a deterministic seed unique per run
-        #     log(f"Created fresh generator with seed: {42 + training_run}")
-            
-        #     # Create new train_loader with random targets dataset
-        #     random_targets_train_loader = DataLoader(
-        #         random_targets_dataset, 
-        #         batch_size=train_loader.batch_size, 
-        #         shuffle=True, 
-        #         generator=fresh_generator
-        #     )
-            
-        #     used_random_targets = True
-        #     current_train_loader = random_targets_train_loader
-            
-        #     # Log dataset statistics
-        #     log(f"Random targets dataset created:")
-        #     log(f"  Dataset size: {len(random_targets_dataset)}")
-        #     log(f"  Target mean: {random_targets_dataset.target_mean:.4f}")
-        #     log(f"  Target std: {random_targets_dataset.target_std:.4f}")
-        #     log(f"  Will show first 3 batches with target comparisons...")
-            
-        # elif epoch == training_run - 1 and perturb_type == 'label_shuffle':
-        #     log(f"\n*** USING SHUFFLED TARGETS FOR EPOCH {epoch+1} ***")
-        #     log(f"Shuffle target seed: {perturb_seed}")
-        #     log(f"  Will show first 3 batches with target comparisons...")
-        #     used_shuffled_targets = True
-        #     current_train_loader = train_loader
-        # else:
-        #     current_train_loader = train_loader
-
-        # progress_bar = tqdm(enumerate(current_train_loader), total=len(current_train_loader), desc=f"Epoch {epoch+1}/{epochs}")
-        # for batch_idx, (image_names, images, targets) in progress_bar:
-
-        #     images = images.to(device)
-
-        #     # Debug: Print first image and its target embeddings for perturbation epochs
-        #     if (used_random_targets or used_shuffled_targets) and batch_idx < 3:  # Only for first 3 batches to avoid spam
-        #         first_image_name = image_names[0]
-        #         perturbed_target = targets[0]
-                
-        #         # Get the original target for this image from the original dataset
-        #         original_target = None
-        #         try:
-        #             # Find the image in the original dataset
-        #             if hasattr(train_loader.dataset, 'dataset'):
-        #                 # It's a SubsetWithIndices
-        #                 underlying_dataset = train_loader.dataset.dataset
-        #                 for i in range(len(underlying_dataset.annotations)):
-        #                     if underlying_dataset.annotations.iloc[i, 0] == first_image_name:
-        #                         original_target = torch.tensor(underlying_dataset.annotations.iloc[i, 1:].values.astype('float32'))
-        #                         break
-        #             else:
-        #                 # It's a ThingsDataset
-        #                 for i in range(len(train_loader.dataset.annotations)):
-        #                     if train_loader.dataset.annotations.iloc[i, 0] == first_image_name:
-        #                         original_target = torch.tensor(train_loader.dataset.annotations.iloc[i, 1:].values.astype('float32'))
-        #                         break
-        #         except Exception as e:
-        #             log(f"    Could not find original target: {e}")
-                
-        #         log(f"  Batch {batch_idx}: First image '{first_image_name}'")
-        #         log(f"    Original target:  {original_target[:5].tolist() if original_target is not None else 'Not found'}...")
-        #         log(f"    Perturbed target: {perturbed_target[:5].tolist()}...")
-        #         log(f"    Target match: {torch.allclose(original_target, perturbed_target, atol=1e-6) if original_target is not None else 'Unknown'}")
-
-        #     # Apply perturbations if this is the perturbation epoch
-        #     if used_shuffled_targets:
-        #         targets = shuffle_targets(targets, perturb_seed)
-
-        #     targets = targets.to(device)
-
-        #     optimizer.zero_grad()
-        #     predictions = model(images)
-            
-        #     loss = criterion(predictions, targets)
-        #     progress_bar.set_postfix({'loss': loss.item()})
-        #     loss.backward()
-        #     optimizer.step()
-            
-        #     total_loss += loss.item() * images.size(0)
-        # avg_train_loss = total_loss / len(current_train_loader.dataset)
 
         # Evaluate after every epoch
         avg_test_loss = evaluate_model(model, test_loader, device, criterion)
@@ -1114,15 +960,6 @@ def run_behavioral_training(config):
     Args:
         config (dict): Configuration dictionary containing training parameters
     """
-    torch.manual_seed(config['random_seed'])
-    torch.cuda.manual_seed_all(config['random_seed'])
-    np.random.seed(config['random_seed'])
-    random.seed(config['random_seed'])
-    
-    # Additional fix: Clear CUDA cache between runs
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        
     seed_everything(config['random_seed'])
 
     # Set up logger

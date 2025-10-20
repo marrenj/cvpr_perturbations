@@ -1,0 +1,243 @@
+2025-10-14 10:11:00 - INFO - ================================================================================
+2025-10-14 10:11:00 - INFO - STARTING MAIN TRAINING LOOP - MIDPOINT-BASED TRAINING ORDER
+2025-10-14 10:11:00 - INFO - Timestamp: 20251014_101100
+2025-10-14 10:11:00 - INFO - Perturbation Type: random_target
+2025-10-14 10:11:00 - INFO - Perturbation Distribution: target
+2025-10-14 10:11:00 - INFO - Perturbation Seed: 42
+2025-10-14 10:11:00 - INFO - Output Directory: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/20251014_101100
+2025-10-14 10:11:00 - INFO - Baseline Checkpoints: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_artifacts/dora_params/dora_params_20251013_220330
+2025-10-14 10:11:00 - INFO - ================================================================================
+2025-10-14 10:11:00 - INFO - 
+2025-10-14 10:11:00 - INFO - Training order (first 20 epochs): [1, 98, 49, 25, 73, 13, 37, 61, 85, 7, 19, 31, 43, 55, 67, 79, 91, 4, 10, 16]
+2025-10-14 10:11:00 - INFO - Total epochs to train: 98
+2025-10-14 10:11:00 - INFO - 
+2025-10-14 10:11:00 - INFO - --------------------------------------------------------------------------------
+2025-10-14 10:11:00 - INFO - TRAINING RUN 1/98 (Epoch 1)
+2025-10-14 10:11:00 - INFO -   Perturbing epoch: 1
+2025-10-14 10:11:00 - INFO -   Resume from epoch: 0
+2025-10-14 10:11:00 - INFO -   Starting training run 1...
+2025-10-14 11:37:52 - INFO -   ✓ Training run 1 completed successfully
+2025-10-14 11:37:52 - INFO -   Progress: 1 successful, 0 failed
+2025-10-14 11:37:52 - INFO - --------------------------------------------------------------------------------
+2025-10-14 11:37:52 - INFO - 
+2025-10-14 11:37:52 - INFO - --------------------------------------------------------------------------------
+2025-10-14 11:37:52 - INFO - TRAINING RUN 2/98 (Epoch 98)
+2025-10-14 11:37:52 - INFO -   Perturbing epoch: 98
+2025-10-14 11:37:52 - INFO -   Resume from epoch: 97
+2025-10-14 11:37:52 - INFO -   Starting training run 98...
+2025-10-14 12:00:38 - INFO -   ✓ Training run 98 completed successfully
+2025-10-14 12:00:38 - INFO -   Progress: 2 successful, 0 failed
+2025-10-14 12:00:38 - INFO - --------------------------------------------------------------------------------
+2025-10-14 12:00:38 - INFO - 
+2025-10-14 12:00:38 - INFO - --------------------------------------------------------------------------------
+2025-10-14 12:00:38 - INFO - TRAINING RUN 3/98 (Epoch 49)
+2025-10-14 12:00:38 - INFO -   Perturbing epoch: 49
+2025-10-14 12:00:38 - INFO -   Resume from epoch: 48
+2025-10-14 12:00:38 - INFO -   Starting training run 49...
+2025-10-14 12:51:58 - INFO -   ✓ Training run 49 completed successfully
+2025-10-14 12:51:58 - INFO -   Progress: 3 successful, 0 failed
+2025-10-14 12:51:58 - INFO - --------------------------------------------------------------------------------
+2025-10-14 12:51:58 - INFO - 
+2025-10-14 12:51:58 - INFO - --------------------------------------------------------------------------------
+2025-10-14 12:51:58 - INFO - TRAINING RUN 4/98 (Epoch 25)
+2025-10-14 12:51:58 - INFO -   Perturbing epoch: 25
+2025-10-14 12:51:58 - INFO -   Resume from epoch: 24
+2025-10-14 12:51:58 - INFO -   Starting training run 25...
+2025-10-14 13:58:28 - INFO -   ✓ Training run 25 completed successfully
+2025-10-14 13:58:28 - INFO -   Progress: 4 successful, 0 failed
+2025-10-14 13:58:28 - INFO - --------------------------------------------------------------------------------
+2025-10-14 13:58:28 - INFO - 
+2025-10-14 13:58:28 - INFO - --------------------------------------------------------------------------------
+2025-10-14 13:58:28 - INFO - TRAINING RUN 5/98 (Epoch 73)
+2025-10-14 13:58:28 - INFO -   Perturbing epoch: 73
+2025-10-14 13:58:28 - INFO -   Resume from epoch: 72
+2025-10-14 13:58:28 - INFO -   Starting training run 73...
+2025-10-14 14:32:32 - INFO -   ✓ Training run 73 completed successfully
+2025-10-14 14:32:32 - INFO -   Progress: 5 successful, 0 failed
+2025-10-14 14:32:32 - INFO - --------------------------------------------------------------------------------
+2025-10-14 14:32:32 - INFO - 
+2025-10-14 14:32:32 - INFO - --------------------------------------------------------------------------------
+2025-10-14 14:32:32 - INFO - TRAINING RUN 6/98 (Epoch 13)
+2025-10-14 14:32:32 - INFO -   Perturbing epoch: 13
+2025-10-14 14:32:32 - INFO -   Resume from epoch: 12
+2025-10-14 14:32:32 - INFO -   Starting training run 13...
+2025-10-14 15:50:38 - INFO -   ✓ Training run 13 completed successfully
+2025-10-14 15:50:38 - INFO -   Progress: 6 successful, 0 failed
+2025-10-14 15:50:38 - INFO - --------------------------------------------------------------------------------
+2025-10-14 15:50:38 - INFO - 
+2025-10-14 15:50:38 - INFO - --------------------------------------------------------------------------------
+2025-10-14 15:50:38 - INFO - TRAINING RUN 7/98 (Epoch 37)
+2025-10-14 15:50:38 - INFO -   Perturbing epoch: 37
+2025-10-14 15:50:38 - INFO -   Resume from epoch: 36
+2025-10-14 15:50:38 - INFO -   Starting training run 37...
+2025-10-14 16:51:00 - INFO -   ✓ Training run 37 completed successfully
+2025-10-14 16:51:00 - INFO -   Progress: 7 successful, 0 failed
+2025-10-14 16:51:00 - INFO - --------------------------------------------------------------------------------
+2025-10-14 16:51:00 - INFO - 
+2025-10-14 16:51:00 - INFO - --------------------------------------------------------------------------------
+2025-10-14 16:51:00 - INFO - TRAINING RUN 8/98 (Epoch 61)
+2025-10-14 16:51:00 - INFO -   Perturbing epoch: 61
+2025-10-14 16:51:00 - INFO -   Resume from epoch: 60
+2025-10-14 16:51:00 - INFO -   Starting training run 61...
+2025-10-14 17:33:41 - INFO -   ✓ Training run 61 completed successfully
+2025-10-14 17:33:41 - INFO -   Progress: 8 successful, 0 failed
+2025-10-14 17:33:41 - INFO - --------------------------------------------------------------------------------
+2025-10-14 17:33:41 - INFO - 
+2025-10-14 17:33:41 - INFO - --------------------------------------------------------------------------------
+2025-10-14 17:33:41 - INFO - TRAINING RUN 9/98 (Epoch 85)
+2025-10-14 17:33:41 - INFO -   Perturbing epoch: 85
+2025-10-14 17:33:41 - INFO -   Resume from epoch: 84
+2025-10-14 17:33:41 - INFO -   Starting training run 85...
+2025-10-14 17:58:48 - INFO -   ✓ Training run 85 completed successfully
+2025-10-14 17:58:48 - INFO -   Progress: 9 successful, 0 failed
+2025-10-14 17:58:48 - INFO - --------------------------------------------------------------------------------
+2025-10-14 17:58:48 - INFO - 
+2025-10-14 17:58:48 - INFO - --------------------------------------------------------------------------------
+2025-10-14 17:58:48 - INFO - TRAINING RUN 10/98 (Epoch 7)
+2025-10-14 17:58:48 - INFO -   Perturbing epoch: 7
+2025-10-14 17:58:48 - INFO -   Resume from epoch: 6
+2025-10-14 17:58:48 - INFO -   Starting training run 7...
+2025-10-14 19:25:27 - INFO -   ✓ Training run 7 completed successfully
+2025-10-14 19:25:27 - INFO -   Progress: 10 successful, 0 failed
+2025-10-14 19:25:27 - INFO - --------------------------------------------------------------------------------
+2025-10-14 19:25:27 - INFO - 
+2025-10-14 19:25:27 - INFO - --------------------------------------------------------------------------------
+2025-10-14 19:25:27 - INFO - TRAINING RUN 11/98 (Epoch 19)
+2025-10-14 19:25:27 - INFO -   Perturbing epoch: 19
+2025-10-14 19:25:27 - INFO -   Resume from epoch: 18
+2025-10-14 19:25:27 - INFO -   Starting training run 19...
+2025-10-14 20:38:52 - INFO -   ✓ Training run 19 completed successfully
+2025-10-14 20:38:52 - INFO -   Progress: 11 successful, 0 failed
+2025-10-14 20:38:52 - INFO - --------------------------------------------------------------------------------
+2025-10-14 20:38:52 - INFO - 
+2025-10-14 20:38:52 - INFO - --------------------------------------------------------------------------------
+2025-10-14 20:38:52 - INFO - TRAINING RUN 12/98 (Epoch 31)
+2025-10-14 20:38:52 - INFO -   Perturbing epoch: 31
+2025-10-14 20:38:52 - INFO -   Resume from epoch: 30
+2025-10-14 20:38:52 - INFO -   Starting training run 31...
+2025-10-14 21:42:53 - INFO -   ✓ Training run 31 completed successfully
+2025-10-14 21:42:53 - INFO -   Progress: 12 successful, 0 failed
+2025-10-14 21:42:53 - INFO - --------------------------------------------------------------------------------
+2025-10-14 21:42:53 - INFO - 
+2025-10-14 21:42:53 - INFO - --------------------------------------------------------------------------------
+2025-10-14 21:42:53 - INFO - TRAINING RUN 13/98 (Epoch 43)
+2025-10-14 21:42:53 - INFO -   Perturbing epoch: 43
+2025-10-14 21:42:53 - INFO -   Resume from epoch: 42
+2025-10-14 21:42:53 - INFO -   Starting training run 43...
+2025-10-14 22:38:30 - INFO -   ✓ Training run 43 completed successfully
+2025-10-14 22:38:30 - INFO -   Progress: 13 successful, 0 failed
+2025-10-14 22:38:30 - INFO - --------------------------------------------------------------------------------
+2025-10-14 22:38:30 - INFO - 
+2025-10-14 22:38:30 - INFO - --------------------------------------------------------------------------------
+2025-10-14 22:38:30 - INFO - TRAINING RUN 14/98 (Epoch 55)
+2025-10-14 22:38:30 - INFO -   Perturbing epoch: 55
+2025-10-14 22:38:30 - INFO -   Resume from epoch: 54
+2025-10-14 22:38:30 - INFO -   Starting training run 55...
+2025-10-14 23:25:42 - INFO -   ✓ Training run 55 completed successfully
+2025-10-14 23:25:42 - INFO -   Progress: 14 successful, 0 failed
+2025-10-14 23:25:42 - INFO - --------------------------------------------------------------------------------
+2025-10-14 23:25:42 - INFO - 
+2025-10-14 23:25:42 - INFO - --------------------------------------------------------------------------------
+2025-10-14 23:25:42 - INFO - TRAINING RUN 15/98 (Epoch 67)
+2025-10-14 23:25:42 - INFO -   Perturbing epoch: 67
+2025-10-14 23:25:42 - INFO -   Resume from epoch: 66
+2025-10-14 23:25:42 - INFO -   Starting training run 67...
+2025-10-15 00:03:53 - INFO -   ✓ Training run 67 completed successfully
+2025-10-15 00:03:53 - INFO -   Progress: 15 successful, 0 failed
+2025-10-15 00:03:53 - INFO - --------------------------------------------------------------------------------
+2025-10-15 00:03:53 - INFO - 
+2025-10-15 00:03:53 - INFO - --------------------------------------------------------------------------------
+2025-10-15 00:03:53 - INFO - TRAINING RUN 16/98 (Epoch 79)
+2025-10-15 00:03:53 - INFO -   Perturbing epoch: 79
+2025-10-15 00:03:53 - INFO -   Resume from epoch: 78
+2025-10-15 00:03:53 - INFO -   Starting training run 79...
+2025-10-15 00:33:01 - INFO -   ✓ Training run 79 completed successfully
+2025-10-15 00:33:01 - INFO -   Progress: 16 successful, 0 failed
+2025-10-15 00:33:01 - INFO - --------------------------------------------------------------------------------
+2025-10-15 00:33:01 - INFO - 
+2025-10-15 00:33:01 - INFO - --------------------------------------------------------------------------------
+2025-10-15 00:33:01 - INFO - TRAINING RUN 17/98 (Epoch 91)
+2025-10-15 00:33:01 - INFO -   Perturbing epoch: 91
+2025-10-15 00:33:01 - INFO -   Resume from epoch: 90
+2025-10-15 00:33:01 - INFO -   Starting training run 91...
+2025-10-15 00:58:11 - INFO -   ✓ Training run 91 completed successfully
+2025-10-15 00:58:11 - INFO -   Progress: 17 successful, 0 failed
+2025-10-15 00:58:11 - INFO - --------------------------------------------------------------------------------
+2025-10-15 00:58:11 - INFO - 
+2025-10-15 00:58:11 - INFO - --------------------------------------------------------------------------------
+2025-10-15 00:58:11 - INFO - TRAINING RUN 18/98 (Epoch 4)
+2025-10-15 00:58:11 - INFO -   Perturbing epoch: 4
+2025-10-15 00:58:11 - INFO -   Resume from epoch: 3
+2025-10-15 00:58:11 - INFO -   Starting training run 4...
+2025-10-15 02:21:27 - INFO -   ✓ Training run 4 completed successfully
+2025-10-15 02:21:27 - INFO -   Progress: 18 successful, 0 failed
+2025-10-15 02:21:27 - INFO - --------------------------------------------------------------------------------
+2025-10-15 02:21:27 - INFO - 
+2025-10-15 02:21:27 - INFO - --------------------------------------------------------------------------------
+2025-10-15 02:21:27 - INFO - TRAINING RUN 19/98 (Epoch 10)
+2025-10-15 02:21:27 - INFO -   Perturbing epoch: 10
+2025-10-15 02:21:27 - INFO -   Resume from epoch: 9
+2025-10-15 02:21:27 - INFO -   Starting training run 10...
+2025-10-15 03:41:21 - INFO -   ✓ Training run 10 completed successfully
+2025-10-15 03:41:21 - INFO -   Progress: 19 successful, 0 failed
+2025-10-15 03:41:21 - INFO - --------------------------------------------------------------------------------
+2025-10-15 03:41:21 - INFO - 
+2025-10-15 03:41:21 - INFO - --------------------------------------------------------------------------------
+2025-10-15 03:41:21 - INFO - TRAINING RUN 20/98 (Epoch 16)
+2025-10-15 03:41:21 - INFO -   Perturbing epoch: 16
+2025-10-15 03:41:21 - INFO -   Resume from epoch: 15
+2025-10-15 03:41:21 - INFO -   Starting training run 16...
+2025-10-15 04:56:13 - INFO -   ✓ Training run 16 completed successfully
+2025-10-15 04:56:13 - INFO -   Progress: 20 successful, 0 failed
+2025-10-15 04:56:13 - INFO - --------------------------------------------------------------------------------
+2025-10-15 04:56:13 - INFO - 
+2025-10-15 04:56:13 - INFO - --------------------------------------------------------------------------------
+2025-10-15 04:56:13 - INFO - TRAINING RUN 21/98 (Epoch 22)
+2025-10-15 04:56:13 - INFO -   Perturbing epoch: 22
+2025-10-15 04:56:13 - INFO -   Resume from epoch: 21
+2025-10-15 04:56:13 - INFO -   Starting training run 22...
+2025-10-15 06:07:18 - INFO -   ✓ Training run 22 completed successfully
+2025-10-15 06:07:18 - INFO -   Progress: 21 successful, 0 failed
+2025-10-15 06:07:18 - INFO - --------------------------------------------------------------------------------
+2025-10-15 06:07:18 - INFO - 
+2025-10-15 06:07:18 - INFO - --------------------------------------------------------------------------------
+2025-10-15 06:07:18 - INFO - TRAINING RUN 22/98 (Epoch 28)
+2025-10-15 06:07:18 - INFO -   Perturbing epoch: 28
+2025-10-15 06:07:18 - INFO -   Resume from epoch: 27
+2025-10-15 06:07:18 - INFO -   Starting training run 28...
+2025-10-15 07:13:24 - INFO -   ✓ Training run 28 completed successfully
+2025-10-15 07:13:24 - INFO -   Progress: 22 successful, 0 failed
+2025-10-15 07:13:24 - INFO - --------------------------------------------------------------------------------
+2025-10-15 07:13:24 - INFO - 
+2025-10-15 07:13:24 - INFO - --------------------------------------------------------------------------------
+2025-10-15 07:13:24 - INFO - TRAINING RUN 23/98 (Epoch 34)
+2025-10-15 07:13:24 - INFO -   Perturbing epoch: 34
+2025-10-15 07:13:24 - INFO -   Resume from epoch: 33
+2025-10-15 07:13:24 - INFO -   Starting training run 34...
+2025-10-15 08:15:21 - INFO -   ✓ Training run 34 completed successfully
+2025-10-15 08:15:21 - INFO -   Progress: 23 successful, 0 failed
+2025-10-15 08:15:21 - INFO - --------------------------------------------------------------------------------
+2025-10-15 08:15:21 - INFO - 
+2025-10-15 08:15:21 - INFO - --------------------------------------------------------------------------------
+2025-10-15 08:15:21 - INFO - TRAINING RUN 24/98 (Epoch 40)
+2025-10-15 08:15:21 - INFO -   Perturbing epoch: 40
+2025-10-15 08:15:21 - INFO -   Resume from epoch: 39
+2025-10-15 08:15:21 - INFO -   Starting training run 40...
+2025-10-15 09:12:44 - INFO -   ✓ Training run 40 completed successfully
+2025-10-15 09:12:44 - INFO -   Progress: 24 successful, 0 failed
+2025-10-15 09:12:44 - INFO - --------------------------------------------------------------------------------
+2025-10-15 09:12:44 - INFO - 
+2025-10-15 09:12:44 - INFO - --------------------------------------------------------------------------------
+2025-10-15 09:12:44 - INFO - TRAINING RUN 25/98 (Epoch 46)
+2025-10-15 09:12:44 - INFO -   Perturbing epoch: 46
+2025-10-15 09:12:44 - INFO -   Resume from epoch: 45
+2025-10-15 09:12:44 - INFO -   Starting training run 46...
+2025-10-15 10:06:13 - INFO -   ✓ Training run 46 completed successfully
+2025-10-15 10:06:13 - INFO -   Progress: 25 successful, 0 failed
+2025-10-15 10:06:13 - INFO - --------------------------------------------------------------------------------
+2025-10-15 10:06:13 - INFO - 
+2025-10-15 10:06:13 - INFO - --------------------------------------------------------------------------------
+2025-10-15 10:06:13 - INFO - TRAINING RUN 26/98 (Epoch 52)
+2025-10-15 10:06:13 - INFO -   Perturbing epoch: 52
+2025-10-15 10:06:13 - INFO -   Resume from epoch: 51
+2025-10-15 10:06:13 - INFO -   Starting training run 52...

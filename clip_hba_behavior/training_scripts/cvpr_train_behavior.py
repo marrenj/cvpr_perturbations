@@ -100,6 +100,23 @@ def generate_midpoint_order(start=1, end=98):
 
     return epochs
 
+
+def generate_hybrid_training_order():
+    """
+    Generate training order: epochs 1-15 sequentially, then midpoint order starting with 16, 98.
+    """
+    # Sequential order for epochs 1-15
+    sequential_order = list(range(1, 16))  # [1, 2, 3, ..., 15]
+    
+    # Midpoint order starting from 16 and 98
+    midpoint_order = generate_midpoint_order(start=16, end=98)
+    
+    # Combine the orders
+    hybrid_order = sequential_order + midpoint_order
+    
+    return hybrid_order
+
+
 def setup_main_logger(log_file_path):
     """
     Set up logger for the main training loop to track all 93 runs.
@@ -148,7 +165,7 @@ def main():
         'train_portion': 0.8,
         'lr': 3e-4, # learning rate
         'logger': None,
-        'early_stopping_patience': 20, # early stopping patience
+        'early_stopping_patience': 10, # early stopping patience
         #'checkpoint_path': f'/home/wallacelab/teba/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/models/cliphba_behavior_{timestamp}.pth', # path to save the trained model weights
         #'training_res_path': f'/home/wallacelab/teba/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_results/training_res_{timestamp}.csv', # location to save the training results
         #'dora_parameters_path': f'/home/wallacelab/teba/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_artifacts/dora_params/dora_params_{timestamp}', # location to save the DoRA parameters
@@ -161,8 +178,8 @@ def main():
         'baseline_dora_directory': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_artifacts/dora_params/dora_params_20251013_220330', # location of the DoRA parameters for the baseline training run
         'baseline_random_state_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_artifacts/random_states/random_states_20251013_220330', # location of the random states for the baseline training run
         'baseline_split_indices_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_artifacts/random_states/random_states_20251013_220330/dataset_split_indices.pth', # location of the train/test split indices from baseline training
-        'perturb_type': 'label_shuffle', # either 'random_target' or 'label_shuffle'
-        'perturb_distribution': 'normal', # draw from either the 'normal' or 'target' distribution when generating random targets (only used for random_target runs)
+        'perturb_type': 'random_target', # either 'random_target' or 'label_shuffle'
+        'perturb_distribution': 'target', # draw from either the 'normal' or 'target' distribution when generating random targets (only used for random_target runs)
         'perturb_seed': 42, # seed for the random target generator
         'output_base_directory': f'/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/{timestamp}', # base directory for saving the training results and artifacts
     }
@@ -188,13 +205,15 @@ def main():
     failed_run_list = []
 
     # # Generate the midpoint-based training order
-    # training_order = generate_midpoint_order(start=1, end=98)
+    # training_order = generate_midpoint_order(start=49, end=49)
 
-    # Generate full order but only run from 98 onwards
-    full_order = generate_midpoint_order(start=1, end=98)
-    # Find where 98 appears and slice from there
-    start_idx = full_order.index(98)
-    training_order = full_order[start_idx:]
+    # # Generate full order but only run from 98 onwards
+    # full_order = generate_midpoint_order(start=1, end=98)
+    # # Find where 98 appears and slice from there
+    # start_idx = full_order.index(98)
+    # training_order = full_order[start_idx:]
+
+    training_order = generate_hybrid_training_order()
     
     main_logger.info(f"Training order (first 20 epochs): {training_order[:20]}")
     main_logger.info(f"Total epochs to train: {len(training_order)}")
