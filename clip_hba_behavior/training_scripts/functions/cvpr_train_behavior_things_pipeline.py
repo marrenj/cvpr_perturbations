@@ -790,47 +790,6 @@ def save_random_states(optimizer, epoch, random_state_path, dataloader_generator
     log(f"Random states saved: {checkpoint_file}")
 
 
-def generate_random_targets(targets_shape, device, mean, std, perturb_seed=None, perturb_distribution='normal'):
-    """
-    Generate completely random targets with the same shape as the original targets.
-    The random targets are seeded for reproducibility.
-    
-    Args:
-        targets_shape: Shape of the original targets tensor
-        device: Device to place the random targets on
-        random_seed: Seed for random number generation (if None, uses current state)
-    
-    Returns:
-        Random targets tensor with the same shape as original targets
-    """
-    
-    if perturb_seed is not None:
-        # Save current random states
-        torch_state = torch.get_rng_state()
-        np_state = np.random.get_state()
-        python_state = random.getstate()
-        
-        # Set seeds for reproducibility
-        torch.manual_seed(perturb_seed)
-        np.random.seed(perturb_seed)
-        random.seed(perturb_seed)
-    
-    # Generate random targets with the same shape
-    # Using normal distribution with mean 0 and std 1 (similar to typical target ranges)
-    if perturb_distribution == 'normal':
-        random_targets = torch.randn(targets_shape, device=device, dtype=torch.float32)
-    elif perturb_distribution == 'target':
-        random_targets = torch.randn(targets_shape, device=device, dtype=torch.float32) * std + mean
-    
-    if perturb_seed is not None:
-        # Restore original random states
-        torch.set_rng_state(torch_state)
-        np.random.set_state(np_state)
-        random.setstate(python_state)
-    
-    return random_targets
-
-
 def shuffle_targets(targets, perturb_seed=None):
     """
     Shuffle the targets tensor while preserving the same target values.
@@ -969,104 +928,6 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
             total_loss += loss.item() * images.size(0)
         avg_train_loss = total_loss / len(train_loader.dataset)
 
-        # # Apply random target perturbation if this is the perturbation epoch
-        # if epoch == training_run - 1 and perturb_type == 'random_target':
-        #     log(f"\n*** USING RANDOM TARGETS FOR EPOCH {epoch+1} ***")
-        #     log(f"Random target seed: {perturb_seed}")
-        #     log(f"Random target distribution: {perturb_distribution}")
-            
-        #     # Create random targets dataset
-        #     random_targets_dataset = RandomTargetsDataset(
-        #         train_loader.dataset, 
-        #         random_seed=perturb_seed, 
-        #         perturb_distribution=perturb_distribution
-        #     )
-            
-        #     # Create a fresh generator for the random targets dataset to avoid state conflicts
-        #     # This prevents issues with the restored dataloader generator state from baseline epochs
-        #     fresh_generator = torch.Generator()
-        #     fresh_generator.manual_seed(42 + training_run)  # Use a deterministic seed unique per run
-        #     log(f"Created fresh generator with seed: {42 + training_run}")
-            
-        #     # Create new train_loader with random targets dataset
-        #     random_targets_train_loader = DataLoader(
-        #         random_targets_dataset, 
-        #         batch_size=train_loader.batch_size, 
-        #         shuffle=True, 
-        #         generator=fresh_generator
-        #     )
-            
-        #     used_random_targets = True
-        #     current_train_loader = random_targets_train_loader
-            
-        #     # Log dataset statistics
-        #     log(f"Random targets dataset created:")
-        #     log(f"  Dataset size: {len(random_targets_dataset)}")
-        #     log(f"  Target mean: {random_targets_dataset.target_mean:.4f}")
-        #     log(f"  Target std: {random_targets_dataset.target_std:.4f}")
-        #     log(f"  Will show first 3 batches with target comparisons...")
-            
-        # elif epoch == training_run - 1 and perturb_type == 'label_shuffle':
-        #     log(f"\n*** USING SHUFFLED TARGETS FOR EPOCH {epoch+1} ***")
-        #     log(f"Shuffle target seed: {perturb_seed}")
-        #     log(f"  Will show first 3 batches with target comparisons...")
-        #     used_shuffled_targets = True
-        #     current_train_loader = train_loader
-        # else:
-        #     current_train_loader = train_loader
-
-        # progress_bar = tqdm(enumerate(current_train_loader), total=len(current_train_loader), desc=f"Epoch {epoch+1}/{epochs}")
-        # for batch_idx, (image_names, images, targets) in progress_bar:
-
-        #     images = images.to(device)
-
-        #     # Debug: Print first image and its target embeddings for perturbation epochs
-        #     if (used_random_targets or used_shuffled_targets) and batch_idx < 3:  # Only for first 3 batches to avoid spam
-        #         first_image_name = image_names[0]
-        #         perturbed_target = targets[0]
-                
-        #         # Get the original target for this image from the original dataset
-        #         original_target = None
-        #         try:
-        #             # Find the image in the original dataset
-        #             if hasattr(train_loader.dataset, 'dataset'):
-        #                 # It's a SubsetWithIndices
-        #                 underlying_dataset = train_loader.dataset.dataset
-        #                 for i in range(len(underlying_dataset.annotations)):
-        #                     if underlying_dataset.annotations.iloc[i, 0] == first_image_name:
-        #                         original_target = torch.tensor(underlying_dataset.annotations.iloc[i, 1:].values.astype('float32'))
-        #                         break
-        #             else:
-        #                 # It's a ThingsDataset
-        #                 for i in range(len(train_loader.dataset.annotations)):
-        #                     if train_loader.dataset.annotations.iloc[i, 0] == first_image_name:
-        #                         original_target = torch.tensor(train_loader.dataset.annotations.iloc[i, 1:].values.astype('float32'))
-        #                         break
-        #         except Exception as e:
-        #             log(f"    Could not find original target: {e}")
-                
-        #         log(f"  Batch {batch_idx}: First image '{first_image_name}'")
-        #         log(f"    Original target:  {original_target[:5].tolist() if original_target is not None else 'Not found'}...")
-        #         log(f"    Perturbed target: {perturbed_target[:5].tolist()}...")
-        #         log(f"    Target match: {torch.allclose(original_target, perturbed_target, atol=1e-6) if original_target is not None else 'Unknown'}")
-
-        #     # Apply perturbations if this is the perturbation epoch
-        #     if used_shuffled_targets:
-        #         targets = shuffle_targets(targets, perturb_seed)
-
-        #     targets = targets.to(device)
-
-        #     optimizer.zero_grad()
-        #     predictions = model(images)
-            
-        #     loss = criterion(predictions, targets)
-        #     progress_bar.set_postfix({'loss': loss.item()})
-        #     loss.backward()
-        #     optimizer.step()
-            
-        #     total_loss += loss.item() * images.size(0)
-        # avg_train_loss = total_loss / len(current_train_loader.dataset)
-
         # Evaluate after every epoch
         avg_test_loss = evaluate_model(model, test_loader, device, criterion)
         log(f"Epoch {epoch+1}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_test_loss:.4f}")
@@ -1113,7 +974,7 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
                 epochs_no_improve += 1
             # if in the perturbation window, don't increment the counter
         
-        # Don't allow early stopping during perturbation epochs
+        # Trigger early stopping if the number of epochs without improvement reaches the early stopping patience
         if epochs_no_improve == early_stopping_patience:
             log("\n\n*********************************")
             log(f"Early stopping triggered at epoch {epoch+1}")

@@ -155,7 +155,7 @@ def main():
         'baseline_dora_directory': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_artifacts/dora_params/dora_params_20251013_220330', # location of the DoRA parameters for the baseline training run
         'baseline_random_state_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_artifacts/random_states/random_states_20251013_220330', # location of the random states for the baseline training run
         'baseline_split_indices_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_artifacts/random_states/random_states_20251013_220330/dataset_split_indices.pth', # location of the train/test split indices from baseline training
-        'perturb_type': args.perturb_type, # either 'random_target' or 'label_shuffle'
+        'perturb_type': args.perturb_type, # either 'random_target', 'label_shuffle', or 'baseline'
         'perturb_distribution': args.perturb_distribution, # draw from either the 'normal' or 'target' distribution when generating random targets (only used for random_target runs)
         'perturb_seed': args.perturb_seed, # seed for the random target generator
         'training_run': args.perturb_epoch, # the epoch to train from
