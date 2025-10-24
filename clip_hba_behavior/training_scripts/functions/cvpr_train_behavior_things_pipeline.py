@@ -205,87 +205,6 @@ class ThingsDataset(Dataset):
         return image_name, image, targets
 
 
-# class RandomTargetsDataset(ThingsDataset):
-#     def __init__(self, original_dataset, random_seed=None, perturb_distribution='normal'):
-#         """
-#         Create a dataset with the same images but completely random targets.
-        
-#         Args:
-#             original_dataset: The original training dataset (can be ThingsDataset or SubsetWithIndices)
-#             random_seed: Seed for reproducible random target generation
-#             perturb_distribution: 'normal' or 'target' distribution for random targets
-#         """
-#         # Get the underlying dataset and its parameters
-#         if hasattr(original_dataset, 'dataset'):
-#             # It's a SubsetWithIndices, get the underlying dataset
-#             underlying_dataset = original_dataset.dataset
-#             csv_file = '../Data/spose_embedding66d_rescaled_1806train.csv'  # Use default path
-#             img_dir = '../Data/Things1854'  # Use default path
-#         else:
-#             # It's a ThingsDataset
-#             csv_file = '../Data/spose_embedding66d_rescaled_1806train.csv'  # Use default path
-#             img_dir = '../Data/Things1854'  # Use default path
-        
-#         super().__init__(csv_file, img_dir)
-        
-#         # Copy the annotations from the original dataset
-#         if hasattr(original_dataset, 'dataset'):
-#             # It's a SubsetWithIndices
-#             self.annotations = original_dataset.dataset.annotations.iloc[original_dataset.indices].copy()
-#         else:
-#             # It's a ThingsDataset
-#             self.annotations = original_dataset.annotations.copy()
-        
-#         if random_seed is not None:
-#             # Save current random states
-#             torch_state = torch.get_rng_state()
-#             np_state = np.random.get_state()
-#             python_state = random.getstate()
-            
-#             # Set seeds for reproducibility
-#             torch.manual_seed(random_seed)
-#             np.random.seed(random_seed)
-#             random.seed(random_seed)
-        
-#         # Calculate mean and std from original targets for 'target' distribution
-#         all_original_targets = []
-#         for i in range(len(self.annotations)):
-#             targets = torch.tensor(self.annotations.iloc[i, 1:].values.astype('float32'))
-#             all_original_targets.append(targets)
-        
-#         all_targets_tensor = torch.stack(all_original_targets)
-#         mean = all_targets_tensor.mean().item()
-#         std = all_targets_tensor.std().item()
-        
-#         # Generate random targets for the entire dataset
-#         dataset_size = len(self.annotations)
-#         target_dim = all_original_targets[0].shape[0]  # Get dimension from first target
-        
-#         if perturb_distribution == 'normal':
-#             # Generate random targets from standard normal distribution
-#             random_targets = torch.randn(dataset_size, target_dim, dtype=torch.float32)
-#         elif perturb_distribution == 'target':
-#             # Generate random targets with same mean/std as original targets
-#             random_targets = torch.randn(dataset_size, target_dim, dtype=torch.float32) * std + mean
-        
-#         # Update annotations with random targets
-#         for i in range(len(self.annotations)):
-#             # Replace all target columns (columns 1 onwards) with random values
-#             self.annotations.iloc[i, 1:] = random_targets[i].numpy()
-        
-#         if random_seed is not None:
-#             # Restore original random states
-#             torch.set_rng_state(torch_state)
-#             np.random.set_state(np_state)
-#             random.setstate(python_state)
-        
-#         # Store metadata for logging
-#         self.random_seed = random_seed
-#         self.perturb_distribution = perturb_distribution
-#         self.target_mean = mean
-#         self.target_std = std
-
-
 # create another dataset class for the inference data (48 Things images)
 class ThingsInferenceDataset(Dataset):
     def __init__(self, inference_csv_file, img_dir, RDM48_triplet_dir):
@@ -732,9 +651,6 @@ def save_dora_parameters(model, dora_parameters_path, epoch, logger=None):
     # save the parameters for each module
     for module_path, module_name in modules_to_save:
         # Traverse the model to get the module.
-        # This works by splitting the module_path string (e.g., "clip_model.visual.transformer.resblocks.22.attn.out_proj")
-        # into its components, and then repeatedly calling getattr to descend into the model's attribute tree.
-        # For example, getattr(model, "clip_model") -> getattr(model.clip_model, "visual") -> ... etc.
         module = model
         for attr in module_path.split("."):
             module = getattr(module, attr)
@@ -843,12 +759,12 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
     # Use logger if provided, otherwise use print
     log = logger.info if logger else print
 
-    # initial evaluation
-    log("*********************************")
-    log("Evaluating initial model")
-    #best_test_loss = evaluate_model(model, test_loader, device, criterion)
-    #log(f"Initial Validation Loss: {best_test_loss:.4f}")
-    log("*********************************\n")
+    # initial evaluation (dissabled for this implementation since we are starting from a checkpoint) 
+    # log("*********************************")
+    # log("Evaluating initial model")
+    # best_test_loss = evaluate_model(model, test_loader, device, criterion)
+    # log(f"Initial Validation Loss: {best_test_loss:.4f}")
+    # log("*********************************\n")
 
     best_test_loss = 500000
 
@@ -889,7 +805,7 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
 
             if used_random_targets:
                 batch_generator = torch.Generator(device=device)
-                batch_generator.manual_seed(perturb_seed + training_run * 1000 + batch_idx)
+                batch_generator.manual_seed(perturb_seed + training_run * 1000 + batch_idx) # make this seed different for each batch
                 
                 # Generate random targets using the epoch generator (different for each batch)
                 if perturb_distribution == 'normal':
@@ -898,7 +814,7 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
                     random_targets = torch.randn(targets.shape, device=device, dtype=torch.float32, generator=batch_generator) * std + mean
                 targets = random_targets
 
-                # DEBUG: Check if random targets are valid
+                # DEBUG: Check if random targets are valid (NOTE: some debug statements may be commented out to avoid clutter)
                 # log(f"Random targets stats: min={targets.min().item():.6f}, max={targets.max().item():.6f}, mean={targets.mean().item():.6f}")
                 if torch.isnan(targets).any():
                     log(f"ERROR: NaN detected in random targets!")
@@ -908,7 +824,7 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
             optimizer.zero_grad()
             predictions = model(images)
 
-            # DEBUG: Check if predictions are valid
+            # DEBUG: Check if predictions are valid (NOTE: some debug statements may be commented out to avoid clutter)
             # log(f"Predictions stats: min={predictions.min().item():.6f}, max={predictions.max().item():.6f}, mean={predictions.mean().item():.6f}")
             if torch.isnan(predictions).any():
                 log(f"ERROR: NaN detected in model predictions!")
@@ -916,7 +832,7 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
                 continue
             
             loss = criterion(predictions, targets)
-            # DEBUG: Check if loss is valid
+            # DEBUG: Check if loss is valid (NOTE: some debug statements may be commented out to avoid clutter)
             # log(f"Loss value: {loss.item()}")
             if torch.isnan(loss) or torch.isinf(loss):
                 log(f"ERROR: NaN/Inf detected in loss!")
@@ -994,7 +910,7 @@ def run_behavioral_training(config):
     np.random.seed(config['random_seed'])
     random.seed(config['random_seed'])
     
-    # Additional fix: Clear CUDA cache between runs
+    # Clear CUDA cache between runs
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
         
