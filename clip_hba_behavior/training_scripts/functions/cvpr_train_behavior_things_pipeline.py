@@ -876,7 +876,7 @@ def shuffle_targets(targets, perturb_seed=None):
     return shuffled_targets
 
 
-def train_model(model, train_loader, test_loader, inference_loader, device, optimizer, criterion, epochs, training_res_path, training_run, perturb_seed, mean, std, perturb_distribution, perturb_type, logger=None, early_stopping_patience=5, checkpoint_path='clip_hba_model_cv.pth', dora_parameters_path='./dora_params', random_state_path='./random_states', dataloader_generator=None, resume_from_epoch=0):
+def train_model(model, train_loader, test_loader, inference_loader, device, optimizer, criterion, epochs, training_res_path, training_run, perturb_length, perturb_seed, mean, std, perturb_distribution, perturb_type, logger=None, early_stopping_patience=5, checkpoint_path='clip_hba_model_cv.pth', dora_parameters_path='./dora_params', random_state_path='./random_states', dataloader_generator=None, resume_from_epoch=0):
     model.train()
     best_test_loss = float('inf')
     epochs_no_improve = 0
@@ -907,13 +907,18 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
         used_random_targets = False
         used_shuffled_targets = False
 
-        # Check if this is the epoch where we should use perturbations (log once before batch loop)
-        if epoch == training_run - 1 and perturb_type == 'random_target':
-            log(f"\n*** USING RANDOM TARGETS FOR EPOCH {epoch+1} ***")
+        # Check if this epoch is within the perturbation window
+        perturb_start_epoch = training_run - 1  # Convert to 0-indexed
+        perturb_end_epoch = perturb_start_epoch + perturb_length - 1
+        
+        if perturb_start_epoch <= epoch <= perturb_end_epoch and perturb_type == 'random_target':
+            logger.info("="*80)
+            log(f"\n*** USING RANDOM TARGETS FOR EPOCH {epoch+1} (Perturbation window: epochs {perturb_start_epoch+1}-{perturb_end_epoch+1}) ***")
+            logger.info("="*80)
             log(f"Random target seed: {perturb_seed}")
             used_random_targets = True
-        elif epoch == training_run - 1 and perturb_type == 'label_shuffle':
-            log(f"\n*** USING SHUFFLED TARGETS FOR EPOCH {epoch+1} ***")
+        elif perturb_start_epoch <= epoch <= perturb_end_epoch and perturb_type == 'label_shuffle':
+            log(f"\n*** USING SHUFFLED TARGETS FOR EPOCH {epoch+1} (Perturbation window: epochs {perturb_start_epoch+1}-{perturb_end_epoch+1}) ***")
             log(f"Shuffle target seed: {perturb_seed}")
             used_shuffled_targets = True
 
@@ -935,28 +940,28 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
                 targets = random_targets
 
                 # DEBUG: Check if random targets are valid
-                log(f"Random targets stats: min={targets.min().item():.6f}, max={targets.max().item():.6f}, mean={targets.mean().item():.6f}")
+                # log(f"Random targets stats: min={targets.min().item():.6f}, max={targets.max().item():.6f}, mean={targets.mean().item():.6f}")
                 if torch.isnan(targets).any():
                     log(f"ERROR: NaN detected in random targets!")
                     log(f"Random targets sample: {targets[0][:5]}")
-                    break
+                    continue
 
             optimizer.zero_grad()
             predictions = model(images)
 
             # DEBUG: Check if predictions are valid
-            log(f"Predictions stats: min={predictions.min().item():.6f}, max={predictions.max().item():.6f}, mean={predictions.mean().item():.6f}")
+            # log(f"Predictions stats: min={predictions.min().item():.6f}, max={predictions.max().item():.6f}, mean={predictions.mean().item():.6f}")
             if torch.isnan(predictions).any():
                 log(f"ERROR: NaN detected in model predictions!")
                 log(f"Predictions sample: {predictions[0][:5]}")
-                break
+                continue
             
             loss = criterion(predictions, targets)
             # DEBUG: Check if loss is valid
-            log(f"Loss value: {loss.item()}")
+            # log(f"Loss value: {loss.item()}")
             if torch.isnan(loss) or torch.isinf(loss):
                 log(f"ERROR: NaN/Inf detected in loss!")
-                break
+                continue
             progress_bar.set_postfix({'loss': loss.item()})
             loss.backward()
             optimizer.step()
@@ -1093,13 +1098,22 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
         if dataloader_generator is not None:
             save_random_states(optimizer, epoch, random_state_path, dataloader_generator, logger=logger)
 
+        # Calculate perturbation window 
+        perturb_start_epoch = training_run - 1  # Convert to 0-indexed
+        perturb_end_epoch = perturb_start_epoch + perturb_length - 1
+        in_perturbation_window = perturb_start_epoch <= epoch <= perturb_end_epoch
+
         # Check for early stopping and saving checkpoint
         if avg_test_loss < best_test_loss:
             best_test_loss = avg_test_loss
             epochs_no_improve = 0
         else:
-            epochs_no_improve += 1
-
+            # only increment the counter if not in the perturbation window
+            if not in_perturbation_window:
+                epochs_no_improve += 1
+            # if in the perturbation window, don't increment the counter
+        
+        # Don't allow early stopping during perturbation epochs
         if epochs_no_improve == early_stopping_patience:
             log("\n\n*********************************")
             log(f"Early stopping triggered at epoch {epoch+1}")
@@ -1253,7 +1267,7 @@ def run_behavioral_training(config):
     # Train model
     train_model(model, train_loader, test_loader, inference_loader, device, optimizer, 
                 criterion=config['criterion'], epochs=config['epochs'], 
-                training_res_path=config['training_res_path'], training_run=training_run, perturb_seed=config['perturb_seed'],
+                training_res_path=config['training_res_path'], training_run=training_run, perturb_length=config['perturb_length'], perturb_seed=config['perturb_seed'],
                 mean=mean, std=std, perturb_distribution=config['perturb_distribution'], perturb_type=config['perturb_type'],
                 logger=logger,
                 early_stopping_patience=config['early_stopping_patience'],

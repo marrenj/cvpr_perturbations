@@ -1,0 +1,3 @@
+run_id	command
+run_001	python cvpr_train_behavior_light.py --model clip_hba --perturb_type baseline --perturb_epoch 7 --perturb_length 20 --perturb_distribution target --perturb_seed 0 --output_dir output/baseline_seed2 --random_seed 2
+run_002	python cvpr_train_behavior_light.py --model clip_hba --perturb_type baseline --perturb_epoch 7 --perturb_length 40 --perturb_distribution target --perturb_seed 0 --output_dir output/baseline_seed3 --random_seed 3
