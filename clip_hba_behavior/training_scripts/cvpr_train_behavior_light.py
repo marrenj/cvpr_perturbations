@@ -6,55 +6,6 @@ import logging
 import sys
 import argparse
 
-## THINGS THAT WILL BE THE SAME FOR ALL TRAINING RUNS:
-# DoRA parameter checkpoint directory (also determines the number of training runs)
-# Perturbation types: label_shuffle, random_target
-# Perturb_length: 1 (one epoch per run)
-# Perturb_distribution: normal (for random_target runs) or target (for label_shuffle runs)
-# Seed: 42 for now
-# Output folder base directory: results/run_$RUN_ID for saving all runs
-
-## THINGS THAT WILL VARY BY TRAINING RUN:
-# The specific naming convention of the file saved (this can be done within the training loop)
-
-
-# |-- temporal_dynamics_of_human_alignment
-# |   |-- clip_hba_behavior_loops
-# |   |   |-- timestamp1
-# |   |   |   |-- output log for entire loop
-# |   |   |   |-- run1
-# |   |   |   |   |-- output log for run
-# |   |   |   |   |-- training_results
-# |   |   |   |   |-- training_artifacts
-# |   |   |   |   |    |-- dora_params
-# |   |   |   |-- run2
-# |   |   |   |   |-- output log for run
-# |   |   |   |   |-- training_results
-# |   |   |   |   |-- training_artifacts
-# |   |   |   |   |    |-- dora_params
-# |   |   |   |-- run93
-# |   |   |   |   |-- output log for run
-# |   |   |   |   |-- training_results
-# |   |   |   |   |-- training_artifacts
-# |   |   |   |   |    |-- dora_params
-# |   |   |-- timestamp2
-# |   |   |   |-- output log for entire loop
-# |   |   |   |-- run1
-# |   |   |   |   |-- output log for run
-# |   |   |   |   |-- training_results
-# |   |   |   |   |-- training_artifacts
-# |   |   |   |   |    |-- dora_params
-# |   |   |   |-- run2
-# |   |   |   |   |-- output log for run
-# |   |   |   |   |-- training_results
-# |   |   |   |   |-- training_artifacts
-# |   |   |   |   |    |-- dora_params
-# |   |   |   |-- run93
-# |   |   |   |   |-- output log for run
-# |   |   |   |   |-- training_results
-# |   |   |   |   |-- training_artifacts
-# |   |   |   |   |    |-- dora_params
-
 
 def setup_main_logger(log_file_path):
     """
@@ -160,7 +111,7 @@ def main():
         'perturb_seed': args.perturb_seed, # seed for the random target generator
         'training_run': args.perturb_epoch, # the epoch to train from
         'resume_from_epoch': max(0, args.perturb_epoch - 1),  # Ensure non-negative
-        'output_base_directory': f'/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/{timestamp}', # base directory for saving the training results and artifacts
+        'output_base_directory': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/perturb_length_experiments', # base directory for saving the training results and artifacts
         'output_directory': args.output_dir, # output directory for saving the training results and artifacts
     }
 

@@ -566,7 +566,8 @@ def evaluate_model(model, data_loader, device, criterion):
 
     # Wrap data_loader with tqdm for a progress bar
     with torch.no_grad(), tqdm(enumerate(data_loader), total=len(data_loader), desc="Evaluating") as progress_bar:
-        for batch_idx, (_, images, targets) in progress_bar:
+        for batch_idx, (image_names, images, targets) in progress_bar:
+
             images = images.to(device)
             targets = targets.to(device)
 
@@ -869,7 +870,9 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
 
         # Save the DoRA parameters
         save_dora_parameters(model, dora_parameters_path, epoch, logger=logger)
+        log("\n\n*********************************")
         log(f"DoRA parameters saved for epoch {epoch+1}")
+        log("\n\n*********************************")
 
         # Save random states and optimizer after every epoch for full reproducibility
         if dataloader_generator is not None:
