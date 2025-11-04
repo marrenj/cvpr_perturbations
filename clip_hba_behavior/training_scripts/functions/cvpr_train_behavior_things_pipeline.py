@@ -752,7 +752,7 @@ def shuffle_targets(targets, perturb_seed=None):
     return shuffled_targets
 
 
-def train_model(model, train_loader, test_loader, inference_loader, device, optimizer, criterion, epochs, training_res_path, training_run, perturb_length, perturb_seed, mean, std, perturb_distribution, perturb_type, logger=None, early_stopping_patience=5, checkpoint_path='clip_hba_model_cv.pth', dora_parameters_path='./dora_params', random_state_path='./random_states', dataloader_generator=None, resume_from_epoch=0):
+def train_model(model, train_loader, test_loader, inference_loader, device, optimizer, criterion, epochs, training_res_path, training_run, perturb_length, perturb_seed, mean, std, perturb_distribution, perturb_type, logger=None, early_stopping_patience=5, checkpoint_path='clip_hba_model_cv.pth', dora_parameters_path='./dora_params', random_state_path='./random_states', dataloader_generator=None, resume_from_epoch=0, previous_training_res_path=None):
     model.train()
     best_test_loss = float('inf')
     epochs_no_improve = 0
@@ -774,9 +774,25 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
 
     headers = ['epoch', 'train_loss', 'test_loss', 'behavioral_rsa_rho', 'behavioral_rsa_p_value', 'used_random_targets', 'used_shuffled_targets']
 
+    # Initialize CSV: if resuming and a previous CSV exists, pre-populate rows up to resume_from_epoch
     with open(training_res_path, 'w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(headers)
+        if previous_training_res_path and resume_from_epoch > 0 and os.path.exists(previous_training_res_path):
+            try:
+                with open(previous_training_res_path, 'r') as prev_file:
+                    prev_reader = csv.reader(prev_file)
+                    next(prev_reader, None)  # skip header
+                    for row in prev_reader:
+                        try:
+                            epoch_val = int(row[0])
+                        except Exception:
+                            continue
+                        if epoch_val <= resume_from_epoch:
+                            writer.writerow(row)
+            except Exception as e:
+                if logger:
+                    logger.warning(f"Could not pre-populate training CSV from {previous_training_res_path}: {e}")
 
     for epoch in range(resume_from_epoch, epochs):
         total_loss = 0.0
@@ -991,16 +1007,21 @@ def run_behavioral_training(config):
 
     training_run = config['training_run']
     
-    dora_checkpoint = training_run - 1
-    dora_params_path = os.path.join(config['baseline_dora_directory'], f"epoch{dora_checkpoint}_dora_params.pth")
+    # Determine which DoRA checkpoint to load: resume source (if provided) or baseline at training_run-1
+    dora_params_path = None
+    if config.get('resume_from_epoch', 0) > 0 and config.get('resume_dora_parameters_path'):
+        dora_checkpoint = config['resume_from_epoch']
+        dora_params_path = os.path.join(config['resume_dora_parameters_path'], f"epoch{dora_checkpoint}_dora_params.pth")
+    else:
+        dora_checkpoint = training_run - 1
+        dora_params_path = os.path.join(config['baseline_dora_directory'], f"epoch{dora_checkpoint}_dora_params.pth")
 
-    # Load the DoRA parameter checkpoint from the previous epoch (training_run - 1) only if training_run > 1
-    if config['training_run'] > 1:
-        # Replace the keys and values in model_state_dict only for the dora layers listed in the dora_params_path
+    # Load DoRA parameters if available/appropriate
+    if dora_params_path and os.path.exists(dora_params_path) and (config['training_run'] >= 1):
         dora_params_state_dict = torch.load(dora_params_path)
         model.load_state_dict(dora_params_state_dict, strict=False)
         logger.info(f"Loaded DoRA parameters from {dora_params_path}")
-    elif config['training_run'] == 1:
+    else:
         logger.info(f"Using original DoRA parameters from model initialization")
     
     # Use DataParallel if using all GPUs
@@ -1013,21 +1034,21 @@ def run_behavioral_training(config):
     # Initialize optimizer
     optimizer = AdamW(model.parameters(), lr=config['lr'])
 
-    # If resuming from a specific epoch, load the random states from baseline
+    # If resuming from a specific epoch, load the random states from prior run if provided, else baseline
     resume_from_epoch = config.get('resume_from_epoch', 0)
     if resume_from_epoch > 0:
-        baseline_random_state_path = config.get('baseline_random_state_path')
-        if baseline_random_state_path:
+        prior_random_state_path = config.get('resume_random_state_path') or config.get('baseline_random_state_path')
+        if prior_random_state_path:
             logger.info(f"Resuming from epoch {resume_from_epoch}")
             success = load_random_states(
-                baseline_random_state_path, 
+                prior_random_state_path, 
                 resume_from_epoch, 
                 optimizer=optimizer,
                 dataloader_generator=dataloader_generator,
                 logger=logger
             )
             if success:
-                logger.info(f"Successfully restored all random states from baseline epoch {resume_from_epoch}")
+                logger.info(f"Successfully restored all random states from epoch {resume_from_epoch}")
             else:
                 logger.warning(f"Could not load random states - starting with fresh random state")
         else:
@@ -1055,5 +1076,6 @@ def run_behavioral_training(config):
                 dora_parameters_path=config['dora_parameters_path'],
                 random_state_path=config.get('random_state_path', './random_states'),
                 dataloader_generator=dataloader_generator,
-                resume_from_epoch=config.get('resume_from_epoch', 0)
+                resume_from_epoch=config.get('resume_from_epoch', 0),
+                previous_training_res_path=config.get('previous_training_res_path')
                 )

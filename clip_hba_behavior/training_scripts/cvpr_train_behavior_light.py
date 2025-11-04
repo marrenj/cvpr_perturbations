@@ -117,7 +117,25 @@ def main():
 
     # Create output directory structure compatible with analysis script
     config['output_dir'] = os.path.join(config['output_base_directory'], config['output_directory'])
-    os.makedirs(config['output_dir'], exist_ok=True)
+
+    # Safety: avoid overwriting any existing run directory or artifacts
+    existing_csv = os.path.join(config['output_dir'], 'training_res.csv')
+    existing_ckpt = os.path.join(config['output_dir'], f"model_checkpoint_{args.perturb_epoch}.pth")
+    existing_dora_dir = os.path.join(config['output_dir'], f"dora_params_{args.perturb_epoch}")
+    existing_rs_dir = os.path.join(config['output_dir'], f"random_states_{args.perturb_epoch}")
+
+    if os.path.isdir(config['output_dir']) or os.path.exists(existing_csv) or os.path.exists(existing_ckpt) or os.path.isdir(existing_dora_dir) or os.path.isdir(existing_rs_dir):
+        print(f"Detected existing artifacts for this run; skipping to avoid overwrite: {config['output_dir']}")
+        sys.exit(2)
+
+    os.makedirs(config['output_dir'], exist_ok=False)
+
+    # Safety: prevent overwriting if this exact run already exists
+    existing_csv = os.path.join(config['output_dir'], 'training_res.csv')
+    existing_ckpt = os.path.join(config['output_dir'], f"model_checkpoint_{args.perturb_epoch}.pth")
+    if os.path.exists(existing_csv) or os.path.exists(existing_ckpt):
+        print("Detected existing artifacts for this run; skipping to avoid overwrite.")
+        return
 
     # Set up paths to match expected structure for analysis script
     config['checkpoint_path'] = os.path.join(config['output_dir'], f'model_checkpoint_{args.perturb_epoch}.pth')
@@ -147,6 +165,39 @@ def main():
     logger.info("="*80)
     logger.info("")
 
+    # Helper: attempt to find a previous run dir with same starting epoch and smaller perturb length
+    def find_previous_run_dir(base_dir, perturb_type, start_epoch, current_length):
+        candidates = []
+        if not os.path.isdir(base_dir):
+            return None, None
+        for name in os.listdir(base_dir):
+            full_path = os.path.join(base_dir, name)
+            if not os.path.isdir(full_path):
+                continue
+            # Require matching start epoch token 'e{start_epoch}_' and matching perturb_type prefix if present
+            if f"e{start_epoch}_" not in name:
+                continue
+            if perturb_type in ['random_target', 'label_shuffle'] and not name.startswith(perturb_type):
+                continue
+            # Extract length from pattern '_l{num}'
+            length_val = None
+            try:
+                parts = name.split('_')
+                for p in parts:
+                    if p.startswith('l') and p[1:].isdigit():
+                        length_val = int(p[1:])
+                        break
+                if length_val is None:
+                    continue
+            except Exception:
+                continue
+            if length_val < current_length:
+                candidates.append((length_val, full_path))
+        if not candidates:
+            return None, None
+        best = max(candidates, key=lambda t: t[0])
+        return best[1], best[0]
+
     # Handle baseline case
     if args.perturb_type == 'baseline':
         logger.info("Running baseline training (no perturbations)")
@@ -160,6 +211,17 @@ def main():
         logger.info(f"  - Perturbation length: {args.perturb_length}")
         logger.info(f"  - Resuming from epoch: {config['resume_from_epoch']}")
         config['perturb_length'] = args.perturb_length
+        # Try to resume from the latest existing perturbation with same starting epoch
+        prev_dir, prev_length = find_previous_run_dir(config['output_base_directory'], args.perturb_type, args.perturb_epoch, args.perturb_length)
+        if prev_dir and prev_length is not None:
+            last_epoch = max(0, args.perturb_epoch - 1) + prev_length
+            config['resume_from_epoch'] = last_epoch
+            config['previous_training_res_path'] = os.path.join(prev_dir, 'training_res.csv')
+            config['resume_random_state_path'] = os.path.join(prev_dir, f'random_states_{args.perturb_epoch}')
+            config['resume_dora_parameters_path'] = os.path.join(prev_dir, f'dora_params_{args.perturb_epoch}')
+            logger.info(f"Detected previous run at '{prev_dir}' with length {prev_length}; resuming from epoch {last_epoch}")
+        else:
+            logger.info("No previous matching run found; starting from baseline epoch.")
 
     try:
         logger.info(f"Starting training run...")

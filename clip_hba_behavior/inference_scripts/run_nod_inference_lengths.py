@@ -21,10 +21,16 @@ import shutil
 
 results_dir = Path('/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/perturb_length_experiments')
 
-# list all training run directories in the results_dir
+# # list all training run directories in the results_dir
+# run_dirs = sorted([d for d in results_dir.iterdir() 
+#                   if d.is_dir()
+#                   and d.name.startswith('random_target')])
+
+# list all training run directories in the results_dir that end with _l50
 run_dirs = sorted([d for d in results_dir.iterdir() 
                   if d.is_dir()
-                  and d.name.startswith('random_target')])
+                  and d.name.startswith('random_target')
+                  and d.name.endswith('_l50')])
 
 print(f"Found {len(run_dirs)} training run directories:")
 for run_dir in run_dirs:
@@ -48,7 +54,7 @@ def main():
         'backbone': 'ViT-L/14',  # CLIP backbone model
         'model_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/models/cliphba_behavior_20250919_212822.pth',  # path to the final trained model
         'batch_size': 64,  # batch size (increased for better GPU utilization)
-        'cuda': 'cuda:1',  # 'cuda:0' for GPU 0, 'cuda:1' for GPU 1, '-1' for all GPUs
+        'cuda': 'cuda:0',  # 'cuda:0' for GPU 0, 'cuda:1' for GPU 1, '-1' for all GPUs
     }
 
     # Loop through the run_dirs and run inference

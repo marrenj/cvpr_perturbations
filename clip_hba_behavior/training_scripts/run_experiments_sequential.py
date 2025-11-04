@@ -73,23 +73,27 @@ def run_experiment(command, experiment_id, log_dir):
             stdout_thread.join()
             stderr_thread.join()
             
+            if return_code == 2:
+                print(f"\n⏭️  EXPERIMENT {experiment_id} SKIPPED (exit code 2)")
+                print(f"Finished at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                return "skipped"
             if return_code != 0:
                 raise subprocess.CalledProcessError(return_code, command)
-        
+
         print(f"\n✅ EXPERIMENT {experiment_id} COMPLETED SUCCESSFULLY")
         print(f"Finished at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        return True
+        return "success"
 
     except subprocess.CalledProcessError as e:
         print(f"\n❌ EXPERIMENT {experiment_id} FAILED")
         print(f"Error code: {e.returncode}")
         print(f"Finished at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        return False
+        return "failed"
     except Exception as e:
         print(f"\n❌ EXPERIMENT {experiment_id} FAILED WITH EXCEPTION")
         print(f"Error: {str(e)}")
         print(f"Finished at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        return False
+        return "failed"
 
 def main():
     """Main function to run all experiments sequentially."""
@@ -120,6 +124,7 @@ def main():
     # Track results
     successful_runs = []
     failed_runs = []
+    skipped_runs = []
     start_time = datetime.now()
     
     print(f"\n🚀 STARTING SEQUENTIAL EXPERIMENT RUN")
@@ -137,18 +142,21 @@ def main():
             command = command.replace('python ', 'python -u ', 1)
         
         # Run the experiment
-        success = run_experiment(command, experiment_id, log_dir)
-        
-        if success:
+        status = run_experiment(command, experiment_id, log_dir)
+
+        if status == "success":
             successful_runs.append(experiment_id)
+        elif status == "skipped":
+            skipped_runs.append(experiment_id)
         else:
             failed_runs.append(experiment_id)
         
         # Print progress
-        completed = len(successful_runs) + len(failed_runs)
+        completed = len(successful_runs) + len(failed_runs) + len(skipped_runs)
         remaining = len(df) - completed
         print(f"\n📊 PROGRESS: {completed}/{len(df)} experiments completed")
         print(f"✅ Successful: {len(successful_runs)}")
+        print(f"⏭️  Skipped: {len(skipped_runs)}")
         print(f"❌ Failed: {len(failed_runs)}")
         print(f"⏳ Remaining: {remaining}")
         
@@ -170,6 +178,7 @@ def main():
     print(f"Total time: {total_time}")
     print(f"Total experiments: {len(df)}")
     print(f"✅ Successful: {len(successful_runs)}")
+    print(f"⏭️  Skipped: {len(skipped_runs)}")
     print(f"❌ Failed: {len(failed_runs)}")
     
     if successful_runs:
@@ -177,6 +186,11 @@ def main():
         for run_id in successful_runs:
             print(f"  - {run_id}")
     
+    if skipped_runs:
+        print(f"\n⏭️  Skipped experiments:")
+        for run_id in skipped_runs:
+            print(f"  - {run_id}")
+
     if failed_runs:
         print(f"\n❌ Failed experiments:")
         for run_id in failed_runs:
