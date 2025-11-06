@@ -19,6 +19,9 @@ from functions.spose_dimensions import *
 import torch
 import shutil
 
+# Get the script's directory for resolving relative paths
+SCRIPT_DIR = Path(__file__).parent.resolve()
+
 results_dir = Path('/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/perturb_length_experiments_baselineseed1_perturbseed0')
 
 # list all training run directories in the results_dir
@@ -47,12 +50,17 @@ run_dirs = sorted(run_dirs, key=lambda x: (int(x.name.split('_')[-2].lstrip('e')
 
 
 def main(): 
+    # Define paths using Path objects for OS-agnostic path handling
+    img_dir = Path('/home/wallacelab/teba/multimodal_brain_inspired/NOD/imagenet')
+    category_index_file = SCRIPT_DIR.parent / 'analysis' / 'sorted_file_categories.csv'
+    model_path = Path('/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/models/cliphba_behavior_20250919_212822.pth')
+    
     config = {
-        'img_dir': '/home/wallacelab/teba/multimodal_brain_inspired/NOD/imagenet',  # input images directory,
-        'category_index_file': '../analysis/sorted_file_categories.csv', 
+        'img_dir': str(img_dir),  # input images directory
+        'category_index_file': str(category_index_file), 
         'load_hba': True,  # False will load the original CLIP-ViT weights
         'backbone': 'ViT-L/14',  # CLIP backbone model
-        'model_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/models/cliphba_behavior_20250919_212822.pth',  # path to the final trained model
+        'model_path': str(model_path),  # path to the final trained model
         'batch_size': 64,  # batch size (increased for better GPU utilization)
         'cuda': 'cuda:0',  # 'cuda:0' for GPU 0, 'cuda:1' for GPU 1, '-1' for all GPUs
     }

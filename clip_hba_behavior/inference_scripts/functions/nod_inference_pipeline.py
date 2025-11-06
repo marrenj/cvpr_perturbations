@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 import pandas as pd
 from PIL import Image
-import os
+from pathlib import Path
 import numpy as np
 from torch.nn import functional as F
 import copy
@@ -37,7 +37,8 @@ def seed_everything(seed):
 
 def load_clip_to_cpu(backbone_name):
     url = clip._MODELS[backbone_name]
-    model_path = clip._download(url, os.path.expanduser("~/.cache/clip"))
+    cache_dir = Path.home() / ".cache" / "clip"
+    model_path = clip._download(url, str(cache_dir))
 
     try:
         # loading JIT archive
@@ -230,7 +231,10 @@ def switch_dora_layers(model, freeze_all=True, dora_state=True):
 
 class ImageDataset(Dataset):
     def __init__(self, category_index_file, img_dir, max_images_per_category=2):
-        self.img_dir = img_dir
+        # Convert paths to Path objects for OS-agnostic handling
+        self.img_dir = Path(img_dir)
+        self.category_index_file = Path(category_index_file)
+        
         self.transform = transforms.Compose([
                         transforms.Resize((224, 224)),
                         transforms.ToTensor(),
@@ -239,7 +243,7 @@ class ImageDataset(Dataset):
                     ])
 
         # Load the full CSV
-        self.category_index = pd.read_csv(category_index_file)
+        self.category_index = pd.read_csv(self.category_index_file)
 
         # Pre-compute all image paths for all categories
         # Sample max_images_per_category images from each category
@@ -249,20 +253,21 @@ class ImageDataset(Dataset):
 
         for _, row in self.category_index.iterrows():
             category = row['category']
-            category_path = os.path.join(self.img_dir, category)
+            category_path = self.img_dir / category
             
-            if os.path.isdir(category_path):
+            if category_path.is_dir():
                 # Get all images in this category
-                all_images = [f for f in os.listdir(category_path) 
-                             if f.lower().endswith(('.png', '.jpg', '.jpeg', '.PNG', '.JPG', '.JPEG'))]
+                all_images = [f.name for f in category_path.iterdir() 
+                             if f.is_file() and f.suffix.lower() in ('.png', '.jpg', '.jpeg')]
                 
                 # Sample max_images_per_category images randomly
                 random.seed(42)  # For reproducibility
                 sampled_images = random.sample(all_images, min(max_images_per_category, len(all_images)))
                 
                 for image_file in sampled_images:
-                    image_path = os.path.join(category, image_file)
-                    self.image_paths.append(image_path)
+                    # Store relative path for compatibility
+                    image_path = Path(category) / image_file
+                    self.image_paths.append(str(image_path))
                     self.image_names.append(image_file)
                     self.categories.append(category)
         
@@ -273,7 +278,7 @@ class ImageDataset(Dataset):
 
     def __getitem__(self, index):
         # Get the image at the specified index
-        image_path = os.path.join(self.img_dir, self.image_paths[index])
+        image_path = self.img_dir / self.image_paths[index]
         image_name = self.image_names[index]
         category = self.categories[index]
         
@@ -330,17 +335,24 @@ def run_behavior_inference(config):
     
     Args:
         config (dict): Configuration dictionary containing:
-            - img_dir (str): Directory containing input images
+            - img_dir (str or Path): Directory containing input images
             - load_hba (bool): Whether to load HBA weights
             - backbone (str): CLIP backbone model name
-            - model_path (str): Path to the trained model
-            - save_folder (str): Output directory path
+            - model_path (str or Path): Path to the trained model
+            - save_folder (str or Path): Output directory path
             - batch_size (int): Batch size for inference
             - cuda (str): Device specification
+            - dora_params_path (str or Path): Path to DoRA parameters directory
+            - training_res_path (str or Path, optional): Path to training results CSV
+            - min_epoch_to_process (int, optional): Minimum epoch to process
     """
+    # Convert paths to Path objects for OS-agnostic handling
+    save_folder = Path(config['save_folder'])
+    output_dir = save_folder
+    
     # Create the directory if it doesn't exist
-    print(f"\nEmbedding will be saved to folder: {config['save_folder']}\n")
-    os.makedirs(config['save_folder'], exist_ok=True)
+    print(f"\nEmbedding will be saved to folder: {save_folder}\n")
+    save_folder.mkdir(parents=True, exist_ok=True)
 
     classnames = classnames66
     
@@ -363,8 +375,6 @@ def run_behavior_inference(config):
 
     # Load HBA weights if specified
     device = torch.device(config['cuda'])
-    output_dir = config['save_folder']
-    os.makedirs(output_dir, exist_ok=True)
     
     if config['load_hba']:
         apply_dora_to_ViT(model, 
@@ -373,31 +383,37 @@ def run_behavior_inference(config):
                          r=32, 
                          dora_dropout=0.1)
         
+        # Convert dora_params_path to Path object
+        dora_params_path = Path(config['dora_params_path'])
+        
         # List all the files in the dora_params_path
-        dora_params_files = os.listdir(config['dora_params_path'])
+        dora_params_files = [f.name for f in dora_params_path.iterdir() if f.is_file()]
         dora_params_files = sorted(dora_params_files, key=lambda f: int(f.split('_')[0].replace('epoch', '')))
 
         # Filter epochs based on minimum test loss if training results CSV is provided
-        if 'training_res_path' in config and config['training_res_path'] and os.path.exists(config['training_res_path']):
-            training_df = pd.read_csv(config['training_res_path'])
-            
-            # Find the epoch with minimum test loss
-            min_test_loss_idx = training_df['test_loss'].idxmin()
-            min_test_loss_epoch = int(training_df.loc[min_test_loss_idx, 'epoch'])
-            
-            print(f"Minimum test loss occurred at epoch {min_test_loss_epoch}")
-            print(f"Original epoch files: {len(dora_params_files)}")
-            
-            # Filter DoRA parameter files to only include epochs up to minimum test loss
-            filtered_dora_files = []
-            for file in dora_params_files:
-                epoch_num = int(file.split('_')[0].replace('epoch', ''))
-                if epoch_num <= min_test_loss_epoch:
-                    filtered_dora_files.append(file)
-            
-            dora_params_files = filtered_dora_files
-            print(f"Filtered epoch files: {len(dora_params_files)}")
-            print(f"Skipping {len(os.listdir(config['dora_params_path'])) - len(dora_params_files)} epochs after minimum test loss\n")
+        if 'training_res_path' in config and config['training_res_path']:
+            training_res_path = Path(config['training_res_path'])
+            if training_res_path.exists():
+                training_df = pd.read_csv(training_res_path)
+                
+                # Find the epoch with minimum test loss
+                min_test_loss_idx = training_df['test_loss'].idxmin()
+                min_test_loss_epoch = int(training_df.loc[min_test_loss_idx, 'epoch'])
+                
+                print(f"Minimum test loss occurred at epoch {min_test_loss_epoch}")
+                print(f"Original epoch files: {len(dora_params_files)}")
+                
+                # Filter DoRA parameter files to only include epochs up to minimum test loss
+                filtered_dora_files = []
+                for file in dora_params_files:
+                    epoch_num = int(file.split('_')[0].replace('epoch', ''))
+                    if epoch_num <= min_test_loss_epoch:
+                        filtered_dora_files.append(file)
+                
+                dora_params_files = filtered_dora_files
+                print(f"Filtered epoch files: {len(dora_params_files)}")
+                total_files = len([f for f in dora_params_path.iterdir() if f.is_file()])
+                print(f"Skipping {total_files - len(dora_params_files)} epochs after minimum test loss\n")
 
         # Final cross-run skip based on min_epoch_to_process
         if 'min_epoch_to_process' in config and config['min_epoch_to_process'] is not None:
@@ -414,15 +430,16 @@ def run_behavior_inference(config):
             # Extract epoch number from filename
             epoch = file.split('_')[0].replace('epoch', '')
 
-            embedding_save_path = os.path.join(output_dir, f"nod_embeddings_epoch{epoch}.csv")
+            embedding_save_path = output_dir / f"nod_embeddings_epoch{epoch}.csv"
 
             # Skip if output already exists
-            if os.path.exists(embedding_save_path):
+            if embedding_save_path.exists():
                 print(f"Epoch {epoch} already processed, skipping...")
                 continue
             
             # Load DoRA parameters for this epoch
-            dora_params_state_dict = torch.load(os.path.join(config['dora_params_path'], file))
+            dora_file_path = dora_params_path / file
+            dora_params_state_dict = torch.load(dora_file_path)
             model.load_state_dict(dora_params_state_dict, strict=False)
     
             # Run the model and save output embeddings
