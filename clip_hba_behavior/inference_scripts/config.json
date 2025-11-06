@@ -1,0 +1,10 @@
+{
+    "results_dir": "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/perturb_length_experiments_baselineseed1_perturbseed0",
+    "img_dir": "/home/wallacelab/teba/multimodal_brain_inspired/NOD/imagenet",
+    "model_path": "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/models/cliphba_behavior_20250919_212822.pth",
+    "batch_size": 64,
+    "cuda": "cuda:0",
+    "load_hba": true,
+    "backbone": "ViT-L/14"
+}
+

@@ -1,0 +1,8 @@
+{
+    "results_dir": "C:\Users\BrainInspired\teba.psy.vanderbilt.edu\wallacelab\multimodal_brain_inspired\marren\temporal_dynamics_of_human_alignment\clip_hba_behavior_loops\perturb_length_experiments_baselineseed1_perturbseed0",
+    "img_dir": "C:\Users\BrainInspired\teba.psy.vanderbilt.edu\wallacelab\multimodal_brain_inspired\NOD\imagenet",
+    "batch_size": 64,
+    "cuda": "cuda:0",
+    "load_hba": true,
+    "backbone": "ViT-L/14"
+}
