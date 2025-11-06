@@ -103,15 +103,15 @@ def main():
         'rank': 32, # Rank of the feature reweighting matrix, default CLIP-HBA-Behavior is 32
         'criterion': nn.MSELoss(), # MSE Loss
         'cuda': args.cuda,  # -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
-        'baseline_dora_directory': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_artifacts/dora_params/dora_params_20251013_220330', # location of the DoRA parameters for the baseline training run
-        'baseline_random_state_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_artifacts/random_states/random_states_20251013_220330', # location of the random states for the baseline training run
-        'baseline_split_indices_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_artifacts/random_states/random_states_20251013_220330/dataset_split_indices.pth', # location of the train/test split indices from baseline training
+        'baseline_dora_directory': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_seed2/training_artifacts/dora_params/dora_params_20251105_153800', # location of the DoRA parameters for the baseline training run
+        'baseline_random_state_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_seed2/training_artifacts/random_states/random_states_20251105_153800', # location of the random states for the baseline training run
+        'baseline_split_indices_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_seed2/training_artifacts/random_states/random_states_20251105_153800/dataset_split_indices.pth', # location of the train/test split indices from baseline training
         'perturb_type': args.perturb_type, # either 'random_target', 'label_shuffle', or 'baseline'
         'perturb_distribution': args.perturb_distribution, # draw from either the 'normal' or 'target' distribution when generating random targets (only used for random_target runs)
         'perturb_seed': args.perturb_seed, # seed for the random target generator
         'training_run': args.perturb_epoch, # the epoch to train from
         'resume_from_epoch': max(0, args.perturb_epoch - 1),  # Ensure non-negative
-        'output_base_directory': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/perturb_length_experiments', # base directory for saving the training results and artifacts
+        'output_base_directory': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/perturb_length_experiments_seed2', # base directory for saving the training results and artifacts
         'output_directory': args.output_dir, # output directory for saving the training results and artifacts
     }
 

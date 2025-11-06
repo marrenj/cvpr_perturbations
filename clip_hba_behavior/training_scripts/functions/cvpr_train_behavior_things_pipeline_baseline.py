@@ -628,6 +628,9 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
     # Create folder to store DoRA parameters
     os.makedirs(dora_parameters_path, exist_ok=True)
 
+    # Create directory for training results CSV if it doesn't exist
+    os.makedirs(os.path.dirname(training_res_path), exist_ok=True)
+
     headers = ['epoch', 'train_loss', 'test_loss', 'behavioral_rsa_rho', 'behavioral_rsa_p_value']
 
     with open(training_res_path, 'w', newline='') as file:

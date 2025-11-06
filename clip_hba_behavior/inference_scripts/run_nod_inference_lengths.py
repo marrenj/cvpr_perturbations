@@ -19,18 +19,18 @@ from functions.spose_dimensions import *
 import torch
 import shutil
 
-results_dir = Path('/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/perturb_length_experiments')
+results_dir = Path('/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/perturb_length_experiments_baselineseed1_perturbseed0')
 
-# # list all training run directories in the results_dir
-# run_dirs = sorted([d for d in results_dir.iterdir() 
-#                   if d.is_dir()
-#                   and d.name.startswith('random_target')])
-
-# list all training run directories in the results_dir that end with _l50
+# list all training run directories in the results_dir
 run_dirs = sorted([d for d in results_dir.iterdir() 
                   if d.is_dir()
-                  and d.name.startswith('random_target')
-                  and d.name.endswith('_l50')])
+                  and d.name.startswith('random_target')])
+
+# # list all training run directories in the results_dir that end with _l50
+# run_dirs = sorted([d for d in results_dir.iterdir() 
+#                   if d.is_dir()
+#                   and d.name.startswith('random_target')
+#                   and d.name.endswith('_l50')])
 
 print(f"Found {len(run_dirs)} training run directories:")
 for run_dir in run_dirs:
@@ -74,7 +74,8 @@ def main():
         # Construct paths specific to this training run
         dora_params_path = run_dir / f'dora_params_{epoch_number}'
         save_folder = run_dir / 'nod_inference_results'
-        training_res_path = run_dir / 'metrics.csv'
+        #  if 'metrics.csv' exists, use it, otherwise use 'training_res.csv'
+        training_res_path = run_dir / 'metrics.csv' if (run_dir / 'metrics.csv').exists() else run_dir / 'training_res.csv'
 
         print(f"Dora params path: {dora_params_path}")
         print(f"Training results path: {training_res_path}")
