@@ -366,7 +366,6 @@ def run_behavior_inference(config):
 
     # Load HBA weights if specified
     device = torch.device(config['cuda'])
-    model.to(device)
     
     if config['load_hba']:
         apply_dora_to_ViT(model, 
@@ -374,6 +373,9 @@ def run_behavior_inference(config):
                          n_transformer_layers=1, 
                          r=32, 
                          dora_dropout=0.1)
+    model.to(device)
+
+    if config['load_hba']:
         
         # Convert dora_params_path to Path object
         dora_params_path = Path(config['dora_params_path'])
