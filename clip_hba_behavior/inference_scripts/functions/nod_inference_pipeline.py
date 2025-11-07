@@ -67,23 +67,21 @@ class CLIPHBA(nn.Module):
         
         # Tokenize all prompts at once and store them as a tensor
         self.tokenized_prompts = torch.stack([clip.tokenize(classname) for classname in classnames])
+        self._tokenized_prompts_device = None  # Cache for device
 
 
     def forward(self, image):
         if self.clip_model.training:
             self.clip_model.eval()
 
-        # Move tokenized prompts to the same device as the input image
-        tokenized_prompts = self.tokenized_prompts.to(image.device)
-
         # Process all tokenized prompts in a single forward pass
-        pred_score = self.clip_model(image, tokenized_prompts, self.pos_embedding)
+        if self._tokenized_prompts_device != image.device:
+            self.tokenized_prompts = self.tokenized_prompts.to(image.device)
+            self._tokenized_prompts_device = image.device
 
-        pred_score = pred_score.float()  # Adjust the dimensions accordingly
+        pred_score = self.clip_model(image, self.tokenized_prompts, self.pos_embedding)
 
-        # print(f"pred_score: {pred_score}")
-
-        return pred_score
+        return pred_score.float()
     
 
 class DoRALayer(nn.Module):
@@ -290,41 +288,32 @@ class ImageDataset(Dataset):
 
 def run_image(model, data_loader, device=torch.device("cuda:0")):
     model.eval()
-    model.to(device)
     image_names = []
     categories = []
-    predictions = []
+    all_predictions = []
     
     progress_bar = tqdm(enumerate(data_loader), total=len(data_loader), desc=f"Processing images")
     
     with torch.no_grad():
         for batch_idx, (batch_image_names, batch_images, batch_categories) in progress_bar:
-            batch_images = batch_images.to(device)
-            batch_outputs = model(batch_images)
+            batch_images = batch_images.to(device, non_blocking=True)
+            with torch.cuda.amp.autocast():
+                batch_outputs = model(batch_images)
+
             
-            predictions.extend(batch_outputs.cpu().numpy())
+            all_predictions.append(batch_outputs.cpu())
             image_names.extend(batch_image_names)
             categories.extend(batch_categories)
 
         # min max to 0-1
-        predictions = np.array(predictions)
+        predictions = torch.cat(all_predictions, dim=0).numpy()
         # predictions = (predictions - predictions.min()) / (predictions.max() - predictions.min())
 
         hba_embedding = pd.DataFrame(predictions)
         hba_embedding['image'] = image_names
         hba_embedding['category'] = categories
         hba_embedding = hba_embedding[['image', 'category'] + [col for col in hba_embedding if col != 'image' and col != 'category']]
-        #emb_save_path = f"{save_folder}/static_embedding.csv"
-        #hba_embedding.to_csv(emb_save_path, index=False)
-        #print(f"Embedding saved to {emb_save_path}")
 
-        #rdm generation
-        # rdm = 1 - np.corrcoef(np.array(predictions))
-        # np.fill_diagonal(rdm, 0)
-        # rdm_save_path = f"{save_folder}/static_rdm.npy"
-        # np.save(rdm_save_path, rdm)
-        # print(f"RDM saved to {rdm_save_path}")
-        # print(f"-----------------------------------------------\n")
     return hba_embedding
 
 
@@ -371,10 +360,13 @@ def run_behavior_inference(config):
                            batch_size=config['batch_size'], 
                            shuffle=False,
                            num_workers=4,
-                           pin_memory=True) 
+                           pin_memory=True,
+                           persistent_workers=True,
+                           prefetch_factor=2) 
 
     # Load HBA weights if specified
     device = torch.device(config['cuda'])
+    model.to(device)
     
     if config['load_hba']:
         apply_dora_to_ViT(model, 
