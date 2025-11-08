@@ -13,7 +13,7 @@ This optimization avoids recomputing identical embeddings across experiments wit
 starting epoch but different perturbation lengths.
 """
 
-from functions.nod_inference_pipeline import run_behavior_inference
+from functions.test_nod_inference_pipeline import run_behavior_inference
 from pathlib import Path
 from functions.spose_dimensions import *
 import torch
@@ -37,11 +37,11 @@ def load_config(config_path=None):
     """
     # Default configuration
     default_config = {
-        'results_dir': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/20251105_182613',
+        'results_dir': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/perturb_length_experiments_baselineseed1_perturbseed0',
         'img_dir': '/home/wallacelab/teba/multimodal_brain_inspired/NOD/imagenet',
         #'model_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/models/cliphba_behavior_20250919_212822.pth',
         'batch_size': 64,
-        'cuda': 'cuda:1',
+        'cuda': 'cuda:0',
         'load_hba': True,
         'backbone': 'ViT-L/14'
     }
@@ -155,10 +155,7 @@ def main():
         dora_params_path = run_dir / f'dora_params_{epoch_number}'
         save_folder = run_dir / 'nod_inference_results'
         #  if 'metrics.csv' exists, use it, otherwise use 'training_res.csv'
-        # Find any file in run_dir that starts with "metrics" or "training_res"
-        metric_files = [f for f in run_dir.iterdir() if f.is_file() and (f.name.startswith('metrics') or f.name.startswith('training_res'))]
-        # Use the first one found, or None if not found
-        training_res_path = metric_files[0] if metric_files else None
+        training_res_path = run_dir / 'metrics.csv' if (run_dir / 'metrics.csv').exists() else run_dir / 'training_res.csv'
 
         print(f"Dora params path: {dora_params_path}")
         print(f"Training results path: {training_res_path}")

@@ -43,34 +43,63 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class ThingsDataset(Dataset):
-    def __init__(self, image_dir: str, ordered_image_filenames: List[str], transform=None):
-        self.image_dir = Path(image_dir)
-        self.ordered_image_filenames = ordered_image_filenames
-        self.transform = transform
+class ImageDataset(Dataset):
+    def __init__(self, category_index_file, img_dir, max_images_per_category=2):
+        # Convert paths to Path objects for OS-agnostic handling
+        self.img_dir = Path(img_dir)
+        self.category_index_file = Path(category_index_file)
         
+        self.transform = transforms.Compose([
+                        transforms.Resize((224, 224)),
+                        transforms.ToTensor(),
+                        transforms.Normalize(mean=[0.52997664, 0.48070561, 0.41943838],
+                                            std=[0.27608301, 0.26593025, 0.28238822])
+                    ])
+
+        # Load the full CSV
+        self.category_index = pd.read_csv(self.category_index_file)
+
+        # Pre-compute all image paths for all categories
+        # Sample max_images_per_category images from each category
+        self.image_paths = []
+        self.image_names = []
+        self.categories = []
+
+        for _, row in self.category_index.iterrows():
+            category = row['category']
+            category_path = self.img_dir / category
+            
+            if category_path.is_dir():
+                # Get all images in this category
+                all_images = [f.name for f in category_path.iterdir() 
+                             if f.is_file() and f.suffix.lower() in ('.png', '.jpg', '.jpeg')]
+                
+                # Sample max_images_per_category images randomly
+                random.seed(42)  # For reproducibility
+                sampled_images = random.sample(all_images, min(max_images_per_category, len(all_images)))
+                
+                for image_file in sampled_images:
+                    # Store relative path for compatibility
+                    image_path = Path(category) / image_file
+                    self.image_paths.append(str(image_path))
+                    self.image_names.append(image_file)
+                    self.categories.append(category)
+        
+        print(f"Dataset loaded with {len(self.image_paths)} images from {len(self.category_index)} categories ({max_images_per_category} per category)")
+
     def __len__(self):
-        return len(self.ordered_image_filenames)
-    
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, str, str]:
-        img_filename = self.ordered_image_filenames[idx]
-        img_path = self.image_dir / img_filename
+        return len(self.image_paths)
+
+    def __getitem__(self, index):
+        # Get the image at the specified index
+        image_path = self.img_dir / self.image_paths[index]
+        image_name = self.image_names[index]
+        category = self.categories[index]
         
-        try:
-            image = Image.open(img_path).convert('RGB')
-        except FileNotFoundError:
-            logger.error(f"Image file not found: {img_path}. Please check image_dir and filenames.")
-            # For robustness, one might return a placeholder or skip, but for now, error out.
-            raise
+        image = Image.open(image_path).convert("RGB")
+        image = self.transform(image)
         
-        if self.transform:
-            image = self.transform(image)
-            
-        # Derive prompt text from the filename's stem
-        concept_stem = Path(img_filename).stem 
-        prompt_text = concept_stem.replace('_', ' ') # Example: "file_name_example" -> "file name example"
-            
-        return image, img_filename, prompt_text
+        return image_name, image, category
 
 def discover_checkpoints(ckpt_dir: str, start: int, end: int) -> List[Tuple[int, str]]:
     """Return [(epoch, ckpt_path), …] within [start, end]."""

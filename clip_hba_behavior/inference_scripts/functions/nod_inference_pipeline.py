@@ -249,18 +249,20 @@ class ImageDataset(Dataset):
         self.image_names = []
         self.categories = []
 
-        for _, row in self.category_index.iterrows():
-            category = row['category']
+        for category in self.category_index['category'].unique():
             category_path = self.img_dir / category
             
             if category_path.is_dir():
-                # Get all images in this category
-                all_images = [f.name for f in category_path.iterdir() 
-                             if f.is_file() and f.suffix.lower() in ('.png', '.jpg', '.jpeg')]
+                # # Get all images in this category
+                # all_images = [f.name for f in category_path.iterdir() 
+                #              if f.is_file() and f.suffix.lower() in ('.png', '.jpg', '.jpeg')]
                 
-                # Sample max_images_per_category images randomly
-                random.seed(42)  # For reproducibility
-                sampled_images = random.sample(all_images, min(max_images_per_category, len(all_images)))
+                # # Sample max_images_per_category images randomly
+                # random.seed(42)  # For reproducibility
+                # sampled_images = random.sample(all_images, min(max_images_per_category, len(all_images)))
+
+                # sample the image_name from the category_index
+                sampled_images = self.category_index[self.category_index['category'] == category]['image'].sample(min(max_images_per_category, len(self.category_index[self.category_index['category'] == category])))
                 
                 for image_file in sampled_images:
                     # Store relative path for compatibility
@@ -269,7 +271,7 @@ class ImageDataset(Dataset):
                     self.image_names.append(image_file)
                     self.categories.append(category)
         
-        print(f"Dataset loaded with {len(self.image_paths)} images from {len(self.category_index)} categories ({max_images_per_category} per category)")
+        print(f"Dataset loaded with {len(self.image_paths)} images from {self.category_index['category'].nunique()} categories ({max_images_per_category} per category)")
 
     def __len__(self):
         return len(self.image_paths)
@@ -446,7 +448,7 @@ def run_behavior_inference(config):
             # Extract epoch number from filename
             epoch = file.split('_')[0].replace('epoch', '')
 
-            embedding_save_path = output_dir / f"nod_embeddings_epoch{epoch}.csv"
+            embedding_save_path = output_dir / f"nod_embeddings_epoch{epoch}_correct.csv"
 
             # Skip if output already exists
             if embedding_save_path.exists():

@@ -73,7 +73,7 @@ def generate_sweep_training_order():
     Generate training order: epochs 1-40 sequentially, then every 3 epochs thereafter.
     """
     # Sequential order for epochs 1-40, then every 3 epochs thereafter
-    sequential_order = list(range(1, 41)) + list(range(41, 99, 3))
+    sequential_order = list(range(1, 41)) + list(range(41, 93, 3))
     
     return sequential_order
 
@@ -130,20 +130,20 @@ def main():
         #'checkpoint_path': f'/home/wallacelab/teba/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/models/cliphba_behavior_{timestamp}.pth', # path to save the trained model weights
         #'training_res_path': f'/home/wallacelab/teba/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_results/training_res_{timestamp}.csv', # location to save the training results
         #'dora_parameters_path': f'/home/wallacelab/teba/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/training_artifacts/dora_params/dora_params_{timestamp}', # location to save the DoRA parameters
-        'random_seed': 3, # random seed, default CLIP-HBA is 1
+        'random_seed': 2, # random seed, default CLIP-HBA is 1
         'vision_layers': 2, # Last n ViT layers of the model to be trained, default CLIP-HBA-Behavior is 2
         'transformer_layers': 1, # Last n transformer layers to be trained, default CLIP-HBA-Behavior is 1
         'rank': 32, # Rank of the feature reweighting matrix, default CLIP-HBA-Behavior is 32
         'criterion': nn.MSELoss(), # MSE Loss
         'cuda': 1,  # -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
-        'baseline_dora_directory': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_seed3/training_artifacts/dora_params/dora_params_20251105_171137', # location of the DoRA parameters for the baseline training run
-        'baseline_random_state_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_seed3/training_artifacts/random_states/random_states_20251105_171137', # location of the random states for the baseline training run
-        'baseline_split_indices_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_seed3/training_artifacts/random_states/random_states_20251105_171137/dataset_split_indices.pth', # location of the train/test split indices from baseline training
+        'baseline_dora_directory': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/baseline_runs/clip_hba_behavior_seed2/training_artifacts/dora_params/dora_params_20251105_153800', # location of the DoRA parameters for the baseline training run
+        'baseline_random_state_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/baseline_runs/clip_hba_behavior_seed2/training_artifacts/random_states/random_states_20251105_153800', # location of the random states for the baseline training run
+        'baseline_split_indices_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/baseline_runs/clip_hba_behavior_seed2/training_artifacts/random_states/random_states_20251105_153800/dataset_split_indices.pth', # location of the train/test split indices from baseline training
         'perturb_type': 'random_target', # either 'random_target' or 'label_shuffle'
         'perturb_length': 1, # length of the perturbation window in epochs
         'perturb_distribution': 'target', # draw from either the 'normal' or 'target' distribution when generating random targets (only used for random_target runs)
-        'perturb_seed': 44, # seed for the random target generator
-        'output_base_directory': f'/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/{timestamp}', # base directory for saving the training results and artifacts
+        'perturb_seed': 43, # seed for the random target generator
+        'output_base_directory': f'/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/single_epoch_perturbation_sweeps/pereturb_sweep_baselineseed2_perturbseed43', # base directory for saving the training results and artifacts
     }
 
     # Set up main logger for the entire loop
