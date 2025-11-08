@@ -135,7 +135,7 @@ def main():
         'transformer_layers': 1, # Last n transformer layers to be trained, default CLIP-HBA-Behavior is 1
         'rank': 32, # Rank of the feature reweighting matrix, default CLIP-HBA-Behavior is 32
         'criterion': nn.MSELoss(), # MSE Loss
-        'cuda': 1,  # -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
+        'cuda': 0,  # -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
         'baseline_dora_directory': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/baseline_runs/clip_hba_behavior_seed3/training_artifacts/dora_params/dora_params_20251105_171137', # location of the DoRA parameters for the baseline training run
         'baseline_random_state_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/baseline_runs/clip_hba_behavior_seed3/training_artifacts/random_states/random_states_20251105_171137', # location of the random states for the baseline training run
         'baseline_split_indices_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/baseline_runs/clip_hba_behavior_seed3/training_artifacts/random_states/random_states_20251105_171137/dataset_split_indices.pth', # location of the train/test split indices from baseline training
