@@ -73,7 +73,7 @@ def generate_sweep_training_order():
     Generate training order: epochs 1-40 sequentially, then every 3 epochs thereafter.
     """
     # Sequential order for epochs 1-40, then every 3 epochs thereafter
-    sequential_order = 101 # list(range(1, 41)) + list(range(41, 103, 3))
+    sequential_order = list(range(1, 41)) + list(range(41, 103, 3))
     
     return sequential_order
 
@@ -171,6 +171,7 @@ def main():
 
     # # Generate the sweep-based training order
     training_order = generate_sweep_training_order()
+    training_order = [103]
     print(f"Sweep training order: {training_order}")
 
     # # Generate full order but only run from 98 onwards
