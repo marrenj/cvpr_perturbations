@@ -143,7 +143,7 @@ def main():
         'perturb_length': 1, # length of the perturbation window in epochs
         'perturb_distribution': 'target', # draw from either the 'normal' or 'target' distribution when generating random targets (only used for random_target runs)
         'perturb_seed': 44, # seed for the random target generator
-        'output_base_directory': f'/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/single_epoch_perturbation_sweeps/pereturb_sweep_baselineseed3_perturbseed44', # base directory for saving the training results and artifacts
+        'output_base_directory': f'/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/single_epoch_perturbation_sweeps/perturb_sweep_baselineseed3_perturbseed44', # base directory for saving the training results and artifacts
     }
 
     # Set up main logger for the entire loop
@@ -171,7 +171,7 @@ def main():
 
     # # Generate the sweep-based training order
     training_order = generate_sweep_training_order()
-    training_order = [103]
+    training_order = [101]
     print(f"Sweep training order: {training_order}")
 
     # # Generate full order but only run from 98 onwards
