@@ -622,7 +622,9 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
     log("*********************************")
     log("Evaluating initial model")
     best_test_loss = evaluate_model(model, test_loader, device, criterion)
+    initial_behavioral_rsa_rho, initial_behavioral_rsa_p_value, initial_model_rdm = behavioral_RSA(model, inference_loader, device)
     log(f"Initial Validation Loss: {best_test_loss:.4f}")
+    log(f"Initial Behavioral RSA Correlation & p-value: {initial_behavioral_rsa_rho:.4f}, {initial_behavioral_rsa_p_value:.4f}")
     log("*********************************\n")
 
     # Create folder to store DoRA parameters

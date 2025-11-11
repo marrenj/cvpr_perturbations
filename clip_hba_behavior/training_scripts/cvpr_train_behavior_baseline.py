@@ -20,16 +20,16 @@ def main():
         'lr': 3e-4, # learning rate
         'logger': None,
         'early_stopping_patience': 20, # early stopping patience
-        'checkpoint_path': f'/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_seed3/models/cliphba_behavior_{timestamp}.pth', # path to save the trained model weights
-        'training_res_path': f'/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_seed3/training_results/training_res_{timestamp}.csv', # location to save the training results
-        'dora_parameters_path': f'/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_seed3/training_artifacts/dora_params/dora_params_{timestamp}', # location to save the DoRA parameters
-        'random_state_path': f'/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_seed3/training_artifacts/random_states/random_states_{timestamp}', # location to save the random states at every epoch
-        'random_seed': 3, # random seed, default CLIP-HBA is 1
+        'checkpoint_path': f'/home/wallacelab/teba/multimodal_brain_inspired/marren/cliphba_behavior_{timestamp}.pth', # path to save the trained model weights
+        'training_res_path': f'/home/wallacelab/teba/multimodal_brain_inspired/marren/training_res_{timestamp}.csv', # location to save the training results
+        'dora_parameters_path': f'/home/wallacelab/teba/multimodal_brain_inspired/marren/dora_params_{timestamp}', # location to save the DoRA parameters
+        'random_state_path': f'/home/wallacelab/teba/multimodal_brain_inspired/marren/random_states_{timestamp}', # location to save the random states at every epoch
+        'random_seed': 1, # random seed, default CLIP-HBA is 1
         'vision_layers': 2, # Last n ViT layers of the model to be trained, default CLIP-HBA-Behavior is 2
         'transformer_layers': 1, # Last n transformer layers to be trained, default CLIP-HBA-Behavior is 1
         'rank': 32, # Rank of the feature reweighting matrix, default CLIP-HBA-Behavior is 32
         'criterion': nn.MSELoss(), # MSE Loss
-        'cuda': 1  # -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
+        'cuda': 0  # -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
     }
     
     # Run training
