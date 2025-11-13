@@ -8,10 +8,10 @@ from pathlib import Path
 import numpy as np
 from torch.nn import functional as F
 import copy
-from tqdm import tqdm
 import random
 import math
 import sys
+import os
 sys.path.append('../')
 from src.models.CLIPs.clip_hba import clip
 import warnings
@@ -227,12 +227,11 @@ def switch_dora_layers(model, freeze_all=True, dora_state=True):
             recursive_unfreeze_dora(model)
 
 
-class ImageDataset(Dataset):
-    def __init__(self, category_index_file, img_dir, max_images_per_category=2):
-        # Convert paths to Path objects for OS-agnostic handling
-        self.img_dir = Path(img_dir)
-        self.category_index_file = Path(category_index_file)
-        
+# create another dataset class for the inference data (48 Things images)
+class ThingsInferenceDataset(Dataset):
+    def __init__(self, inference_csv_file, img_dir, RDM48_triplet_dir):
+        self.img_dir = img_dir
+        self.RDM48_triplet_dir = RDM48_triplet_dir
         self.transform = transforms.Compose([
                         transforms.Resize((224, 224)),
                         transforms.ToTensor(),
@@ -240,66 +239,29 @@ class ImageDataset(Dataset):
                                             std=[0.27608301, 0.26593025, 0.28238822])
                     ])
 
-        # Load the full CSV
-        self.category_index = pd.read_csv(self.category_index_file)
-
-        # Pre-compute all image paths for all categories
-        # Sample max_images_per_category images from each category
-        self.image_paths = []
-        self.image_names = []
-        self.categories = []
-
-        for category in self.category_index['category'].unique():
-            category_path = self.img_dir / category
-            
-            if category_path.is_dir():
-                # # Get all images in this category
-                # all_images = [f.name for f in category_path.iterdir() 
-                #              if f.is_file() and f.suffix.lower() in ('.png', '.jpg', '.jpeg')]
-                
-                # # Sample max_images_per_category images randomly
-                # random.seed(42)  # For reproducibility
-                # sampled_images = random.sample(all_images, min(max_images_per_category, len(all_images)))
-
-                # sample the image_name from the category_index
-                sampled_images = self.category_index[self.category_index['category'] == category]['image'].sample(min(max_images_per_category, len(self.category_index[self.category_index['category'] == category])))
-                
-                for image_file in sampled_images:
-                    # Store relative path for compatibility
-                    image_path = Path(category) / image_file
-                    self.image_paths.append(str(image_path))
-                    self.image_names.append(image_file)
-                    self.categories.append(category)
-        
-        print(f"Dataset loaded with {len(self.image_paths)} images from {self.category_index['category'].nunique()} categories ({max_images_per_category} per category)")
+        # Load and filter annotations based on the 'set' column
+        self.annotations = pd.read_csv(inference_csv_file, index_col=0)
 
     def __len__(self):
-        return len(self.image_paths)
+        return len(self.annotations)
 
     def __getitem__(self, index):
-        # Get the image at the specified index
-        image_path = self.img_dir / self.image_paths[index]
-        image_name = self.image_names[index]
-        category = self.categories[index]
-        
-        image = Image.open(image_path).convert("RGB")
+        image_name = self.annotations.iloc[index, 0]
+        img_path = os.path.join(self.img_dir, image_name)
+        image = Image.open(img_path).convert("RGB")
         image = self.transform(image)
-        
-        return image_name, image, category
+
+        return image_name, image
 
 
 def cache_dataloader_to_pinned_memory(data_loader):
     cached_batches = []
-    caching_bar = tqdm(enumerate(data_loader),
-                       total=len(data_loader),
-                       desc="Caching images")
 
     with torch.no_grad():
-        for _, (batch_image_names, batch_images, batch_categories) in caching_bar:
+        for _, (batch_image_names, batch_images) in enumerate(data_loader):
             cached_batches.append((
                 list(batch_image_names),
                 batch_images.pin_memory(),
-                list(batch_categories)
             ))
 
     return cached_batches
@@ -308,23 +270,16 @@ def cache_dataloader_to_pinned_memory(data_loader):
 def run_image(model, cached_batches, device=torch.device("cuda:0")):
     model.eval()
     image_names = []
-    categories = []
     all_predictions = []
     
-    progress_bar = tqdm(enumerate(cached_batches),
-                        total=len(cached_batches),
-                        desc=f"Processing images")
-    
     with torch.no_grad():
-        for batch_idx, (batch_image_names, pinned_batch_images, batch_categories) in progress_bar:
+        for _, (batch_image_names, pinned_batch_images) in enumerate(cached_batches):
             batch_images = pinned_batch_images.to(device, non_blocking=True)
-            with torch.amp.autocast('cuda'):
-                batch_outputs = model(batch_images)
+            batch_outputs = model(batch_images)
 
             
             all_predictions.append(batch_outputs.cpu())
             image_names.extend(batch_image_names)
-            categories.extend(batch_categories)
 
         # min max to 0-1
         predictions = torch.cat(all_predictions, dim=0).numpy()
@@ -332,14 +287,13 @@ def run_image(model, cached_batches, device=torch.device("cuda:0")):
 
         hba_embedding = pd.DataFrame(predictions)
         hba_embedding['image'] = image_names
-        hba_embedding['category'] = categories
-        hba_embedding = hba_embedding[['image', 'category'] + [col for col in hba_embedding if col != 'image' and col != 'category']]
+        hba_embedding = hba_embedding[['image'] + [col for col in hba_embedding if col != 'image']]
 
     return hba_embedding
 
 
 
-def run_behavior_inference(config, cached_batches=None):
+def run_behavior_inference(config):
     """
     Run inference using the provided configuration.
     
@@ -355,8 +309,6 @@ def run_behavior_inference(config, cached_batches=None):
             - dora_params_path (str or Path): Path to DoRA parameters directory
             - training_res_path (str or Path, optional): Path to training results CSV
             - min_epoch_to_process (int, optional): Minimum epoch to process
-            - category_index_file (str or Path): Path to category index CSV file
-        cached_batches (list, optional): Pre-cached image batches. If None, images will be cached.
     """
     # Convert paths to Path objects for OS-agnostic handling
     save_folder = Path(config['save_folder'])
@@ -377,19 +329,14 @@ def run_behavior_inference(config, cached_batches=None):
                     backbone_name=config['backbone'], 
                     pos_embedding=pos_embedding)
 
-    # Load and cache images if not provided
-    if cached_batches is None:
-        dataset = ImageDataset(category_index_file=config['category_index_file'], img_dir=config['img_dir'])
-        data_loader = DataLoader(dataset, 
-                               batch_size=config['batch_size'], 
-                               shuffle=False,
-                               num_workers=4,
-                               pin_memory=True,
-                               persistent_workers=True,
-                               prefetch_factor=2) 
+    # Load the dataset
+    dataset = ThingsInferenceDataset(inference_csv_file=config['inference_csv_file'], img_dir=config['img_dir'], RDM48_triplet_dir=config['RDM48_triplet_dir'])
+    data_loader = DataLoader(dataset, 
+                           batch_size=config['batch_size'], 
+                           shuffle=False) 
 
-        cached_batches = cache_dataloader_to_pinned_memory(data_loader)
-        del data_loader
+    cached_batches = cache_dataloader_to_pinned_memory(data_loader)
+    del data_loader
 
     # Load HBA weights if specified
     device = torch.device(config['cuda'])
@@ -451,7 +398,7 @@ def run_behavior_inference(config, cached_batches=None):
             # Extract epoch number from filename
             epoch = file.split('_')[0].replace('epoch', '')
 
-            embedding_save_path = output_dir / f"nod_embeddings_epoch{epoch}_correct.csv"
+            embedding_save_path = output_dir / f"things_48_embeddings_epoch{epoch}.csv"
 
             # Skip if output already exists
             if embedding_save_path.exists():
@@ -467,7 +414,7 @@ def run_behavior_inference(config, cached_batches=None):
             hba_embedding = run_image(model, cached_batches, device=device)
             
             hba_embedding.to_csv(embedding_save_path, index=False)
-            print(f"Embedding saved to {embedding_save_path}")
+            print(f"Epoch {epoch} embedding saved to {embedding_save_path}")
             print(f"-----------------------------------------------\n")        
     else:
         print(f"Using Original CLIP {config['backbone']}")

@@ -1,5 +1,5 @@
 """
-Run NOD inference on perturbation length experiments.
+Run 48 Things images inference on perturbation length experiments.
 
 This script:
 1. Finds all training runs in the specified directory
@@ -13,78 +13,28 @@ This optimization avoids recomputing identical embeddings across experiments wit
 starting epoch but different perturbation lengths.
 """
 
-from functions.nod_inference_pipeline import run_behavior_inference, ImageDataset, cache_dataloader_to_pinned_memory
-from torch.utils.data import DataLoader
+from functions.things_48_images_inference_pipeline import run_behavior_inference
 from pathlib import Path
 from functions.spose_dimensions import *
 import torch
-import json
-import sys
-
-# Get the script's directory for resolving relative paths
-SCRIPT_DIR = Path(__file__).parent.resolve()
-
-
-def load_config(config_path=None):
-    """
-    Load configuration from JSON file or use defaults.
-    
-    Args:
-        config_path: Path to JSON config file. If None, looks for 'config.json' 
-                     in the script directory, or uses defaults.
-    
-    Returns:
-        dict: Configuration dictionary with paths and settings.
-    """
-    # Default configuration
-    default_config = {
-        'results_dir': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/20251105_182613',
-        'img_dir': '/home/wallacelab/teba/multimodal_brain_inspired/NOD/imagenet',
-        #'model_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior/models/cliphba_behavior_20250919_212822.pth',
-        'batch_size': 64,
-        'cuda': 'cuda:1',
-        'load_hba': True,
-        'backbone': 'ViT-L/14'
-    }
-    
-    # Determine config file path
-    if config_path is None:
-        config_path = SCRIPT_DIR / 'config.json'
-    else:
-        config_path = Path(config_path)
-    
-    # Load config from file if it exists
-    if config_path.exists():
-        try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                file_config = json.load(f)
-            # Merge with defaults (file config takes precedence)
-            config = {**default_config, **file_config}
-            print(f"Loaded configuration from: {config_path}")
-        except json.JSONDecodeError as e:
-            print(f"Warning: Invalid JSON in config file {config_path}: {e}")
-            print("Using default configuration.")
-            config = default_config
-    else:
-        print(f"Config file not found at {config_path}. Using default configuration.")
-        config = default_config
-    
-    return config
 
 
 def validate_paths(config):
     """Validate that required paths exist."""
     results_dir = Path(config['results_dir'])
     img_dir = Path(config['img_dir'])
-    #model_path = Path(config['model_path'])
+    inference_csv_file = Path(config['inference_csv_file'])
+    rdm48_triplet_dir = Path(config['RDM48_triplet_dir'])
     
     errors = []
     if not results_dir.exists():
         errors.append(f"Results directory not found: {results_dir}")
     if not img_dir.exists():
         errors.append(f"Image directory not found: {img_dir}")
-    # if not model_path.exists():
-    #     errors.append(f"Model file not found: {model_path}")
+    if not inference_csv_file.exists():
+        errors.append(f"Inference CSV file not found: {inference_csv_file}")
+    if not rdm48_triplet_dir.exists():
+        errors.append(f"RDM48 triplet file not found: {rdm48_triplet_dir}")
     
     if errors:
         raise FileNotFoundError("\n".join(errors))
@@ -93,15 +43,20 @@ def validate_paths(config):
 
 
 def main():
-    # Load configuration from JSON file or use defaults
-    config_path = sys.argv[1] if len(sys.argv) > 1 else None
-    file_config = load_config(config_path)
+    # Define configuration directly
+    config = {
+        'results_dir': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/perturb_length_experiments_baselineseed1_perturbseed0',
+        'img_dir': '../Data/Things1854',
+        'inference_csv_file': '../Data/spose_embedding66d_rescaled_48val_reordered.csv',
+        'RDM48_triplet_dir': '../Data/RDM48_triplet.mat',
+        'batch_size': 48,
+        'cuda': 'cuda:0',
+        'load_hba': True,
+        'backbone': 'ViT-L/14'
+    }
     
     # Validate paths exist
-    results_dir, img_dir = validate_paths(file_config)
-    
-    # Get category index file (relative to script directory)
-    category_index_file = SCRIPT_DIR.parent / 'analysis' / 'nod_2k_images.csv'
+    results_dir, img_dir = validate_paths(config)
     
     # List all training run directories in the results_dir
     run_dirs = sorted([d for d in results_dir.iterdir() 
@@ -130,29 +85,13 @@ def main():
     # Prepare inference config dictionary
     inference_config = {
         'img_dir': str(img_dir),  # input images directory
-        'category_index_file': str(category_index_file), 
-        'load_hba': file_config['load_hba'],  # False will load the original CLIP-ViT weights
-        'backbone': file_config['backbone'],  # CLIP backbone model
-        #'model_path': str(model_path),  # path to the final trained model
-        'batch_size': file_config['batch_size'],  # batch size
-        'cuda': file_config['cuda'],  # 'cuda:0' for GPU 0, 'cuda:1' for GPU 1, '-1' for all GPUs
+        'inference_csv_file': str(config['inference_csv_file']),
+        'RDM48_triplet_dir': str(config['RDM48_triplet_dir']),
+        'load_hba': config['load_hba'],  # False will load the original CLIP-ViT weights
+        'backbone': config['backbone'],  # CLIP backbone model
+        'batch_size': config['batch_size'],  # batch size
+        'cuda': config['cuda'],  # 'cuda:0' for GPU 0, 'cuda:1' for GPU 1, '-1' for all GPUs
     }
-
-    # Cache images once before processing all training runs
-    print(f"\n{'='*80}")
-    print("Caching images before processing training runs...")
-    print(f"{'='*80}\n")
-    dataset = ImageDataset(category_index_file=str(category_index_file), img_dir=str(img_dir))
-    data_loader = DataLoader(dataset, 
-                           batch_size=file_config['batch_size'], 
-                           shuffle=False,
-                           num_workers=4,
-                           pin_memory=True,
-                           persistent_workers=True,
-                           prefetch_factor=2) 
-    cached_batches = cache_dataloader_to_pinned_memory(data_loader)
-    del data_loader
-    print(f"✓ Images cached successfully ({len(cached_batches)} batches)\n")
 
     # Loop through the run_dirs and run inference
     for run_dir in run_dirs:
@@ -170,7 +109,7 @@ def main():
 
         # Construct paths specific to this training run
         dora_params_path = run_dir / f'dora_params_{epoch_number}'
-        save_folder = run_dir / 'nod_inference_results'
+        save_folder = run_dir / 'things_48_inference_results'
         #  if 'metrics.csv' exists, use it, otherwise use 'training_res.csv'
         # Find any file in run_dir that starts with "metrics" or "training_res"
         metric_files = [f for f in run_dir.iterdir() if f.is_file() and (f.name.startswith('metrics') or f.name.startswith('training_res'))]
@@ -184,11 +123,11 @@ def main():
         # Create config for this specific run
         inference_config['dora_params_path'] = str(dora_params_path)
         inference_config['save_folder'] = str(save_folder)
-        inference_config['training_res_path'] = str(training_res_path) if training_res_path.exists() else None
+        inference_config['training_res_path'] = str(training_res_path) if training_res_path and training_res_path.exists() else None
 
-        # Run inference with configuration and pre-cached batches
+        # Run inference with configuration
         try:
-            run_behavior_inference(inference_config, cached_batches=cached_batches)
+            run_behavior_inference(inference_config)
             print(f"✓ Completed inference for {run_dir.name}\n")
         except Exception as e:
             print(f"✗ Error during inference for {run_dir.name}: {e}\n")
@@ -198,3 +137,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

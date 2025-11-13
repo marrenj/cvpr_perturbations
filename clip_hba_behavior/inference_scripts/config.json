@@ -1,9 +1,8 @@
 {
-    "results_dir": "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/single_epoch_perturbation_sweeps/pereturb_sweep_baselineseed2_perturbseed43",
+    "results_dir": "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/dgx_length_experiments/perturb_length_experiments_baselineseed3_perturbseed2",
     "img_dir": "/home/wallacelab/teba/multimodal_brain_inspired/NOD/imagenet",
     "batch_size": 256,
     "cuda": "cuda:0",
     "load_hba": true,
     "backbone": "ViT-L/14"
 }
-
