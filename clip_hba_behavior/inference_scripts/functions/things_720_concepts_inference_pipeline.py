@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 import pandas as pd
 from PIL import Image
+from pathlib import Path
 import os
 import numpy as np
 from torch.nn import functional as F
@@ -229,7 +230,7 @@ def switch_dora_layers(model, freeze_all=True, dora_state=True):
 
 
 class ImageDataset(Dataset):
-    def __init__(self, stimuli_file, concept_index_file, img_dir):
+    def __init__(self, stimuli_file, img_dir):
         self.img_dir = img_dir
         self.transform = transforms.Compose([
                         transforms.Resize((224, 224)),
@@ -240,86 +241,123 @@ class ImageDataset(Dataset):
 
         # Load the full CSV
         self.stimuli_metadata = pd.read_csv(stimuli_file, index_col=0)
-        self.concept_index = np.load(concept_index_file)
 
         print(self.stimuli_metadata)
-        print(self.concept_index)
 
     def __len__(self):
         return len(self.stimuli_metadata)
 
     def __getitem__(self, index):
-        # get the row at the specified index
+        # Get the row at the specified index
         row = self.stimuli_metadata.iloc[index]
 
-        # extract the concept and image name from the row
+        # Extract the concept and image name from the row
         concept = row['concept']
         image_name = row['stimulus']
 
-        # Build the image path
-        image_path = os.path.join(self.img_dir, concept, image_name)
+        # Build the image path - images are organized in concept subdirectories
+        # Path structure: img_dir/concept/image_name
+        img_path = os.path.join(self.img_dir, concept, image_name)
 
         # Load and transform the image
-        image = Image.open(image_path).convert("RGB")
+        image = Image.open(img_path).convert("RGB")
         image = self.transform(image)
 
         return image_name, image, concept
     
 
-def run_image(model, data_loader, device=torch.device("cuda:0")):
+def cache_dataloader_to_pinned_memory(data_loader):
+    cached_batches = []
+    caching_bar = tqdm(enumerate(data_loader),
+                       total=len(data_loader),
+                       desc="Caching images")
+
+    with torch.no_grad():
+        for _, (batch_image_names, batch_images, batch_concepts) in caching_bar:
+            cached_batches.append((
+                list(batch_image_names),
+                batch_images.pin_memory(),
+                list(batch_concepts)
+            ))
+
+    return cached_batches
+
+
+def run_image(model, data_loader=None, cached_batches=None, device=torch.device("cuda:0")):
     model.eval()
     model.to(device)
     image_names = []
     concepts = []
     predictions = []
     
-    progress_bar = tqdm(enumerate(data_loader), total=len(data_loader), desc=f"Processing images")
-    
-    with torch.no_grad():
-        for batch_idx, (batch_image_names, batch_images, batch_concepts) in progress_bar:
-            batch_images = batch_images.to(device)
-            batch_outputs = model(batch_images)
-            
-            predictions.extend(batch_outputs.cpu().numpy())
-            image_names.extend(batch_image_names)
-            concepts.extend(batch_concepts)
+    # Use cached batches if provided, otherwise use data_loader
+    if cached_batches is not None:
+        progress_bar = tqdm(enumerate(cached_batches),
+                            total=len(cached_batches),
+                            desc=f"Processing images")
+        
+        with torch.no_grad():
+            for batch_idx, (batch_image_names, pinned_batch_images, batch_concepts) in progress_bar:
+                batch_images = pinned_batch_images.to(device, non_blocking=True)
+                batch_outputs = model(batch_images)
+                
+                predictions.append(batch_outputs.cpu())
+                image_names.extend(batch_image_names)
+                concepts.extend(batch_concepts)
+        
+        # Concatenate predictions
+        predictions = torch.cat(predictions, dim=0).numpy()
+    else:
+        progress_bar = tqdm(enumerate(data_loader), total=len(data_loader), desc=f"Processing images")
+        
+        with torch.no_grad():
+            for batch_idx, (batch_image_names, batch_images, batch_concepts) in progress_bar:
+                batch_images = batch_images.to(device)
+                batch_outputs = model(batch_images)
+                
+                predictions.extend(batch_outputs.cpu().numpy())
+                image_names.extend(batch_image_names)
+                concepts.extend(batch_concepts)
 
         # min max to 0-1
         predictions = np.array(predictions)
-        # predictions = (predictions - predictions.min()) / (predictions.max() - predictions.min())
 
-        hba_embedding = pd.DataFrame(predictions)
-        hba_embedding['image'] = image_names
-        hba_embedding['concept'] = concepts
-        hba_embedding = hba_embedding[['image', 'concept'] + [col for col in hba_embedding if col != 'image' and col != 'concept']]
-        #emb_save_path = f"{save_folder}/static_embedding.csv"
-        #hba_embedding.to_csv(emb_save_path, index=False)
-        #print(f"Embedding saved to {emb_save_path}")
+    hba_embedding = pd.DataFrame(predictions)
+    hba_embedding['image'] = image_names
+    hba_embedding['concept'] = concepts
+    hba_embedding = hba_embedding[['image', 'concept'] + [col for col in hba_embedding if col != 'image' and col != 'concept']]
+    #emb_save_path = f"{save_folder}/static_embedding.csv"
+    #hba_embedding.to_csv(emb_save_path, index=False)
+    #print(f"Embedding saved to {emb_save_path}")
 
-        #rdm generation
-        # rdm = 1 - np.corrcoef(np.array(predictions))
-        # np.fill_diagonal(rdm, 0)
-        # rdm_save_path = f"{save_folder}/static_rdm.npy"
-        # np.save(rdm_save_path, rdm)
-        # print(f"RDM saved to {rdm_save_path}")
-        # print(f"-----------------------------------------------\n")
+    #rdm generation
+    # rdm = 1 - np.corrcoef(np.array(predictions))
+    # np.fill_diagonal(rdm, 0)
+    # rdm_save_path = f"{save_folder}/static_rdm.npy"
+    # np.save(rdm_save_path, rdm)
+    # print(f"RDM saved to {rdm_save_path}")
+    # print(f"-----------------------------------------------\n")
     return hba_embedding
 
 
 
-def run_behavior_inference(config):
+def run_behavior_inference(config, cached_batches=None):
     """
     Run inference using the provided configuration.
     
     Args:
         config (dict): Configuration dictionary containing:
             - img_dir (str): Directory containing input images
+            - stimuli_file (str): Path to stimuli metadata CSV file
             - load_hba (bool): Whether to load HBA weights
             - backbone (str): CLIP backbone model name
-            - model_path (str): Path to the trained model
+            - dora_params_path (str): Path to DoRA parameters directory
             - save_folder (str): Output directory path
             - batch_size (int): Batch size for inference
             - cuda (str): Device specification
+            - training_res_path (str, optional): Path to training results CSV for epoch filtering
+            - min_epoch_to_process (int, optional): Minimum epoch to process
+        cached_batches (list, optional): Pre-cached image batches. If None, images will be cached.
     """
     # Create the directory if it doesn't exist
     print(f"\nEmbedding will be saved to folder: {config['save_folder']}\n")
@@ -338,59 +376,106 @@ def run_behavior_inference(config):
                     backbone_name=config['backbone'], 
                     pos_embedding=pos_embedding)
 
-    # Load the dataset
-    dataset = ImageDataset(stimuli_file=config['stimuli_file'], concept_index_file=config['concept_index_file'], img_dir=config['img_dir'])
-    data_loader = DataLoader(dataset, 
-                           batch_size=config['batch_size'], 
-                           shuffle=False,
-                           num_workers=3,7
-                           pin_memory=True) 
+    # Load and cache images if not provided
+    if cached_batches is None:
+        dataset = ImageDataset(stimuli_file=config['stimuli_file'], img_dir=config['img_dir'])
+        data_loader = DataLoader(dataset, 
+                               batch_size=config['batch_size'], 
+                               shuffle=False,
+                               num_workers=2,
+                               pin_memory=True,
+                               persistent_workers=True,
+                               prefetch_factor=2) 
+
+        cached_batches = cache_dataloader_to_pinned_memory(data_loader)
+        del data_loader 
 
     # Load HBA weights if specified
+    device = torch.device(config['cuda'])
+    
     if config['load_hba']:
         apply_dora_to_ViT(model, 
                          n_vision_layers=2, 
                          n_transformer_layers=1, 
                          r=32, 
                          dora_dropout=0.1)
-        # Load all the parameters in the final trained model
-        model_state_dict = torch.load(config['model_path'])
-        # List all the files in the dora_params_path
-        dora_params_files = os.listdir(config['dora_params_path'])
-        dora_params_files = sorted(dora_params_files, key=lambda f: int(f.split('_')[0].replace('epoch', '')))
+    model.to(device)
+
+    if config['load_hba']:
+        # Convert dora_params_path to Path object
+        dora_params_path = Path(config['dora_params_path'])
         
-        # Filter to start from epoch 8
-        dora_params_files = [f for f in dora_params_files if int(f.split('_')[0].replace('epoch', '')) >= 8]
+        # List all the files in the dora_params_path
+        dora_params_files = [f.name for f in dora_params_path.iterdir() if f.is_file()]
+        dora_params_files = sorted(dora_params_files, key=lambda f: int(f.split('_')[0].replace('epoch', '')))
+
+        # Filter epochs based on minimum test loss if training results CSV is provided
+        if 'training_res_path' in config and config['training_res_path']:
+            training_res_path = Path(config['training_res_path'])
+            if training_res_path.exists():
+                training_df = pd.read_csv(training_res_path)
+                
+                # Find the epoch with minimum test loss
+                min_test_loss_idx = training_df['test_loss'].idxmin()
+                min_test_loss_epoch = int(training_df.loc[min_test_loss_idx, 'epoch'])
+                
+                print(f"Minimum test loss occurred at epoch {min_test_loss_epoch}")
+                print(f"Original epoch files: {len(dora_params_files)}")
+                
+                # Filter DoRA parameter files to only include epochs up to minimum test loss
+                filtered_dora_files = []
+                for file in dora_params_files:
+                    epoch_num = int(file.split('_')[0].replace('epoch', ''))
+                    if epoch_num <= min_test_loss_epoch:
+                        filtered_dora_files.append(file)
+                
+                dora_params_files = filtered_dora_files
+                print(f"Filtered epoch files: {len(dora_params_files)}")
+                total_files = len([f for f in dora_params_path.iterdir() if f.is_file()])
+                print(f"Skipping {total_files - len(dora_params_files)} epochs after minimum test loss\n")
+
+        # Final cross-run skip based on min_epoch_to_process
+        if 'min_epoch_to_process' in config and config['min_epoch_to_process'] is not None:
+            min_epoch = int(config['min_epoch_to_process'])
+            before = len(dora_params_files)
+            dora_params_files = [
+                f for f in dora_params_files
+                if int(f.split('_')[0].replace('epoch', '')) >= min_epoch
+            ]
+            print(f"Applying min_epoch_to_process={min_epoch}: filtered {before - len(dora_params_files)} epoch files; "
+                  f"{len(dora_params_files)} remain.")
+
+        # Limit to max_files_to_process if specified
+        if 'max_files_to_process' in config and config['max_files_to_process'] is not None:
+            max_files = int(config['max_files_to_process'])
+            before = len(dora_params_files)
+            dora_params_files = dora_params_files[:max_files]
+            print(f"Applying max_files_to_process={max_files}: limiting to first {len(dora_params_files)} files; "
+                  f"{before - len(dora_params_files)} files skipped.")
 
         for file in dora_params_files:
-            # This line creates a new dictionary called dora_params_state_dict.
-            # It iterates over every key-value pair in model_state_dict (which is the state dict loaded from the model_path).
-            # Replace the keys and values in model_state_dict only for the dora layers listed in the dora_params_path
-            epoch = file.split('_')[0]
-            dora_params_state_dict = torch.load(config['dora_params_path'] + '/' + file)
-            for key, value in dora_params_state_dict.items():
-                model_state_dict[key] = value
+            # Extract epoch number from filename
+            epoch = file.split('_')[0].replace('epoch', '')
 
-            # For each key, it removes the prefix "module." if it exists, by replacing "module." with an empty string.
-            # This is necessary because sometimes models are saved with a "module." prefix (e.g., when using DataParallel),
-            # but the current model's state_dict does not expect this prefix.
-            # The value is kept unchanged.
-            # The result is a state_dict with keys matching the current model, ready to be loaded.
-            adjusted_state_dict = {key.replace("module.", ""): value 
-                                 for key, value in model_state_dict.items()}
-
-            model.load_state_dict(adjusted_state_dict)
+            # Create the 720_concepts subdirectory if it doesn't exist
+            output_dir = Path(config['save_folder']) / f"{Path(config['save_folder']).name}_720_concepts"
+            output_dir.mkdir(parents=True, exist_ok=True)
             
-            device = torch.device(config['cuda'])
+            embedding_save_path = output_dir / f"720_concept_embeddings_{epoch}.csv"
+
+            # Skip if output already exists
+            if embedding_save_path.exists():
+                print(f"Epoch {epoch} already processed, skipping...")
+                continue
+            
+            # Load DoRA parameters for this epoch
+            dora_file_path = dora_params_path / file
+            dora_params_state_dict = torch.load(dora_file_path, weights_only=True)
+            model.load_state_dict(dora_params_state_dict, strict=False)
     
             # Run the model and save output embeddings
-            hba_embedding = run_image(model, data_loader, device=device)
+            hba_embedding = run_image(model, cached_batches=cached_batches, device=device)
             
-            # Create the 720_concepts subdirectory if it doesn't exist
-            output_dir = f"{config['save_folder']}_720_concepts"
-            os.makedirs(output_dir, exist_ok=True)
-            
-            embedding_save_path = f"{output_dir}/720_concept_embeddings_{epoch}.csv"
             hba_embedding.to_csv(embedding_save_path, index=False)
             print(f"Embedding saved to {embedding_save_path}")
             print(f"-----------------------------------------------\n")        

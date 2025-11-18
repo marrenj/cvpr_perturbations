@@ -14,7 +14,7 @@ SCRIPT_DIR = Path(__file__).parent.resolve()
 
 def load_config(config_path=None):
     default_config = {
-        'results_dir': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/clip_hba_behavior_loops/20251016_125025',
+        'results_dir': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/single_epoch_perturbation_sweeps/perturb_sweep_baselineseed1_perturbseed42',
         'img_dir': '/home/wallacelab/teba/multimodal_brain_inspired/NOD/imagenet',
         'batch_size': 64,
         'cuda': 'cuda:1',

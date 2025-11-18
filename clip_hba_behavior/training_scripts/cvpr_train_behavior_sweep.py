@@ -135,15 +135,15 @@ def main():
         'transformer_layers': 1, # Last n transformer layers to be trained, default CLIP-HBA-Behavior is 1
         'rank': 32, # Rank of the feature reweighting matrix, default CLIP-HBA-Behavior is 32
         'criterion': nn.MSELoss(), # MSE Loss
-        'cuda': 1,  # -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
-        'baseline_dora_directory': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/baseline_runs/clip_hba_behavior_seed2/training_artifacts/dora_params/dora_params_seed2', # location of the DoRA parameters for the baseline training run
-        'baseline_random_state_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/baseline_runs/clip_hba_behavior_seed2/training_artifacts/random_states/random_states_seed2', # location of the random states for the baseline training run
-        'baseline_split_indices_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/baseline_runs/clip_hba_behavior_seed2/training_artifacts/random_states/random_states_seed2/dataset_split_indices.pth', # location of the train/test split indices from baseline training
-        'perturb_type': 'random_target', # either 'random_target' or 'label_shuffle'
+        'cuda': 0,  # -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
+        'baseline_dora_directory': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/baseline_runs/clip_hba_behavior_seed1/training_artifacts/dora_params/dora_params_seed1', # location of the DoRA parameters for the baseline training run
+        'baseline_random_state_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/baseline_runs/clip_hba_behavior_seed1/training_artifacts/random_states/random_states_seed1', # location of the random states for the baseline training run
+        'baseline_split_indices_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/baseline_runs/clip_hba_behavior_seed1/training_artifacts/random_states/random_states_seed1/dataset_split_indices.pth', # location of the train/test split indices from baseline training
+        'perturb_type': 'image_noise', # either 'random_target', 'label_shuffle', 'uniform_target', 'image_noise'
         'perturb_length': 1, # length of the perturbation window in epochs
         'perturb_distribution': 'target', # draw from either the 'normal' or 'target' distribution when generating random targets (only used for random_target runs)
-        'perturb_seed': 43, # seed for the random target generator
-        'output_base_directory': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/single_epoch_perturbation_sweeps/pereturb_sweep_baselineseed2_perturbseed43', # base directory for saving the training results and artifacts
+        'perturb_seed': 42, # seed for the random target generator
+        'output_base_directory': f'/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/image_noise_single_epoch_perturbation_sweeps/perturb_sweep_baselineseed1_perturbseed42_{timestamp}', # base directory for saving the training results and artifacts
     }
 
     # Set up main logger for the entire loop
@@ -169,10 +169,10 @@ def main():
     # # Generate the midpoint-based training order
     # training_order = generate_midpoint_order(start=1, end=98)
 
-    # # Generate the sweep-based training order
-    training_order = generate_sweep_training_order()
-    training_order = [8, 39, 40, 41, 44, 47, 50, 53, 56, 59, 62, 65, 68, 71, 74, 77, 80, 83, 86, 89, 92]
-    print(f"Sweep training order: {training_order}")
+    # # # Generate the sweep-based training order
+    # training_order = generate_sweep_training_order()
+    # training_order = [8, 39, 40, 41, 44, 47, 50, 53, 56, 59, 62, 65, 68, 71, 74, 77, 80, 83, 86, 89, 92]
+    # print(f"Sweep training order: {training_order}")
 
     # # Generate full order but only run from 98 onwards
     # full_order = generate_midpoint_order(start=1, end=98)
@@ -182,6 +182,8 @@ def main():
 
     # # Generate hybrid training order
     # training_order = generate_hybrid_training_order()
+
+    training_order = [5, 45, 98]
     
     main_logger.info(f"Training order (first 20 epochs): {training_order[:20]}")
     main_logger.info(f"Total epochs to train: {len(training_order)}")

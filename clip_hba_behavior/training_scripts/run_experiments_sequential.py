@@ -106,7 +106,7 @@ def main():
     print(f"🕒 Timestamp: {timestamp}")
     
     # Read the experiment runs TSV file
-    tsv_file = "experiment_runs.tsv"
+    tsv_file = "experiment_runs_gpu1.tsv"
     
     if not os.path.exists(tsv_file):
         print(f"❌ Error: {tsv_file} not found!")

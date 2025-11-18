@@ -199,10 +199,16 @@ class ThingsDataset(Dataset):
         image = Image.open(img_path).convert("RGB")
         image = self.transform(image)
 
-
         targets = torch.tensor(self.annotations.iloc[index, 1:].values.astype('float32'))
         
         return image_name, image, targets
+
+
+def replace_with_gaussian_noise(image, mean, std):
+    C, H, W = image.size()
+    noise = torch.randn((C, H, W), device=image.device) * std + mean
+    return noise
+
 
 
 # create another dataset class for the inference data (48 Things images)
@@ -264,17 +270,22 @@ class CLIPHBA(nn.Module):
         
         # Tokenize all prompts at once and store them as a tensor
         self.tokenized_prompts = torch.stack([clip.tokenize(classname) for classname in classnames])
+        self._cached_tokenized_prompts = None
+        self._cached_device = None
 
 
     def forward(self, image):
         if self.clip_model.training:
             self.clip_model.eval()
 
-        # Move tokenized prompts to the same device as the input image
-        tokenized_prompts = self.tokenized_prompts.to(image.device)
+        # Cache tokenized prompts on the device after first use
+        device = image.device
+        if self._cached_tokenized_prompts is None or self._cached_device != device:
+            self._cached_tokenized_prompts = self.tokenized_prompts.to(device)
+            self._cached_device = device
 
         # Process all tokenized prompts in a single forward pass
-        pred_score = self.clip_model(image, tokenized_prompts, self.pos_embedding)
+        pred_score = self.clip_model(image, self._cached_tokenized_prompts, self.pos_embedding)
 
         pred_score = pred_score.float()  # Adjust the dimensions accordingly
 
@@ -565,7 +576,7 @@ def evaluate_model(model, data_loader, device, criterion):
     total_loss = 0.0
 
     # Wrap data_loader with tqdm for a progress bar
-    with torch.no_grad(), tqdm(enumerate(data_loader), total=len(data_loader), desc="Evaluating") as progress_bar:
+    with torch.no_grad(), tqdm(enumerate(data_loader), total=len(data_loader), desc="Evaluating", file=sys.stderr) as progress_bar:
         for batch_idx, (image_names, images, targets) in progress_bar:
 
             images = images.to(device)
@@ -607,16 +618,16 @@ def behavioral_RSA(model, inference_loader, device, logger=None):
 
         model_rdm = 1 - np.corrcoef(predictions_emb)
         np.fill_diagonal(model_rdm, 0)
-        log(f"RDM shape: {model_rdm.shape}\n")
-        log("First 5x5 of the RDM:")
-        log(model_rdm[:5, :5])
-        log("\n")
+        # log(f"RDM shape: {model_rdm.shape}\n")
+        # log("First 5x5 of the RDM:")
+        # log(model_rdm[:5, :5])
+        # log("\n")
 
         reference_rdm_dict = scipy.io.loadmat(inference_loader.dataset.RDM48_triplet_dir)
         reference_rdm = reference_rdm_dict['RDM48_triplet']
-        log("First 5x5 of the reference RDM:")
-        log(reference_rdm[:5, :5])
-        log("\n")
+        # log("First 5x5 of the reference RDM:")
+        # log(reference_rdm[:5, :5])
+        # log("\n")
         
         # Extract upper triangular elements (excluding diagonal) for correlation
         # This avoids double-counting and diagonal elements
@@ -661,11 +672,11 @@ def save_dora_parameters(model, dora_parameters_path, epoch, logger=None):
         dora_params[f'{module_path}.delta_D_A'] = module.delta_D_A.detach().cpu()
         dora_params[f'{module_path}.delta_D_B'] = module.delta_D_B.detach().cpu()
 
-        # Log parameter shapes
-        log(f"\n{module_name} parameter shapes:")
-        log(f"  m: shape {dora_params[f'{module_path}.m'].shape}")
-        log(f"  delta_D_A: shape {dora_params[f'{module_path}.delta_D_A'].shape}")
-        log(f"  delta_D_B: shape {dora_params[f'{module_path}.delta_D_B'].shape}")
+        # # Log parameter shapes
+        # log(f"\n{module_name} parameter shapes:")
+        # log(f"  m: shape {dora_params[f'{module_path}.m'].shape}")
+        # log(f"  delta_D_A: shape {dora_params[f'{module_path}.delta_D_A'].shape}")
+        # log(f"  delta_D_B: shape {dora_params[f'{module_path}.delta_D_B'].shape}")
     
     # Save the parameters
     save_path = os.path.join(dora_parameters_path, f"epoch{epoch + 1}_dora_params.pth")
@@ -707,20 +718,23 @@ def save_random_states(optimizer, epoch, random_state_path, dataloader_generator
     log(f"Random states saved: {checkpoint_file}")
 
 
-def shuffle_targets(targets, perturb_seed=None):
+def shuffle_targets(targets, perturb_seed=None, generator=None):
     """
     Shuffle the targets tensor while preserving the same target values.
     This breaks the image-target correspondence by randomly reassigning targets to different images.
     
     Args:
         targets: Original targets tensor of shape [batch_size, num_targets]
-        perturb_seed: Seed for random number generation (if None, uses current state)
+        perturb_seed: Seed for random number generation (if None, uses current state).
+                      Ignored if generator is provided.
+        generator: Optional torch.Generator for reproducible shuffling. If provided,
+                   uses this generator instead of perturb_seed.
     
     Returns:
         Shuffled targets tensor with the same values but different assignments
     """
     
-    if perturb_seed is not None:
+    if generator is None and perturb_seed is not None:
         # Save current random states
         torch_state = torch.get_rng_state()
         np_state = np.random.get_state()
@@ -738,12 +752,15 @@ def shuffle_targets(targets, perturb_seed=None):
     batch_size = targets.shape[0]
     
     # Generate random permutation indices for the batch dimension
-    perm_indices = torch.randperm(batch_size, device=targets.device)
+    if generator is not None:
+        perm_indices = torch.randperm(batch_size, device=targets.device, generator=generator)
+    else:
+        perm_indices = torch.randperm(batch_size, device=targets.device)
     
     # Shuffle the targets by reordering the batch dimension
     shuffled_targets = shuffled_targets[perm_indices]
     
-    if perturb_seed is not None:
+    if generator is None and perturb_seed is not None:
         # Restore original random states
         torch.set_rng_state(torch_state)
         np.random.set_state(np_state)
@@ -772,32 +789,52 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
     # Create folder to store DoRA parameters
     os.makedirs(dora_parameters_path, exist_ok=True)
 
-    headers = ['epoch', 'train_loss', 'test_loss', 'behavioral_rsa_rho', 'behavioral_rsa_p_value', 'used_random_targets', 'used_shuffled_targets']
+    headers = ['epoch', 'train_loss', 'test_loss', 'behavioral_rsa_rho', 'behavioral_rsa_p_value', 'used_random_targets', 'used_shuffled_targets', 'used_uniform_images']
 
-    # Initialize CSV: if resuming and a previous CSV exists, pre-populate rows up to resume_from_epoch
-    with open(training_res_path, 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(headers)
-        if previous_training_res_path and resume_from_epoch > 0 and os.path.exists(previous_training_res_path):
-            try:
-                with open(previous_training_res_path, 'r') as prev_file:
-                    prev_reader = csv.reader(prev_file)
-                    next(prev_reader, None)  # skip header
-                    for row in prev_reader:
-                        try:
-                            epoch_val = int(row[0])
-                        except Exception:
-                            continue
-                        if epoch_val <= resume_from_epoch:
-                            writer.writerow(row)
-            except Exception as e:
-                if logger:
-                    logger.warning(f"Could not pre-populate training CSV from {previous_training_res_path}: {e}")
+    # Check if we're resuming from the same file (in-place resume)
+    resuming_same_file = (previous_training_res_path == training_res_path and 
+                          os.path.exists(training_res_path) and 
+                          resume_from_epoch > 0)
+    
+    if resuming_same_file:
+        # When resuming from the same file, we keep the existing CSV and just append new rows
+        log("Resuming from existing CSV file - will append new epochs")
+        # Verify the file has the expected structure
+        try:
+            with open(training_res_path, 'r') as check_file:
+                reader = csv.reader(check_file)
+                existing_headers = next(reader, None)
+                if existing_headers != headers:
+                    log(f"Warning: CSV headers don't match. Expected {headers}, found {existing_headers}")
+        except Exception as e:
+            if logger:
+                logger.warning(f"Could not verify existing CSV file: {e}")
+    else:
+        # Initialize CSV: if resuming from a different file, pre-populate rows up to resume_from_epoch
+        with open(training_res_path, 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(headers)
+            if previous_training_res_path and resume_from_epoch > 0 and os.path.exists(previous_training_res_path):
+                try:
+                    with open(previous_training_res_path, 'r') as prev_file:
+                        prev_reader = csv.reader(prev_file)
+                        next(prev_reader, None)  # skip header
+                        for row in prev_reader:
+                            try:
+                                epoch_val = int(row[0])
+                            except Exception:
+                                continue
+                            if epoch_val <= resume_from_epoch:
+                                writer.writerow(row)
+                except Exception as e:
+                    if logger:
+                        logger.warning(f"Could not pre-populate training CSV from {previous_training_res_path}: {e}")
 
     for epoch in range(resume_from_epoch, epochs):
         total_loss = 0.0
         used_random_targets = False
         used_shuffled_targets = False
+        used_uniform_images = False
 
         # Check if this epoch is within the perturbation window
         perturb_start_epoch = training_run - 1  # Convert to 0-indexed
@@ -809,16 +846,44 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
             logger.info("="*80)
             log(f"Random target seed: {perturb_seed}")
             used_random_targets = True
+        elif perturb_start_epoch <= epoch <= perturb_end_epoch and perturb_type == 'image_noise':
+            logger.info("="*80)
+            log(f"\n*** USING IMAGE NOISE FOR EPOCH {epoch+1} (Perturbation window: epochs {perturb_start_epoch+1}-{perturb_end_epoch+1}) ***")
+            logger.info("="*80)
+            log(f"Image noise seed: {perturb_seed}")
+            used_image_noise = True       
         elif perturb_start_epoch <= epoch <= perturb_end_epoch and perturb_type == 'label_shuffle':
             log(f"\n*** USING SHUFFLED TARGETS FOR EPOCH {epoch+1} (Perturbation window: epochs {perturb_start_epoch+1}-{perturb_end_epoch+1}) ***")
             log(f"Shuffle target seed: {perturb_seed}")
             used_shuffled_targets = True
+        elif perturb_start_epoch <= epoch <= perturb_end_epoch and perturb_type == 'uniform_target':
+            log(f"\n*** USING UNIFORM GRAYSCALE IMAGES FOR EPOCH {epoch+1} (Perturbation window: epochs {perturb_start_epoch+1}-{perturb_end_epoch+1}) ***")
+            log(f"All images will be replaced with uniform grayscale (value=0.5)")
+            used_uniform_images = True
 
-        progress_bar = tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch+1}/{epochs}")
+        progress_bar = tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch+1}/{epochs}", file=sys.stderr)
         for batch_idx, (image_names, images, targets) in progress_bar:
-
+    
             images = images.to(device)
             targets = targets.to(device)
+
+            if used_image_noise:
+                for i in range(len(images)):
+                    images[i] = replace_with_gaussian_noise(images[i], mean, std)
+
+            if used_uniform_images:
+                # Replace all images with uniform grayscale images (value=0.5)
+                images = torch.ones_like(images) * 0.5
+                # Debug output for first batch
+                if batch_idx == 0:
+                    log(f"\n{'='*80}")
+                    log(f"UNIFORM IMAGE DEBUG - Batch {batch_idx}, Epoch {epoch+1}")
+                    log(f"{'='*80}")
+                    log(f"  Batch size: {images.shape[0]}")
+                    log(f"  Image shape: {images.shape[1:]}")
+                    log(f"  All pixel values set to: 0.5")
+                    log(f"  Sample image stats: min={images[0].min().item():.3f}, max={images[0].max().item():.3f}, mean={images[0].mean().item():.3f}")
+                    log(f"{'='*80}\n")
 
             if used_random_targets:
                 batch_generator = torch.Generator(device=device)
@@ -837,6 +902,54 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
                     log(f"ERROR: NaN detected in random targets!")
                     log(f"Random targets sample: {targets[0][:5]}")
                     continue
+
+            if used_shuffled_targets:
+                batch_generator = torch.Generator(device=device)
+                batch_generator.manual_seed(perturb_seed + training_run * 1000 + batch_idx) # make this seed different for each batch
+                
+                # Debug output: Show targets before and after shuffling (only for first batch to avoid clutter)
+                if batch_idx == 0:
+                    num_samples_to_show = min(5, targets.shape[0])
+                    image_names_before = list(image_names)  # Store original image names
+                    targets_before = targets.clone().cpu()  # Store original targets on CPU
+                    
+                    log(f"\n{'='*80}")
+                    log(f"LABEL SHUFFLING DEBUG - Batch {batch_idx}, Epoch {epoch+1}")
+                    log(f"{'='*80}")
+                    log(f"BEFORE SHUFFLING (Image -> Target mapping):")
+                    log(f"  Batch size: {targets.shape[0]}")
+                    for i in range(num_samples_to_show):
+                        target_sample = targets_before[i].numpy()[:5]  # First 5 dimensions
+                        log(f"  [{i}] Image='{image_names_before[i]}' -> Target[0:5]={target_sample}")
+                    if targets.shape[0] > num_samples_to_show:
+                        log(f"  ... ({targets.shape[0] - num_samples_to_show} more samples)")
+                
+                # Perform shuffling
+                targets = shuffle_targets(targets, generator=batch_generator)
+                
+                # Debug output: Show targets after shuffling
+                if batch_idx == 0:
+                    log(f"\nAFTER SHUFFLING (Image -> Target mapping):")
+                    log(f"  Batch size: {targets.shape[0]}")
+                    targets_after = targets.cpu()  # Convert to CPU for comparison
+                    for i in range(num_samples_to_show):
+                        target_sample = targets_after[i].numpy()[:5]  # First 5 dimensions
+                        # Find which original position this target came from by comparing target values
+                        original_idx = None
+                        for j in range(targets_before.shape[0]):
+                            if torch.allclose(targets_after[i], targets_before[j], atol=1e-5):
+                                original_idx = j
+                                break
+                        if original_idx is not None and original_idx != i:
+                            log(f"  [{i}] Image='{image_names[i]}' -> Target[0:5]={target_sample} | *** SHUFFLED from original [{original_idx}] ('{image_names_before[original_idx]}')")
+                        elif original_idx == i:
+                            log(f"  [{i}] Image='{image_names[i]}' -> Target[0:5]={target_sample} | (No change - same position)")
+                        else:
+                            log(f"  [{i}] Image='{image_names[i]}' -> Target[0:5]={target_sample} | (Could not find original match)")
+                    if targets.shape[0] > num_samples_to_show:
+                        log(f"  ... ({targets.shape[0] - num_samples_to_show} more samples)")
+                    log(f"{'='*80}\n")
+
 
             optimizer.zero_grad()
             predictions = model(images)
@@ -875,9 +988,11 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
             log(f"*** RANDOM TARGETS WERE USED IN THIS EPOCH ***")
         if used_shuffled_targets:
             log(f"*** SHUFFLED TARGETS WERE USED IN THIS EPOCH ***")
+        if used_uniform_images:
+            log(f"*** UNIFORM GRAYSCALE IMAGES WERE USED IN THIS EPOCH ***")
 
         # Prepare the data row with the epoch number and loss values
-        data_row = [epoch + 1, avg_train_loss, avg_test_loss, rho, p_value, used_random_targets, used_shuffled_targets]
+        data_row = [epoch + 1, avg_train_loss, avg_test_loss, rho, p_value, used_random_targets, used_shuffled_targets, used_uniform_images]
 
         # Append the data row to the CSV file
         with open(training_res_path, 'a', newline='') as file:
