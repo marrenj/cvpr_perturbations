@@ -863,7 +863,7 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
             logger.info("="*80)
             log(f"Shuffle target seed: {perturb_seed}")
             used_shuffled_targets = True
-        elif perturb_start_epoch <= epoch <= perturb_end_epoch and perturb_type == 'uniform_target':
+        elif perturb_start_epoch <= epoch <= perturb_end_epoch and perturb_type == 'uniform_images':
             logger.info("="*80)
             log(f"\n*** USING UNIFORM GRAYSCALE IMAGES FOR EPOCH {epoch+1} (Perturbation window: epochs {perturb_start_epoch+1}-{perturb_end_epoch+1}) ***")
             logger.info("="*80)

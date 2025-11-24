@@ -2,6 +2,7 @@
 *.png
 *.jpg
 *.jpeg
+*.npz
 *.csv
 */__pycache__/
 /Data/

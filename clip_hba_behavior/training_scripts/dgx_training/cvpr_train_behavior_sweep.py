@@ -183,7 +183,7 @@ def main():
     # # Generate hybrid training order
     # training_order = generate_hybrid_training_order()
 
-    training_order = [5, 45, 98]
+    training_order = [10, 15, 20, 25, 30, 35, 40, 70]
     
     main_logger.info(f"Training order (first 20 epochs): {training_order[:20]}")
     main_logger.info(f"Total epochs to train: {len(training_order)}")

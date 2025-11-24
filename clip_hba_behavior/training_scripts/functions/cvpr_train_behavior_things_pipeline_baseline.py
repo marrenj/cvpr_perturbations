@@ -19,15 +19,14 @@ from functions.spose_dimensions import *
 import sys
 sys.path.append('../')
 from src.models.CLIPs.clip_hba import clip
+from src.models.clip_hba_utils import save_dora_parameters
 
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 import logging
-import sys
 from datetime import datetime
 import csv
-import os
 import scipy.io
 from scipy.stats import spearmanr
 
@@ -537,43 +536,43 @@ def behavioral_RSA(model, inference_loader, device):
         return rho, p_value, model_rdm
 
 
-def save_dora_parameters(model, dora_parameters_path, epoch):
-    """
-    Save DoRA parameters for specific modules in the model.
-    Each module's parameters are saved to a separate file to avoid overwriting.
-    """
-    modules_to_save = [
-        ("clip_model.visual.transformer.resblocks.22.attn.out_proj", "visual_resblock_22_attn"),
-        ("clip_model.visual.transformer.resblocks.23.attn.out_proj", "visual_resblock_23_attn"),
-        ("clip_model.transformer.resblocks.11.attn.out_proj", "transformer_resblock_11_attn"),
-    ]
+# def save_dora_parameters(model, dora_parameters_path, epoch):
+#     """
+#     Save DoRA parameters for specific modules in the model.
+#     Each module's parameters are saved to a separate file to avoid overwriting.
+#     """
+#     modules_to_save = [
+#         ("clip_model.visual.transformer.resblocks.22.attn.out_proj", "visual_resblock_22_attn"),
+#         ("clip_model.visual.transformer.resblocks.23.attn.out_proj", "visual_resblock_23_attn"),
+#         ("clip_model.transformer.resblocks.11.attn.out_proj", "transformer_resblock_11_attn"),
+#     ]
 
-    dora_params = {}
+#     dora_params = {}
 
-    # save the parameters for each module
-    for module_path, module_name in modules_to_save:
-        # Traverse the model to get the module.
-        # This works by splitting the module_path string (e.g., "clip_model.visual.transformer.resblocks.22.attn.out_proj")
-        # into its components, and then repeatedly calling getattr to descend into the model's attribute tree.
-        # For example, getattr(model, "clip_model") -> getattr(model.clip_model, "visual") -> ... etc.
-        module = model
-        for attr in module_path.split("."):
-            module = getattr(module, attr)
+#     # save the parameters for each module
+#     for module_path, module_name in modules_to_save:
+#         # Traverse the model to get the module.
+#         # This works by splitting the module_path string (e.g., "clip_model.visual.transformer.resblocks.22.attn.out_proj")
+#         # into its components, and then repeatedly calling getattr to descend into the model's attribute tree.
+#         # For example, getattr(model, "clip_model") -> getattr(model.clip_model, "visual") -> ... etc.
+#         module = model
+#         for attr in module_path.split("."):
+#             module = getattr(module, attr)
 
-        # Extract DoRA parameters
-        dora_params[f'{module_path}.m'] = module.m.detach().cpu()
-        dora_params[f'{module_path}.delta_D_A'] = module.delta_D_A.detach().cpu()
-        dora_params[f'{module_path}.delta_D_B'] = module.delta_D_B.detach().cpu()
+#         # Extract DoRA parameters
+#         dora_params[f'{module_path}.m'] = module.m.detach().cpu()
+#         dora_params[f'{module_path}.delta_D_A'] = module.delta_D_A.detach().cpu()
+#         dora_params[f'{module_path}.delta_D_B'] = module.delta_D_B.detach().cpu()
 
-        # Print parameter shapes
-        print(f"\n{module_name} parameter shapes:")
-        print(f"  m: shape {dora_params[f'{module_path}.m'].shape}")
-        print(f"  delta_D_A: shape {dora_params[f'{module_path}.delta_D_A'].shape}")
-        print(f"  delta_D_B: shape {dora_params[f'{module_path}.delta_D_B'].shape}")
+#         # Print parameter shapes
+#         print(f"\n{module_name} parameter shapes:")
+#         print(f"  m: shape {dora_params[f'{module_path}.m'].shape}")
+#         print(f"  delta_D_A: shape {dora_params[f'{module_path}.delta_D_A'].shape}")
+#         print(f"  delta_D_B: shape {dora_params[f'{module_path}.delta_D_B'].shape}")
     
-    # Save the parameters
-    save_path = os.path.join(dora_parameters_path, f"epoch{epoch + 1}_dora_params.pth")
-    torch.save(dora_params, save_path)
+#     # Save the parameters
+#     save_path = os.path.join(dora_parameters_path, f"epoch{epoch + 1}_dora_params.pth")
+#     torch.save(dora_params, save_path)
 
 
 def save_random_states(optimizer, epoch, random_state_path, dataloader_generator, logger=None):
@@ -610,7 +609,7 @@ def save_random_states(optimizer, epoch, random_state_path, dataloader_generator
     log(f"Random states saved: {checkpoint_file}")
 
 
-def train_model(model, train_loader, test_loader, inference_loader, device, optimizer, criterion, epochs, training_res_path, logger=None, early_stopping_patience=5, checkpoint_path='clip_hba_model_cv.pth', dora_parameters_path='./dora_params', random_state_path='./random_states', dataloader_generator=None):
+def train_model(model, train_loader, test_loader, inference_loader, device, optimizer, criterion, epochs, training_res_path, logger=None, early_stopping_patience=5, checkpoint_path='clip_hba_model_cv.pth', dora_parameters_path='./dora_params', random_state_path='./random_states', dataloader_generator=None, vision_layers=1, transformer_layers=1):
     model.train()
     best_test_loss = float('inf')
     epochs_no_improve = 0
@@ -681,7 +680,14 @@ def train_model(model, train_loader, test_loader, inference_loader, device, opti
         save_random_states(optimizer, epoch, random_state_path, dataloader_generator, logger=logger)
 
         # Save the DoRA parameters
-        save_dora_parameters(model, dora_parameters_path, epoch)
+        save_dora_parameters(
+            model,
+            dora_parameters_path,
+            epoch,
+            vision_layers,
+            transformer_layers,
+            log_fn=log,
+        )
         log(f"DoRA parameters saved for epoch {epoch+1}")
 
         # Check for early stopping and saving checkpoint
@@ -796,13 +802,22 @@ def run_behavioral_training(config):
     logger.info(f"\nNumber of trainable parameters: {count_trainable_parameters(model)}\n")
     
     # Train model
-    train_model(model, train_loader, test_loader, inference_loader, device, optimizer, 
-                config['criterion'], config['epochs'], 
-                config['training_res_path'],
-                logger=logger,
-                early_stopping_patience=config['early_stopping_patience'],
-                checkpoint_path=config['checkpoint_path'],
-                dora_parameters_path=config['dora_parameters_path'],
-                random_state_path=config['random_state_path'],
-                dataloader_generator=dataloader_generator
-                )
+    train_model(
+        model,
+        train_loader,
+        test_loader,
+        inference_loader,
+        device,
+        optimizer,
+        config['criterion'],
+        config['epochs'],
+        config['training_res_path'],
+        logger=logger,
+        early_stopping_patience=config['early_stopping_patience'],
+        checkpoint_path=config['checkpoint_path'],
+        dora_parameters_path=config['dora_parameters_path'],
+        random_state_path=config['random_state_path'],
+        dataloader_generator=dataloader_generator,
+        vision_layers=config['vision_layers'],
+        transformer_layers=config['transformer_layers'],
+    )
