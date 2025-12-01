@@ -6,6 +6,7 @@ import pandas as pd
 from PIL import Image
 
 
+# TODO: Add image_category as an object to return
 class ThingsDataset(Dataset):
     def __init__(self, img_annotations_file, img_dir):
         self.img_dir = img_dir

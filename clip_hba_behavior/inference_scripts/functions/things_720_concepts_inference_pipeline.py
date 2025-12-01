@@ -445,14 +445,6 @@ def run_behavior_inference(config, cached_batches=None):
             print(f"Applying min_epoch_to_process={min_epoch}: filtered {before - len(dora_params_files)} epoch files; "
                   f"{len(dora_params_files)} remain.")
 
-        # Limit to max_files_to_process if specified
-        if 'max_files_to_process' in config and config['max_files_to_process'] is not None:
-            max_files = int(config['max_files_to_process'])
-            before = len(dora_params_files)
-            dora_params_files = dora_params_files[:max_files]
-            print(f"Applying max_files_to_process={max_files}: limiting to first {len(dora_params_files)} files; "
-                  f"{before - len(dora_params_files)} files skipped.")
-
         for file in dora_params_files:
             # Extract epoch number from filename
             epoch = file.split('_')[0].replace('epoch', '')

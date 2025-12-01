@@ -26,9 +26,9 @@ def run_training(config):
     seed_everything(config['random_seed'])
 
     # Set up logger
-    log_dir = os.path.dirname(config['checkpoint_path'])
+    os.makedirs(config['checkpoint_path'], exist_ok=True)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    log_file = os.path.join(log_dir, f'training_log_{timestamp}.txt')
+    log_file = os.path.join(config['checkpoint_path'], f'training_log_{timestamp}.txt')
     logger = setup_logger(log_file)
     
     logger.info("="*80)

@@ -23,8 +23,7 @@ def load_clip_to_cpu(backbone_name):
         The instantiated CLIP model in evaluation mode on the CPU.
     """
     url = clip._MODELS[backbone_name]
-    cache_dir = Path.home() / ".cache" / "clip"
-    model_path = clip._download(url, str(cache_dir))
+    model_path = clip._download(url, os.path.expanduser("~/.cache/clip"))
 
     try:
         # loading JIT archive

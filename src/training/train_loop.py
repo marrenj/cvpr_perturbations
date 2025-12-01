@@ -23,6 +23,8 @@ def train_model(
     dataloader_generator=None,
     vision_layers=1,
     transformer_layers=1,
+    perturb_strategy=None,
+    start_epoch=0,
 ):
     """
     End-to-end training loop that logs metrics, checkpoints DoRA weights, and
@@ -61,8 +63,9 @@ def train_model(
         Number of final visual transformer blocks with DoRA adapters to save.
     transformer_layers : int, default 1
         Number of final text transformer blocks with DoRA adapters to save.
+    start_epoch : int, default 0
+        Epoch index to begin (useful when resuming from checkpoints).
     """
-    model.train()
     best_test_loss = float('inf')
     epochs_no_improve = 0
 
@@ -90,14 +93,21 @@ def train_model(
         writer = csv.writer(file)
         writer.writerow(headers)
 
-    for epoch in range(epochs):
+    for epoch in range(start_epoch, epochs):
+        model.train()
         total_loss = 0.0
+        epoch_idx = epoch
+
+        if perturb_strategy.is_active_epoch(epoch_idx):
+            logger.info(f"Applying {perturb_strategy.__class__.__name__} perturbation during epoch {epoch}")
 
         progress_bar = tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch}/{epochs}")
-        for _, (_, images, targets) in progress_bar:
+        for batch_idx, (_, images, targets) in progress_bar:
 
             images = images.to(device)
             targets = targets.to(device)
+
+            images, targets = perturb_strategy.apply_to_batch(images, targets, device, epoch_idx, batch_idx)
 
             optimizer.zero_grad()
             predictions = model(images)
@@ -114,6 +124,9 @@ def train_model(
         avg_test_loss = evaluate_model(model, test_loader, device, criterion)
         print(f"Epoch {epoch}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_test_loss:.4f}")
         log(f"Epoch {epoch}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_test_loss:.4f}")
+
+        if perturb_strategy.is_active_epoch(epoch_idx):
+            logger.info(f"*** Perturbation '{perturb_strategy.__class__.__name__}' was applied during epoch {epoch} ***")
 
         # # Conduct behavioral RSA at every epoch
         # rho, p_value, model_rdm = behavioral_RSA(model, inference_loader, device)
