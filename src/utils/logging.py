@@ -14,7 +14,7 @@ def setup_logger(log_file_path):
         logger: Configured logger object
     """
     # Create logger
-    logger = logging.getLogger('training_logger')
+    logger = logging.getLogger('logger')
     logger.setLevel(logging.INFO)
     
     # Remove any existing handlers to avoid duplicates
@@ -36,5 +36,10 @@ def setup_logger(log_file_path):
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
+
+    logger.info("="*80)
+    logger.info("Starting Process")
+    logger.info(f"Log file: {log_file_path}")
+    logger.info("="*80)
     
     return logger

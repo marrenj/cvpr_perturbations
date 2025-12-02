@@ -386,3 +386,48 @@ def save_dora_parameters(
     os.makedirs(dora_parameters_path, exist_ok=True)
     save_path = os.path.join(dora_parameters_path, f"epoch{epoch}_dora_params.pth")
     torch.save(dora_params, save_path)
+
+
+def load_dora_checkpoint(
+    model,
+    checkpoint_root,
+    epoch,
+    *,
+    dora_dir="dora_params",
+    map_location="cpu",
+    strict=False,
+):
+    """
+    Load DoRA adapter parameters for a CLIP-HBA model from a checkpoint directory.
+
+    Parameters
+    ----------
+    model : nn.Module
+        CLIP-HBA model instance that should receive the loaded parameters.
+    checkpoint_root : str | Path
+        Base checkpoint directory that contains the DoRA subdirectory.
+    epoch : int
+        Epoch identifier used when naming the serialized DoRA parameters.
+    dora_dir : str, default "dora_params"
+        Subdirectory under ``checkpoint_root`` where DoRA checkpoints live.
+    map_location : str | torch.device, default "cpu"
+        Device mapping passed to ``torch.load``.
+    strict : bool, default False
+        Passed directly to ``model.load_state_dict``.
+
+    Returns
+    -------
+    Path
+        Path to the loaded checkpoint file, useful for logging.
+    """
+    checkpoint_root = Path(checkpoint_root)
+    dora_path = checkpoint_root / dora_dir
+    checkpoint_path = dora_path / f"epoch{epoch}_dora_params.pth"
+
+    if not checkpoint_path.is_file():
+        raise FileNotFoundError(f"Missing DoRA checkpoint: {checkpoint_path}")
+
+    state_dict = torch.load(checkpoint_path, map_location=map_location)
+    model.load_state_dict(state_dict, strict=strict)
+
+    return checkpoint_path

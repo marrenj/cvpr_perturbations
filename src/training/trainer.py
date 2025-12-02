@@ -13,7 +13,12 @@ from src.utils.seed import seed_everything
 from src.utils.logging import setup_logger
 from src.utils.count_parameters import count_trainable_parameters
 from src.training.train_loop import train_model
-from src.models.clip_hba.clip_hba_utils import CLIPHBA, apply_dora_to_ViT, switch_dora_layers
+from src.models.clip_hba.clip_hba_utils import (
+    CLIPHBA,
+    apply_dora_to_ViT,
+    switch_dora_layers,
+    load_dora_checkpoint,
+)
 from src.data.things_dataset import ThingsDataset
 from src.data.spose_dimensions import classnames66
 from src.perturbations.perturbation_utils import choose_perturbation_strategy
@@ -144,15 +149,14 @@ def run_training_experiment(config):
         if not baseline_checkpoint_path:
             raise ValueError("baseline_checkpoint_path must be provided when perturb_epoch > 0")
 
-        baseline_dora_dir = os.path.join(baseline_checkpoint_path, 'dora_params')
-        baseline_dora_file = os.path.join(baseline_dora_dir, f'epoch{baseline_epoch}_dora_params.pth')
-        if not os.path.isfile(baseline_dora_file):
-            raise FileNotFoundError(f"Missing baseline DoRA file: {baseline_dora_file}")
+        loaded_dora_path = load_dora_checkpoint(
+            model,
+            checkpoint_root=baseline_checkpoint_path,
+            epoch=baseline_epoch,
+            strict=False,
+        )
 
-        dora_params_state_dict = torch.load(baseline_dora_file)
-        model.load_state_dict(dora_params_state_dict, strict=False)
-
-        logger.info(f"Loaded baseline DoRA parameters from {baseline_dora_file}")
+        logger.info(f"Loaded baseline DoRA parameters from {loaded_dora_path}")
 
         random_state_file = os.path.join(
             baseline_checkpoint_path,
