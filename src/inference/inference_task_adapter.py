@@ -70,7 +70,7 @@ def evaluate_nights(model, nights_dir, split='test', batch_size=32,
 
         # Cache batches to pinned memory
         print(f"\nCaching images for NIGHTS {split} split...")
-        cached_batches = cache_dataloader_to_pinned_memory(dataloader)
+        cached_batches = cache_nights_dataloader_to_pinned_memory(dataloader)
         del dataloader  # Free memory
     
     # Create embedder
@@ -156,6 +156,7 @@ def evaluate_nights(model, nights_dir, split='test', batch_size=32,
 # NODInferenceTask(InferenceTask)
 
 
+
 # Things48ImagesInferenceTask(InferenceTask)
 
 
@@ -165,11 +166,11 @@ def evaluate_nights(model, nights_dir, split='test', batch_size=32,
 # Initialize dataset
 def adapt_inference_task(dataset_type):
     if dataset_type == 'things':
-        task = None
+        inference_task = None
     elif dataset_type == 'nights':
-        task = evaluate_nights
+        inference_task = evaluate_nights
     elif dataset_type == 'nod':
-        task = None
+        inference_task = None
     else:
         raise ValueError(f"Dataset type {dataset_type} not supported")
-    return task
+    return inference_task
