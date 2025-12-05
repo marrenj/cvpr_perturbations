@@ -34,6 +34,8 @@ def plot_behavior_vs_loss(
     matplotlib.axes.Axes
         The axis containing the rendered plot.
     """
+    plt.rcParams['font.family'] = 'Times New Roman'
+    
     required_columns = {"epoch", "test_loss", "behavioral_rsa_rho"}
     missing = required_columns - set(df.columns)
     if missing:

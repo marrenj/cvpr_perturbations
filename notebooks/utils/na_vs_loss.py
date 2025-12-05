@@ -53,6 +53,8 @@ def plot_neural_alignment_vs_loss(
     matplotlib.axes.Axes
         Axis containing the rendered neural-alignment curve(s).
     """
+    plt.rcParams['font.family'] = 'Times New Roman'
+    
     required_columns = {"roi", "test_loss", "rho"}
     missing = required_columns - set(df.columns)
     if missing:
