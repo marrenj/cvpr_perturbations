@@ -1,8 +1,0 @@
-{
-    "results_dir": "X:\\multimodal_brain_inspired\\marren\\temporal_dynamics_of_human_alignment\\clip_hba_behavior_loops\\20251105_182613",
-    "img_dir": "X:\\multimodal_brain_inspired\\NOD\\imagenet",
-    "batch_size": 256,
-    "cuda": 1,
-    "load_hba": true,
-    "backbone": "ViT-L/14"
-}
