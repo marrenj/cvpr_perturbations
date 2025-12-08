@@ -15,16 +15,15 @@ The folder structure is organized into modular components as follows:
 Usage
 
 Configure your experiment via the provided YAML files and run the training or inference scripts. For example, to train a model you might run:
-
-'python scripts/run_training.py --config configs/training/baseline_seed3.yaml'
+'''python scripts/run_training.py --config configs/training/baseline_seed3.yaml'''
 
 And to run inference (evaluation) on a trained model, e.g. on the “Nights” dataset:
 
-'python scripts/run_inference.py --config configs/inference/nights.yaml'
+'''python scripts/run_inference.py --config configs/inference/nights.yaml'''
 
 Each --config path points to a YAML file under configs/ that sets all relevant parameters. To customize an experiment, copy or edit one of the YAML templates: change the backbone (e.g. backbone: ViT-L/14), dataset paths, or perturbation settings (perturb_type, perturb_epoch, etc.) in the YAML file. The scripts will load these configs and automatically apply your chosen settings.
 
-'backbone: ViT-L/14
+'''backbone: ViT-L/14
 vision_layers: 2
 transformer_layers: 1
 rank: 32
@@ -46,11 +45,11 @@ perturb_length: 5
 perturb_seed: 42
 
 checkpoint_path: experiments/2025-...  # where to save model checkpoints
-logger: None'
+logger: None'''
 
 And similarly the inference configs include fields like model_weights_path, dataset, and inference_save_dir.
 
-These settings are all loaded at runtime (see code in src/training/trainer.py and src/inference/inference_core.py). For example, the training code uses choose_perturbation_strategy(perturb_type, perturb_epoch, perturb_length, perturb_seed) to apply the specified noise or shuffle each epoch. The inference code loads a saved checkpoint, constructs the same CLIP-HBA model, applies DoRA layers, and then calls a dataset-specific evaluation function (e.g. evaluate_nights) based on config['dataset'].
+These settings are all loaded at runtime (see code in src/training/trainer.py and src/inference/inference_core.py). For example, the training code uses choose_perturbation_strategy(perturb_type, perturb_epoch, perturb_length, perturb_seed) to apply the specified noise or shuffle each epoch. The inference code loads a saved checkpoint, constructs the same CLIP-HBA model, applies DoRA layers, and then calls a dataset-specific evaluation function (e.g. evaluate_nights) based on '''config['dataset'].'''
 
 By editing or creating your own YAML files, you can run new experiments. For example, to sweep over different seeds or perturbation lengths, duplicate a config and change the random_seed, perturb_length, etc., then run run_training.py for each. The modular structure makes it easy to plug in new perturbations or datasets if needed.
 
