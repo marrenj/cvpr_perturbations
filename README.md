@@ -4,6 +4,8 @@ This repository provides tools for training CLIP-HBA models with various perturb
 
 The core model is a CLIP-based HBA network (with DoRA layers) that is instantiated in code as CLIPHBA. The training logic (`run_training_experiment`) reads a config file describing the architecture and perturbation schedule, applies the chosen perturbation strategy via `choose_perturbation_strategy`, and trains the model accordingly. The repository also includes an inference pipeline (`run_inference`) which loads a trained model checkpoint, applies the model to a test dataset (e.g. the THINGS, NOD, or NIGHTS dataset), and collects evaluation results.
 
+The training and inference in this repository is built off of the original CLIP-HBA sourcecode published at https://github.com/stephenczhao/CLIP-HBA-Official/tree/main<sup>1</sup>.
+
 ### Folder Structure
 
 The folder structure is organized into modular components as follows:
@@ -60,6 +62,8 @@ These settings are all loaded at runtime (see code in `src/training/trainer.py` 
 
 By editing or creating your own YAML files, you can run new experiments. For example, to sweep over different seeds or perturbation lengths, duplicate a config and change the random_seed, perturb_length, etc., then run `run_training.py` for each. The modular structure makes it easy to plug in new perturbations or datasets if needed.
 
+The core logic for training is implemented in `src/training/` (see `run_training_experiment` in `trainer.py`). Perturbation strategies are defined in `src/perturbations/perturbation_utils.py` (classes like `TargetNoisePerturbation`, `LabelShufflePerturbation`, etc.). The inference logic is in `src/inference/` (e.g. `run_inference` in `inference_core.py`). Configuration is fully driven by the YAML files under `configs/`, as shown above.
+
 ### References
 
-The core logic for training is implemented in `src/training/` (see `run_training_experiment` in `trainer.py`). Perturbation strategies are defined in `src/perturbations/perturbation_utils.py` (classes like `TargetNoisePerturbation`, `LabelShufflePerturbation`, etc.). The inference logic is in `src/inference/` (e.g. `run_inference` in `inference_core.py`). Configuration is fully driven by the YAML files under `configs/`, as shown above.
+1. Zhao, S. C., Hu, Y., Lee, J., Bender, A., Mazumdar, T., Wallace, M., & Tovar, D. A. (2025). Shifting attention to you: Personalized brain-inspired AI models. arXiv. https://arxiv.org/abs/2502.04658
