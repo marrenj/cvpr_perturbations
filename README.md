@@ -1,6 +1,10 @@
+### About
+
 This repository provides tools for training CLIP-HBA models with various perturbations and evaluating the perturbations' effects on model performance and model-human alignment. In particular, the training pipeline supports adding input or target noise (e.g. label shuffle, random target embeddings, image noise, etc.) during training, so one can systematically study how these perturbations impact model behavior. 
 
 The core model is a CLIP-based HBA network (with DoRA layers) that is instantiated in code as CLIPHBA. The training logic (`run_training_experiment`) reads a config file describing the architecture and perturbation schedule, applies the chosen perturbation strategy via `choose_perturbation_strategy`, and trains the model accordingly. The repository also includes an inference pipeline (`run_inference`) which loads a trained model checkpoint, applies the model to a test dataset (e.g. the THINGS, NOD, or NIGHTS dataset), and collects evaluation results.
+
+### Folder Structure
 
 The folder structure is organized into modular components as follows:
 
@@ -13,7 +17,7 @@ The folder structure is organized into modular components as follows:
   - `notebooks/figures/` contains code to generate each figure.
   - `notebooks/neural_processing/` contains code to process fMRI data and calculate model-brain alignment.
 
-Usage
+### Usage
 
 Configure your experiment via the provided YAML files and run the training or inference scripts. For example, to train a model you might run:
 `python scripts/run_training.py --config configs/training/baseline_seed3.yaml`
