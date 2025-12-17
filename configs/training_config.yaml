@@ -1,0 +1,31 @@
+## ---SET UP PATHS--- ##
+  img_annotations_file: # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
+  img_dir: # path to the THINGSimage directory
+  checkpoint_save_path: # folder path to save the trained model weights
+  training_results_save_path: # folder path to save the training results
+  random_state_save_path: # folder path to save the random states at every epoch
+
+## ---MODEL PARAMETERS--- ##
+  backbone: ViT-L/14 # model backboneto use for CLIP-HBA
+  vision_layers: 2 # number of vision encoder layers to open up for CLIP-HBA training
+  transformer_layers: 1 # number of text encoder layers to use for CLIP-HBA training
+  rank: 32 # rank of the DoRA layers 
+
+## ---TRAINING PARAMETERS--- ##
+  dataset_type: things # Dataset to use for training. "things" for THINGS dataset.
+  epochs: 500 # number of epochs to train for
+  early_stopping_patience: 20 # number of epochs to wait before stopping training if the validation loss does not improve
+  batch_size: 64 # number of training samples to process in each batch
+  train_portion: 0.8 # portion of the training data to use for training
+  lr: 3e-4 # learning rate for the optimizer
+  criterion: MSELoss # loss function to use for training
+  random_seed: 1 # random seed to use for training
+  cuda: 1 # GPU to use for training; -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
+
+  logger: None # Logger to use for training. None for no logging.
+
+## ---PERTURBATION PARAMETERS--- ##
+  perturb_type: label_shuffle
+  perturb_epoch: 0 # will be overridden per run by run_single_epoch_perturbation_sweep.py
+  perturb_length: 1 # will be overridden per run by run_single_epoch_perturbation_sweep.py
+  perturb_seed: 42
