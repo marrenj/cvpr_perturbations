@@ -1,0 +1,62 @@
+2025-12-15 13:57:25 - INFO - ================================================================================
+2025-12-15 13:57:25 - INFO - Starting Process
+2025-12-15 13:57:25 - INFO - Log file: /home/wallacelab/Documents/GitHub/cvpr_perturbations/experiments/single_epoch_perturbation_sweep_seed42/training_run0/training_log_20251215_135725.txt
+2025-12-15 13:57:25 - INFO - ================================================================================
+2025-12-15 13:57:25 - INFO - ================================================================================
+2025-12-15 13:57:25 - INFO - Starting Training Run
+2025-12-15 13:57:25 - INFO - Log file: /home/wallacelab/Documents/GitHub/cvpr_perturbations/experiments/single_epoch_perturbation_sweep_seed42/training_run0/training_log_20251215_135725.txt
+2025-12-15 13:57:25 - INFO - ================================================================================
+2025-12-15 13:57:25 - INFO - Loaded dataset split indices from /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/cliphba_baseline_seed1/random_states/dataset_split_indices.pth
+2025-12-15 13:57:25 - INFO - Dataset split indices saved: /home/wallacelab/Documents/GitHub/cvpr_perturbations/experiments/single_epoch_perturbation_sweep_seed42/training_run0/random_states/dataset_split_indices.pth
+2025-12-15 13:57:30 - INFO - 
+Model Configuration:
+2025-12-15 13:57:30 - INFO - -------------------
+2025-12-15 13:57:30 - INFO - backbone: ViT-L/14
+2025-12-15 13:57:30 - INFO - vision_layers: 2
+2025-12-15 13:57:30 - INFO - transformer_layers: 1
+2025-12-15 13:57:30 - INFO - rank: 32
+2025-12-15 13:57:30 - INFO - epochs: 500
+2025-12-15 13:57:30 - INFO - batch_size: 64
+2025-12-15 13:57:30 - INFO - train_portion: 0.8
+2025-12-15 13:57:30 - INFO - lr: 0.0003
+2025-12-15 13:57:30 - INFO - early_stopping_patience: 20
+2025-12-15 13:57:30 - INFO - criterion: MSELoss
+2025-12-15 13:57:30 - INFO - random_seed: 1
+2025-12-15 13:57:30 - INFO - cuda: 0
+2025-12-15 13:57:30 - INFO - dataset_type: things
+2025-12-15 13:57:30 - INFO - img_annotations_file: /home/wallacelab/Documents/GitHub/cvpr_perturbations/data/spose_embedding66d_rescaled_1806train.csv
+2025-12-15 13:57:30 - INFO - img_dir: /home/wallacelab/teba/multimodal_brain_inspired/marren/cvpr_perturbations/clip_hba_behavior/Data/Things1854
+2025-12-15 13:57:30 - INFO - baseline_checkpoint_path: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/cliphba_baseline_seed1
+2025-12-15 13:57:30 - INFO - perturb_type: random_target
+2025-12-15 13:57:30 - INFO - perturb_epoch: 0
+2025-12-15 13:57:30 - INFO - perturb_length: 1
+2025-12-15 13:57:30 - INFO - perturb_seed: 42
+2025-12-15 13:57:30 - INFO - logger: None
+2025-12-15 13:57:30 - INFO - checkpoint_path: /home/wallacelab/Documents/GitHub/cvpr_perturbations/experiments/single_epoch_perturbation_sweep_seed42/training_run0
+2025-12-15 13:57:30 - INFO - 
+Updating layers:
+2025-12-15 13:57:30 - INFO - clip_model.visual.transformer.resblocks.22.attn.out_proj.m
+2025-12-15 13:57:30 - INFO - clip_model.visual.transformer.resblocks.22.attn.out_proj.delta_D_A
+2025-12-15 13:57:30 - INFO - clip_model.visual.transformer.resblocks.22.attn.out_proj.delta_D_B
+2025-12-15 13:57:30 - INFO - clip_model.visual.transformer.resblocks.23.attn.out_proj.m
+2025-12-15 13:57:30 - INFO - clip_model.visual.transformer.resblocks.23.attn.out_proj.delta_D_A
+2025-12-15 13:57:30 - INFO - clip_model.visual.transformer.resblocks.23.attn.out_proj.delta_D_B
+2025-12-15 13:57:30 - INFO - clip_model.transformer.resblocks.11.attn.out_proj.m
+2025-12-15 13:57:30 - INFO - clip_model.transformer.resblocks.11.attn.out_proj.delta_D_A
+2025-12-15 13:57:30 - INFO - clip_model.transformer.resblocks.11.attn.out_proj.delta_D_B
+2025-12-15 13:57:30 - INFO - 
+Number of trainable parameters: 183040
+
+2025-12-15 13:57:30 - INFO - *********************************
+2025-12-15 13:57:30 - INFO - Evaluating initial model
+2025-12-15 13:57:46 - INFO - Initial Validation Loss: 160.2919
+2025-12-15 13:57:46 - INFO - *********************************
+
+2025-12-15 13:57:46 - INFO - Applying TargetNoisePerturbation perturbation during epoch 0
+2025-12-15 13:58:52 - INFO - Epoch 0: Training Loss: 160.2987, Validation Loss: 119.4685
+2025-12-15 13:58:52 - INFO - *** Perturbation 'TargetNoisePerturbation' was applied during epoch 0 ***
+2025-12-15 13:58:52 - INFO - Random states saved: /home/wallacelab/Documents/GitHub/cvpr_perturbations/experiments/single_epoch_perturbation_sweep_seed42/training_run0/random_states/epoch0_random_states.pth
+2025-12-15 13:58:52 - INFO - Checkpoint saved for epoch 0
+2025-12-15 13:59:41 - INFO - Epoch 1: Training Loss: 102.2880, Validation Loss: 93.6933
+2025-12-15 13:59:41 - INFO - Random states saved: /home/wallacelab/Documents/GitHub/cvpr_perturbations/experiments/single_epoch_perturbation_sweep_seed42/training_run0/random_states/epoch1_random_states.pth
+2025-12-15 13:59:41 - INFO - Checkpoint saved for epoch 1

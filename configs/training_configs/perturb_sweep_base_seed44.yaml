@@ -1,0 +1,37 @@
+backbone: ViT-L/14
+vision_layers: 2
+transformer_layers: 1
+rank: 32
+
+epochs: 500
+batch_size: 64
+train_portion: 0.8
+lr: 3e-4
+early_stopping_patience: 20
+criterion: MSELoss
+random_seed: 3
+cuda: 1  # -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
+
+dataset_type: things
+img_annotations_file: /home/wallacelab/Documents/GitHub/cvpr_perturbations/data/spose_embedding66d_rescaled_1806train.csv
+img_dir: /home/wallacelab/teba/multimodal_brain_inspired/marren/cvpr_perturbations/clip_hba_behavior/Data/Things1854
+
+# Baseline checkpoint used to restore the model and RNG states before applying
+# a one-epoch perturbation. Required when sweeping epochs beyond 0.
+baseline_checkpoint_path: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/cliphba_baseline_seed3
+
+perturb_type: random_target
+# These will be overridden per run by run_single_epoch_perturbation_sweep.py
+perturb_epoch: 0
+perturb_length: 1
+perturb_seed: 44
+start_epoch: 0
+end_epoch: 500
+
+
+logger: None
+# This serves as the default output root; the sweep script will create one
+# subfolder per perturbed epoch beneath this directory.
+checkpoint_path: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/single_epoch_perturbation_sweep_seed44
+output_root: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/single_epoch_perturbation_sweep_seed44
+run_name_template: training_run{epoch}

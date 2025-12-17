@@ -2,8 +2,8 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import torchvision.transforms as transforms
+import torch.nn.functional as F
 from src.data.nights_dataset import NightsTripletDataset
-from src.models.clip_hba.clip_hba_utils import CLIPHBAEmbedder
 
 def cache_nights_dataloader_to_pinned_memory(data_loader):
     """
@@ -60,17 +60,10 @@ def evaluate_nights(model, nights_dir, split='test', batch_size=32,
         results: Dictionary containing accuracy and detailed results
         cached_batches: Cached batches for reuse (if created)
     """
-    # Setup transform
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.52997664, 0.48070561, 0.41943838],
-                           std=[0.27608301, 0.26593025, 0.28238822])
-    ])
     
     # Create dataset and dataloader if cached_batches not provided
     if cached_batches is None:
-        dataset = NightsTripletDataset(nights_dir, split=split, transform=transform)
+        dataset = NightsTripletDataset(nights_dir, split=split)
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, 
                                num_workers=8, pin_memory=False, persistent_workers=True, prefetch_factor=2)
 
@@ -78,9 +71,6 @@ def evaluate_nights(model, nights_dir, split='test', batch_size=32,
         print(f"\nCaching images for NIGHTS {split} split...")
         cached_batches = cache_nights_dataloader_to_pinned_memory(dataloader)
         del dataloader  # Free memory
-    
-    # Create embedder
-    embedder = CLIPHBAEmbedder(model, device, use_image_features=use_image_features)
     
     # Evaluation loop
     correct = 0
@@ -104,7 +94,7 @@ def evaluate_nights(model, nights_dir, split='test', batch_size=32,
         
             # Single forward pass for all images
             with torch.amp.autocast('cuda'):  # Add mixed precision
-                all_embs = embedder.embed(all_imgs)
+                all_embs = model(all_imgs)
         
             # Split embeddings back
             batch_size = ref_imgs.size(0)
@@ -113,8 +103,8 @@ def evaluate_nights(model, nights_dir, split='test', batch_size=32,
             img1_embs = all_embs[2*batch_size:]
         
             # Compute distances
-            dist_0 = embedder.compute_distance(ref_embs, img0_embs)
-            dist_1 = embedder.compute_distance(ref_embs, img1_embs)
+            dist_0 = 1 - F.cosine_similarity(ref_embs, img0_embs, dim=-1)
+            dist_1 = 1 - F.cosine_similarity(ref_embs, img1_embs, dim=-1)
             
             # Predict: which image is MORE SIMILAR (lower distance)
             predictions = (dist_1 < dist_0).long()  # 1 if img1 is closer, 0 if img0 is closer

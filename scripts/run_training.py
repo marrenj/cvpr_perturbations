@@ -1,4 +1,10 @@
 from pathlib import Path
+import sys
+
+# Ensure repository root is on sys.path when the script is invoked via an absolute path
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.training.trainer import run_training_experiment
 from src.utils.parse_config_cli import parse_config_cli

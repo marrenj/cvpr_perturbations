@@ -34,7 +34,7 @@ class TargetNoisePerturbation(PerturbationStrategy):
             raise ValueError("target_mean and target_std must be provided for TargetNoisePerturbation")
 
         gen = torch.Generator(device=device)
-        gen.manual_seed(self.perturb_seed + (self.start_epoch + 1) * 1000 + batch_idx)
+        gen.manual_seed(self.perturb_seed + (epoch_idx + 1) * 1000 + batch_idx)
 
         noise = torch.randn(targets.shape, device=device, dtype=targets.dtype, generator=gen)
         random_targets = noise * std + mean
