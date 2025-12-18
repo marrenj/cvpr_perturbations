@@ -101,7 +101,7 @@ def choose_perturbation_strategy(
             perturb_length=perturb_length,
             perturb_seed=perturb_seed,
             target_mean=target_mean,
-            target_std=target_std,
+            target_std=target_std
         )
     elif perturb_type == 'label_shuffle':
         perturb_strategy = LabelShufflePerturbation(perturb_epoch=perturb_epoch, perturb_length=perturb_length, perturb_seed=perturb_seed)

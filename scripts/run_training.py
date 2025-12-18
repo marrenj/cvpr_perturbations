@@ -65,7 +65,7 @@ def _find_previous_run_with_same_start(run_root: Path, start_epoch: int, current
     return best_dir, best_length
 
 
-def _maybe_resume_from_previous(config: dict, run_root: Path) -> dict:
+def _resume_from_previous(config: dict, run_root: Path) -> dict:
     """
     If a previous run with the same start epoch exists in the save_path
     parent directory (and has a shorter perturb_length), reuse it to resume.
@@ -133,7 +133,7 @@ def _prepare_single_run(config: dict, config_path: Path) -> dict:
     config["save_path"] = str(save_path)
 
     # Optionally reuse a previous run with the same start epoch
-    config = _maybe_resume_from_previous(config, save_path)
+    config = _resume_from_previous(config, save_path)
 
     # Save the input config alongside the run artifacts
     save_config(config_path, save_path)
