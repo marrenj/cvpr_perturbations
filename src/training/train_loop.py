@@ -15,9 +15,9 @@ def train_model(
     optimizer,
     criterion,
     epochs,
-    training_res_path,
-    checkpoint_path,
-    random_state_path,
+    training_results_save_path,
+    save_path,
+    random_state_save_path,
     logger=None,
     early_stopping_patience=5,
     dataloader_generator=None,
@@ -46,11 +46,11 @@ def train_model(
         Loss function applied to ``(predictions, targets)``.
     epochs : int
         Maximum number of training epochs.
-    training_res_path : str | Path
+    training_results_save_path : str | Path
         CSV filepath where per-epoch losses are recorded.
-    checkpoint_path : str | Path
+    save_path : str | Path
         Directory where DoRA checkpoints are written.
-    random_state_path : str | Path
+    random_state_save_path : str | Path
         Directory that stores RNG and optimizer state snapshots.
     logger : logging.Logger, optional
         Logger for structured output; defaults to ``print`` when omitted.
@@ -82,16 +82,18 @@ def train_model(
     log("*********************************\n")
 
     # Create folder to store checkpoints
-    os.makedirs(checkpoint_path, exist_ok=True)
+    os.makedirs(save_path, exist_ok=True)
 
     # Create directory for training results CSV if it doesn't exist
-    os.makedirs(os.path.dirname(training_res_path), exist_ok=True)
+    os.makedirs(os.path.dirname(training_results_save_path), exist_ok=True)
 
     headers = ['epoch', 'train_loss', 'test_loss']
 
-    with open(training_res_path, 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(headers)
+    # When resuming and the CSV already exists, keep existing rows; otherwise initialize.
+    if not (start_epoch > 0 and os.path.exists(training_results_save_path)):
+        with open(training_results_save_path, 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(headers)
 
     for epoch in range(start_epoch, epochs):
         model.train()
@@ -137,17 +139,17 @@ def train_model(
         data_row = [epoch, avg_train_loss, avg_test_loss]
 
         # Append the data row to the CSV file
-        with open(training_res_path, 'a', newline='') as file:
+        with open(training_results_save_path, 'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(data_row)
 
         # Save random states and optimizer after every epoch for full reproducibility
-        save_random_states(optimizer, epoch, random_state_path, dataloader_generator, logger=logger)
+        save_random_states(optimizer, epoch, random_state_save_path, dataloader_generator, logger=logger)
 
         # Save the DoRA parameters (i.e., the checkpoint weights)
         save_dora_parameters(
             model,
-            checkpoint_path,
+            save_path,
             epoch,
             vision_layers,
             transformer_layers,

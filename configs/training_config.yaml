@@ -1,9 +1,11 @@
-## ---SET UP PATHS--- ##
+## ---EXPERIMENT SETUP--- ##
+  experiment_type: baseline # baseline | perturbation_run
+
+## ---PATHS--- ##
+  save_path: # root path to save training artifacts (checkpoints, training results, random states)
+  baseline_checkpoint_path: # REQUIRED: path to baseline training run checkpoints used for perturbation sweeps
   img_annotations_file: # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
-  img_dir: # path to the THINGSimage directory
-  checkpoint_save_path: # folder path to save the trained model weights
-  training_results_save_path: # folder path to save the training results
-  random_state_save_path: # folder path to save the random states at every epoch
+  img_dir: # path to the THINGS image directory
 
 ## ---MODEL PARAMETERS--- ##
   backbone: ViT-L/14 # model backboneto use for CLIP-HBA
@@ -26,6 +28,6 @@
 
 ## ---PERTURBATION PARAMETERS--- ##
   perturb_type: label_shuffle
-  perturb_epoch: 0 # will be overridden per run by run_single_epoch_perturbation_sweep.py
-  perturb_length: 1 # will be overridden per run by run_single_epoch_perturbation_sweep.py
+  perturb_epoch: 0 # epoch to start perturbation (0-indexed)
+  perturb_length: 1 # number of epochs to perturb
   perturb_seed: 42

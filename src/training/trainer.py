@@ -22,7 +22,16 @@ from src.models.clip_hba.clip_hba_utils import (
 from src.data.things_dataset import ThingsDataset
 from src.data.spose_dimensions import classnames66
 from src.perturbations.perturbation_utils import choose_perturbation_strategy
-from src.utils.path_setup import setup_paths
+
+def setup_paths(save_path):
+    """
+    Set up paths for the training run.
+    """
+    os.makedirs(save_path, exist_ok=True)
+    training_results_save_path = os.path.join(save_path, 'training_res.csv')
+    random_state_save_path = os.path.join(save_path, 'random_states')
+    
+    return save_path, training_results_save_path, random_state_save_path
 
 def run_training_experiment(config):
     """
@@ -34,9 +43,8 @@ def run_training_experiment(config):
     seed_everything(config['random_seed'])
 
     # Set up logger
-    os.makedirs(config['checkpoint_path'], exist_ok=True)
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    log_file = os.path.join(config['checkpoint_path'], f'training_log_{timestamp}.txt')
+    os.makedirs(config['save_path'], exist_ok=True)
+    log_file = os.path.join(config['save_path'], f'training_log_{config["perturb_type"]}.txt')
     logger = setup_logger(log_file)
     
     logger.info("="*80)
@@ -45,7 +53,7 @@ def run_training_experiment(config):
     logger.info("="*80)
 
     # Set up paths
-    checkpoint_path, training_res_path, random_state_path = setup_paths(config['checkpoint_path'])
+    save_path, training_results_save_path, random_state_save_path = setup_paths(config['save_path'])
     
     # Initialize dataset
     if config['dataset_type'] == 'things':
@@ -90,8 +98,8 @@ def run_training_experiment(config):
             'random_seed': config['random_seed'],
             'train_portion': config['train_portion']
         }
-    split_file = os.path.join(random_state_path, 'dataset_split_indices.pth')
-    os.makedirs(random_state_path, exist_ok=True)
+    split_file = os.path.join(random_state_save_path, 'dataset_split_indices.pth')
+    os.makedirs(random_state_save_path, exist_ok=True)
     torch.save(split_info, split_file)
     logger.info(f"Dataset split indices saved: {split_file}")
 
@@ -144,7 +152,47 @@ def run_training_experiment(config):
 
     # Optionally resume from baseline state right before perturbation
     resume_epoch = 0
-    if config['perturb_epoch'] > 0:
+    resume_checkpoint_path = config.get("resume_checkpoint_path")
+    resume_from_epoch = config.get("resume_from_epoch")
+
+    if resume_checkpoint_path and resume_from_epoch is not None:
+        loaded_dora_path = load_dora_checkpoint(
+            model,
+            checkpoint_root=resume_checkpoint_path,
+            epoch=resume_from_epoch,
+            strict=False,
+        )
+        logger.info(f"Loaded DoRA parameters from resume checkpoint: {loaded_dora_path}")
+
+        random_state_file = os.path.join(
+            resume_checkpoint_path,
+            'random_states',
+            f'epoch{resume_from_epoch}_random_states.pth'
+        )
+        if not os.path.isfile(random_state_file):
+            raise FileNotFoundError(f"Missing resume random state file: {random_state_file}")
+
+        state_payload = torch.load(random_state_file, map_location='cpu')
+        torch.set_rng_state(state_payload['torch_rng_state'])
+        np_set_state(state_payload['numpy_rng_state'])
+        random.setstate(state_payload['python_rng_state'])
+
+        if torch.cuda.is_available():
+            if 'cuda_rng_state' in state_payload:
+                torch.cuda.set_rng_state(state_payload['cuda_rng_state'])
+            if 'cuda_rng_state_all' in state_payload:
+                torch.cuda.set_rng_state_all(state_payload['cuda_rng_state_all'])
+
+        if dataloader_generator is not None and 'dataloader_generator_state' in state_payload:
+            dataloader_generator.set_state(state_payload['dataloader_generator_state'])
+
+        if 'optimizer_state_dict' in state_payload:
+            optimizer.load_state_dict(state_payload['optimizer_state_dict'])
+            logger.info(f"Restored optimizer and RNG states from {random_state_file}")
+
+        resume_epoch = int(resume_from_epoch) + 1
+
+    elif config['perturb_epoch'] > 0:
         baseline_epoch = config['perturb_epoch'] - 1
         if not baseline_checkpoint_path:
             raise ValueError("baseline_checkpoint_path must be provided when perturb_epoch > 0")
@@ -220,11 +268,11 @@ def run_training_experiment(config):
         optimizer,
         criterion,
         config['epochs'],
-        training_res_path=training_res_path,
+        training_results_save_path=training_results_save_path,
         logger=logger,
         early_stopping_patience=config['early_stopping_patience'],
-        checkpoint_path=checkpoint_path,
-        random_state_path=random_state_path,
+        save_path=save_path,
+        random_state_save_path=random_state_save_path,
         dataloader_generator=dataloader_generator,
         vision_layers=config['vision_layers'],
         transformer_layers=config['transformer_layers'],
