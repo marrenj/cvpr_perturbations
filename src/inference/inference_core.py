@@ -1,3 +1,4 @@
+from evaluation import rsa
 from src.models.clip_hba.clip_hba_utils import load_dora_checkpoint, initialize_cliphba_model
 from src.data.spose_dimensions import classnames66
 import torch
@@ -13,55 +14,6 @@ from src.utils.logging import setup_logger
 from src.evaluation.rsa import compute_rdm, compute_rdm_similarity
 from src.inference.evaluate_nights import evaluate_nights
 from src.inference.extract_embeddings import extract_embeddings
-
-
-def _validate_square_rdm(rdm: np.ndarray, source_label: str) -> np.ndarray:
-    """
-    Validate that an RDM is square and return it as a NumPy array.
-    """
-    rdm = np.asarray(rdm)
-    if rdm.ndim != 2 or rdm.shape[0] != rdm.shape[1]:
-        raise ValueError(f"Reference RDM from {source_label} must be square, got shape {rdm.shape}")
-    return rdm
-
-
-def prepare_reference_rdm(reference_rdm_path: Path) -> np.ndarray:
-    """
-    Load a reference RDM from disk. Supports .npy, .npz, .mat, .csv, .tsv, and .txt files.
-    """
-    if not reference_rdm_path.exists():
-        raise FileNotFoundError(f"Reference RDM not found: {reference_rdm_path}")
-
-    suffix = reference_rdm_path.suffix.lower()
-
-    if suffix == ".npy":
-        rdm = np.load(reference_rdm_path)
-    elif suffix == ".npz":
-        with np.load(reference_rdm_path) as data:
-            if len(data.files) == 1:
-                rdm = data[data.files[0]]
-            else:
-                raise ValueError(
-                    f"Multiple arrays found in {reference_rdm_path}. "
-                    "Please provide a single array in the .npz file."
-                )
-    elif suffix == ".mat":
-        mat = scipy.io.loadmat(reference_rdm_path)
-        candidate_keys = [k for k in mat.keys() if not k.startswith("__")]
-        if len(candidate_keys) == 1:
-            rdm = mat[candidate_keys[0]]
-        else:
-            raise ValueError(
-                f"Multiple variables found in {reference_rdm_path}. "
-                "Please provide a single array in the .mat file."
-            )
-    elif suffix in (".csv", ".tsv", ".txt"):
-        delimiter = "\t" if suffix == ".tsv" else ","
-        rdm = np.loadtxt(reference_rdm_path, delimiter=delimiter)
-    else:
-        raise ValueError(f"Unsupported reference RDM format: {reference_rdm_path.suffix}")
-
-    return _validate_square_rdm(rdm, str(reference_rdm_path))
 
 
 def prepare_reference_rdms(config: dict) -> dict:
@@ -235,6 +187,7 @@ def run_inference(config):
     score = None
 
     if evaluation_type in ("behavioral", "neural"):
+        # extract embeddings from the model
         embedding_outputs = extract_embeddings(
             model=model,
             dataset_name=config['dataset'],
@@ -243,24 +196,24 @@ def run_inference(config):
             logger=logger,
         )
 
+        # create an RDM from the model's embeddings
         model_rdm = compute_rdm(
             embedding_outputs["embeddings"],
             distance_metric=config.get("model_rdm_distance_metric", "pearson"),
         )
 
+        # load reference RDM(s)
         reference_rdms = prepare_reference_rdms(config)
+        reference_rdm_distance_metric = config.get("reference_rdm_distance_metric")
+        
+        # compute RSA scores for each reference RDM
         rsa_similarity_metric = config.get("rsa_similarity_metric", "spearman")
-        ref_rdm_distance_metric = config.get(
-            "reference_rdm_distance_metric",
-            config.get("model_rdm_distance_metric", "pearson"),
-        )
 
-        roi_results = {}
-        roi_scores = []
-        for roi_name, reference_rdm in reference_rdms.items():
+        rsa_results = {}
+        for reference_rdm_name, reference_rdm in reference_rdms.items():
             if reference_rdm.shape != model_rdm.shape:
                 raise ValueError(
-                    f"Reference RDM for ROI '{roi_name}' has shape {reference_rdm.shape} "
+                    f"Reference RDM for ROI '{reference_rdm_name}' has shape {reference_rdm.shape} "
                     f"but model RDM has shape {model_rdm.shape}"
                 )
 
@@ -270,49 +223,35 @@ def run_inference(config):
                 similarity_metric=rsa_similarity_metric,
             )
 
-            roi_results[roi_name] = {
+            rsa_results[reference_rdm_name] = {
+                "alignment_target": evaluation_type,
                 "score": float(rho),
                 "p_value": float(p_value),
-                "rdm_distance_metric": config.get("model_rdm_distance_metric", "pearson"),
-                "reference_rdm_distance_metric": ref_rdm_distance_metric,
                 "rsa_similarity_metric": rsa_similarity_metric,
+                "model_rdm_distance_metric": config.get("model_rdm_distance_metric", "pearson"),
+                "reference_rdm_distance_metric": reference_rdm_distance_metric,
             }
-            roi_scores.append(rho)
 
             if logger:
                 logger.info(
-                    "RSA (%s) score for ROI '%s': %.4f (p=%.4g) using distance metric '%s'",
+                    "RSA (%s) score for target RDM '%s': %.4f (p=%.4g) using distance metric '%s'",
                     rsa_similarity_metric,
-                    roi_name,
+                    reference_rdm_name,
                     rho,
                     p_value,
-                    config.get("model_rdm_distance_metric", "pearson"),
+                    config.get("model_rdm_distance_metric"),
                 )
-
-        mean_score = float(np.mean(roi_scores)) if roi_scores else float("nan")
-        if not roi_results:
-            raise ValueError("No reference RDMs were loaded; check reference_rdm_path(s) or keys.")
-
-        if logger:
-            logger.info(
-                "Mean RSA score across %d ROI(s): %.4f",
-                len(roi_results),
-                mean_score,
-            )
 
         # Prepare results as a dictionary 
         results = {}
-        results["alignment_target"] = evaluation_type
         results["epoch"] = epoch
-        results["score"] = mean_score
-        if len(roi_results) == 1:
-            single_roi = next(iter(roi_results.values()))
-            results["p_value"] = single_roi["p_value"]
+        if len(rsa_results) == 1:
+            single_rsa = next(iter(rsa_results.values()))
+            results["p_value"] = single_rsa["p_value"]
         results["model_rdm_distance_metric"] = config.get("model_rdm_distance_metric")
-        results["reference_rdm_distance_metric"] = ref_rdm_distance_metric
+        results["reference_rdm_distance_metric"] = reference_rdm_distance_metric
         results["rsa_similarity_metric"] = rsa_similarity_metric
-        results["roi_results"] = roi_results
-        score = mean_score
+        results["rsa_results"] = rsa_results
 
         # Write results to a JSON file (in addition to .pt)
         results_json_path = Path(config['inference_save_dir']) / f"inference_results_{config['dataset']}_{evaluation_type}_epoch{epoch}.json"
