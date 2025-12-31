@@ -40,7 +40,7 @@ def extract_embeddings(model, dataset_name, config, device, logger=None):
             img_annotations_file=config["img_annotations_file"],
             img_dir=config["img_dir"],
         )
-    else:
+    elif dataset_name == "nod":
         if "category_index_file" not in config:
             raise ValueError("config['category_index_file'] is required for NOD embeddings.")
 
@@ -49,6 +49,8 @@ def extract_embeddings(model, dataset_name, config, device, logger=None):
             img_dir=config["img_dir"],
             max_images_per_category=config.get("max_images_per_category", 2),
         )
+    else:
+        raise ValueError(f"Unsupported dataset '{dataset_name}'. Expected 'things' or 'nod'.")
 
     batch_size = config.get("batch_size", 32)
     num_workers = config.get("num_workers", 8)

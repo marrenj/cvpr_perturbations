@@ -12,6 +12,13 @@ load_hba: true
 
 ## ---INFERENCE PARAMETERS--- ##
 dataset: nights # which dataset's inference to run (nights, nod, things)
+evaluation_type: triplet # options: triplet, behavioral, neural
 cuda: 1 #(device selector):
 batch_size: 128
 num_workers: 4 # (for THINGS/NOD extraction, defaults to 8)
+
+# ---RSA OPTIONS (used for behavioral/neural alignment)---
+rdm_distance_metric: pearson
+rsa_similarity_metric: spearman
+# reference_rdm_path: "/path/to/reference_rdm.npy"  # set when not using dataset targets
+# reference_rdm_key: "RDM48_triplet"               # optional: key within .mat/.npz
