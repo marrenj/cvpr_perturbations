@@ -35,7 +35,7 @@ def load_training_results(
 
     path = Path(csv_path)
 
-    def _maybe_truncate(df: pd.DataFrame) -> pd.DataFrame:
+    def _truncate(df: pd.DataFrame) -> pd.DataFrame:
         if not truncate_at_min_test_loss:
             return df
         if "test_loss" not in df.columns:
@@ -64,7 +64,7 @@ def load_training_results(
         data: Dict[str, pd.DataFrame] = {}
         for csv_file in csv_files:
             df = pd.read_csv(csv_file)
-            data[csv_file.stem] = _maybe_truncate(df)
+            data[csv_file.stem] = _truncate(df)
         return data
 
     if not path.exists():
@@ -73,4 +73,4 @@ def load_training_results(
         raise ValueError("`csv_path` must be a file when multiple_files=False.")
 
     df = pd.read_csv(path)
-    return _maybe_truncate(df)
+    return _truncate(df)
