@@ -24,7 +24,7 @@ from src.models.clip_hba.clip_hba_utils import (
     switch_dora_layers,
     load_dora_checkpoint,
 )
-from src.data.things_dataset import ThingsDataset
+from src.data.things_dataset import ThingsBehavioralDataset
 from src.data.spose_dimensions import classnames66
 from src.perturbations.perturbation_utils import choose_perturbation_strategy
 
@@ -228,7 +228,10 @@ def run_training_experiment(config):
     
     # Initialize dataset
     if config['dataset_type'] == 'things':
-        dataset = ThingsDataset(img_annotations_file=config['img_annotations_file'], img_dir=config['img_dir'])
+        dataset = ThingsBehavioralDataset(
+            img_annotations_file=config['img_annotations_file'],
+            img_dir=config['img_dir'],
+        )
     else:
         raise ValueError(f"Dataset type {config['dataset_type']} not supported")
     

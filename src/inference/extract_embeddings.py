@@ -2,12 +2,13 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from contextlib import nullcontext
+from tqdm import tqdm
 
-from src.data.things_dataset import ThingsDataset
+from src.data.things_dataset import ThingsBehavioralDataset, ThingsFMRIDataset
 from src.data.nod_dataset import NodDataset
 
 
-def extract_embeddings(model, dataset_name, config, device, logger=None):
+def extract_embeddings(model, dataset_name, img_dir, annotations_file, batch_size, num_workers, max_images_per_category, device, logger=None):
     """
     Run a dataset through the model and collect image embeddings.
 
@@ -28,38 +29,36 @@ def extract_embeddings(model, dataset_name, config, device, logger=None):
     if dataset_name not in {"things", "nod"}:
         raise ValueError(f"Unsupported dataset '{dataset_name}'. Expected 'things' or 'nod'.")
 
-    if "img_dir" not in config or config["img_dir"] is None:
-        raise ValueError("config['img_dir'] must be provided for embedding extraction.")
+    if img_dir is None:
+        raise ValueError("img_dir must be provided for embedding extraction.")
 
     # Build dataset
-    if dataset_name == "things":
-        if "img_annotations_file" not in config:
-            raise ValueError("config['img_annotations_file'] is required for THINGS embeddings.")
-
-        dataset = ThingsDataset(
-            img_annotations_file=config["img_annotations_file"],
-            img_dir=config["img_dir"],
+    import pandas as pd
+    if dataset_name == "things" and "concept" not in pd.read_csv(annotations_file, nrows=1).columns:
+        dataset = ThingsBehavioralDataset(
+            img_annotations_file=annotations_file,
+            img_dir=img_dir,
+        )
+    elif dataset_name == "things" and "concept" in pd.read_csv(annotations_file, nrows=1).columns:
+        dataset = ThingsFMRIDataset(
+            img_annotations_file=annotations_file,
+            img_dir=img_dir,
         )
     elif dataset_name == "nod":
-        if "category_index_file" not in config:
-            raise ValueError("config['category_index_file'] is required for NOD embeddings.")
-
         dataset = NodDataset(
-            category_index_file=config["category_index_file"],
-            img_dir=config["img_dir"],
-            max_images_per_category=config.get("max_images_per_category", 2),
+            category_index_file=annotations_file,
+            img_dir=img_dir,
+            max_images_per_category=max_images_per_category,
         )
     else:
         raise ValueError(f"Unsupported dataset '{dataset_name}'. Expected 'things' or 'nod'.")
 
-    batch_size = config.get("batch_size", 32)
-    num_workers = config.get("num_workers", 8)
     pin_memory = device.type == "cuda"
     non_blocking = pin_memory
 
     dataloader = DataLoader(
         dataset,
-        batch_size=batch_size,
+        batch_size,
         shuffle=False,
         num_workers=num_workers,
         pin_memory=pin_memory,
@@ -70,7 +69,6 @@ def extract_embeddings(model, dataset_name, config, device, logger=None):
 
     all_names = []
     all_embeddings = []
-    targets = []
     categories = []
 
     use_autocast = device.type == "cuda"
@@ -80,10 +78,10 @@ def extract_embeddings(model, dataset_name, config, device, logger=None):
     model.eval()
 
     with torch.no_grad():
-        for batch in dataloader:
-            if dataset_name == "things":
-                image_names, images, batch_targets = batch
-                targets.append(batch_targets.cpu())
+        progress = tqdm(dataloader, desc=f"Extracting {dataset_name} embeddings", total=len(dataloader))
+        for batch in progress:
+            if dataset_name == "things" and "concept" not in pd.read_csv(annotations_file, nrows=1).columns:
+                image_names, images, _ = batch
             else:
                 image_names, images, batch_categories = batch
                 categories.extend(batch_categories)
@@ -92,20 +90,14 @@ def extract_embeddings(model, dataset_name, config, device, logger=None):
             images = images.to(device, non_blocking=non_blocking)
 
             with autocast_ctx(device_type="cuda") if use_autocast else autocast_ctx():
-                img_embs = model(
-                    images, pos_embedding=model.pos_embedding
-                )
+                img_embs = model(images)
 
             all_embeddings.append(img_embs.cpu())
 
     outputs = {
         "image_names": all_names,
         "embeddings": torch.cat(all_embeddings, dim=0),
+        "categories": categories,
     }
-
-    if dataset_name == "things":
-        outputs["targets"] = torch.cat(targets, dim=0)
-    else:
-        outputs["categories"] = categories
 
     return outputs

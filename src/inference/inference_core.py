@@ -1,19 +1,68 @@
-from evaluation import rsa
+from src.evaluation import rsa
 from src.models.clip_hba.clip_hba_utils import load_dora_checkpoint, initialize_cliphba_model
 from src.data.spose_dimensions import classnames66
 import torch
 import os
 import numpy as np
 import scipy.io
+import pandas as pd
+import yaml
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+from sklearn.metrics.pairwise import cosine_similarity
+from scipy.stats import spearmanr, pearsonr
 
 from src.utils.logging import setup_logger
 
-from src.evaluation.rsa import compute_rdm, compute_rdm_similarity
 from src.inference.evaluate_nights import evaluate_nights
 from src.inference.extract_embeddings import extract_embeddings
+
+
+def compute_model_rdm(embeddings, dataset_name, annotations_file, distance_metric, categories=None):
+    """
+    Compute a representational dissimilarity matrix from embeddings.
+
+    Args:
+        embeddings (np.ndarray | torch.Tensor): Row-wise embedding matrix.
+        distance_metric (str): Dissimilarity to apply. Supports ``'pearson'`` and
+            ``'cosine'``.
+
+    Returns:
+        np.ndarray: Square RDM whose entries represent pairwise dissimilarities.
+
+    Raises:
+        ValueError: If ``distance_metric`` is not a supported option.
+    """
+
+    if isinstance(embeddings, torch.Tensor):
+        embeddings = embeddings.detach().cpu().numpy()
+    else:
+        embeddings = np.asarray(embeddings)
+
+    if (
+        dataset_name == "things"
+        and "concept" in pd.read_csv(annotations_file, nrows=1).columns
+        and categories is not None
+    ):
+        # average the embeddings by concept using provided category labels
+        df = pd.DataFrame(embeddings)
+        df["concept"] = categories
+        embeddings = df.groupby("concept").mean().to_numpy()
+
+    if distance_metric is None:
+        raise ValueError("model_rdm_distance_metric must be provided in the config.")
+
+    if distance_metric == 'pearson':
+        rdm = 1 - np.corrcoef(embeddings)
+        np.fill_diagonal(rdm, 0)
+        return rdm
+    elif distance_metric == 'cosine':
+        rdm = 1 - cosine_similarity(embeddings)
+        np.fill_diagonal(rdm, 0)
+        return rdm
+    else:
+        raise ValueError(f"Invalid distance metric: {distance_metric}")
 
 
 def prepare_reference_rdms(config: dict) -> dict:
@@ -24,7 +73,9 @@ def prepare_reference_rdms(config: dict) -> dict:
         - config['reference_rdm_paths']: mapping of ROI -> path (one or more paths to reference RDM(s))
     """
     reference_rdms = {}
-    mapping = config.get("reference_rdm_paths")
+    if "reference_rdm_paths" not in config:
+        raise ValueError("reference_rdm_paths must be provided for RSA-based evaluation.")
+    mapping = config["reference_rdm_paths"]
 
     if mapping:
         for roi_name, reference_rdm_path_str in mapping.items():
@@ -72,47 +123,35 @@ def prepare_reference_rdms(config: dict) -> dict:
     return reference_rdms
 
 
-def compute_rsa_alignment(
-    embedding_outputs: dict,
-    reference_rdm: np.ndarray,
-    rdm_distance_metric: str = "pearson",
-    rsa_similarity_metric: str = "spearman",
-    reference_rdm_distance_metric: Optional[str] = None,
-    logger=None,
-) -> dict:
+def compute_rdm_similarity(model_rdm_upper_tri_vector, reference_rdm_upper_tri_vector, similarity_metric):
     """
-    Compute RSA alignment score between model embeddings and a reference RDM.
+    Compare two representational dissimilarity matrices using a rank or linear
+    correlation on their upper-triangular entries.
+
+    Args:
+        model_rdm (np.ndarray): RDM derived from model embeddings.
+        reference_rdm (np.ndarray): Target RDM to correlate against.
+        similarity_metric (str): Correlation statistic to apply. Supports
+            ``'spearman'`` (rank) or ``'pearson'`` (linear).
+
+    Returns:
+        tuple: ``(rho, p_value)`` as returned by the selected SciPy correlation.
+
+    Raises:
+        ValueError: If ``similarity_metric`` is not recognized.
     """
 
-    model_rdm = compute_rdm(
-        embedding_outputs["embeddings"],
-        distance_metric=rdm_distance_metric,
-    )
+    if similarity_metric is None:
+        raise ValueError("rsa_similarity_metric must be provided in the config.")
 
-    rho, p_value = compute_rdm_similarity(
-        model_rdm,
-        reference_rdm,
-        similarity_metric=rsa_similarity_metric,
-    )
-
-    if logger:
-        logger.info(
-            "RSA (%s) score: %.4f (p=%.4g) using distance metric '%s'",
-            rsa_similarity_metric,
-            rho,
-            p_value,
-            rdm_distance_metric,
-        )
-
-    return {
-        "score": float(rho),
-        "p_value": float(p_value),
-        "model_rdm": model_rdm,
-        "rdm_distance_metric": rdm_distance_metric,
-        "reference_rdm_distance_metric": reference_rdm_distance_metric or rdm_distance_metric,
-        "rsa_similarity_metric": rsa_similarity_metric,
-        "image_names": embedding_outputs.get("image_names"),
-    }
+    if similarity_metric == 'spearman':
+        rho, p_value = spearmanr(model_rdm_upper_tri_vector, reference_rdm_upper_tri_vector)
+        return rho, p_value
+    elif similarity_metric == 'pearson':
+        rho, p_value = pearsonr(model_rdm_upper_tri_vector, reference_rdm_upper_tri_vector)
+        return rho, p_value
+    else:
+        raise ValueError(f"Invalid similarity metric: {similarity_metric}")
 
 
 def run_inference(config):
@@ -120,8 +159,15 @@ def run_inference(config):
     ## INITIALIZE LOGGER
     os.makedirs(config['inference_save_dir'], exist_ok=True)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    log_file = os.path.join(config['inference_save_dir'], f'inference_log_{timestamp}.txt')
+    log_file = os.path.join(config['inference_save_dir'], f'inference_log_{config["dataset"]}_{config["evaluation_type"]}.txt')
     logger = setup_logger(log_file)
+    logger.info("Run timestamp: %s", timestamp)
+
+    # Persist the config snapshot alongside outputs
+    snapshot_path = Path(config['inference_save_dir']) / "inference_config_snapshot.yaml"
+    with open(snapshot_path, "w", encoding="utf-8") as f:
+        yaml.safe_dump(config, f)
+    logger.info("Saved config snapshot to %s", snapshot_path)
     
     ## INITIALIZE CLIPHBA MODEL
     model = initialize_cliphba_model(
@@ -144,15 +190,16 @@ def run_inference(config):
     elif config['cuda'] == 1:
         device = torch.device("cuda:1")
     else:
-        device = torch.device("cpu")
+        raise ValueError("Unsupported cuda setting. Expected -1, 0, or 1.")
 
     ## LOAD MODEL WEIGHTS FROM CHECKPOINT
     weights_path = Path(config['model_weights_path'])
+    loaded_direct = False
     if weights_path.is_file():
-        checkpoint_root = (
-            weights_path.parent.parent if weights_path.parent.name == "dora_params" else weights_path.parent
-        )
+        state_dict = torch.load(weights_path, map_location=device)
+        model.load_state_dict(state_dict, strict=False)
         epoch = weights_path.stem.replace('epoch', '').replace('_dora_params', '')
+        loaded_direct = True
     else:
         dora_dir = weights_path if weights_path.name == "dora_params" else weights_path / "dora_params"
         checkpoint_root = dora_dir.parent
@@ -160,7 +207,7 @@ def run_inference(config):
         if not checkpoint_files:
             raise FileNotFoundError(f"No DoRA checkpoints found under {dora_dir}")
 
-        requested_epoch = config.get("epoch")
+        requested_epoch = config["epoch"]
         if requested_epoch is not None:
             epoch = str(requested_epoch)
             candidate = dora_dir / f"epoch{epoch}_dora_params.pth"
@@ -171,14 +218,15 @@ def run_inference(config):
             epoch = latest_ckpt.stem.replace('epoch', '').replace('_dora_params', '')
 
     ## SET EVALUATION TYPE
-    evaluation_type = config.get("evaluation_type")
-    if evaluation_type is None:
+    if "evaluation_type" not in config:
         logger.error("Evaluation type is not set. Please set evaluation_type in the config file.")
         raise ValueError("evaluation_type must be set in the config file.")
+    evaluation_type = config["evaluation_type"]
 
     logger.info("\n=== Processing epoch %s ===", epoch)
 
-    load_dora_checkpoint(model, checkpoint_root=checkpoint_root, epoch=epoch, map_location=device)
+    if not loaded_direct:
+        load_dora_checkpoint(model, checkpoint_root=checkpoint_root, epoch=epoch, map_location=device)
 
     model = model.to(device)
 
@@ -186,49 +234,63 @@ def run_inference(config):
     results = None
     score = None
 
-    if evaluation_type in ("behavioral", "neural"):
+    if evaluation_type in ("neural", "behavioral"):
         # extract embeddings from the model
         embedding_outputs = extract_embeddings(
             model=model,
             dataset_name=config['dataset'],
-            config=config,
+            img_dir=config['img_dir'],
+            annotations_file=config['annotations_file'],
+            batch_size=config['batch_size'],
+            num_workers=config['num_workers'],
+            max_images_per_category=config['max_images_per_category'],
             device=device,
             logger=logger,
         )
 
         # create an RDM from the model's embeddings
-        model_rdm = compute_rdm(
+        model_rdm = compute_model_rdm(
             embedding_outputs["embeddings"],
-            distance_metric=config.get("model_rdm_distance_metric", "pearson"),
+            dataset_name=config['dataset'],
+            annotations_file=config['annotations_file'],
+            categories=embedding_outputs["categories"],
+            distance_metric=config["model_rdm_distance_metric"]
         )
 
-        # load reference RDM(s)
-        reference_rdms = prepare_reference_rdms(config)
-        reference_rdm_distance_metric = config.get("reference_rdm_distance_metric")
+        # get the upper triangular vector of the model RDM
+        model_rdm_upper_tri_indices = np.triu_indices_from(model_rdm, k=1)
+        model_rdm_upper_tri_vector = model_rdm[model_rdm_upper_tri_indices]
+
+        # load reference RDM(s) - there may be multiple reference RDMs because we have
+        reference_rdms_upper_tri_vectors = prepare_reference_rdms(config)
+        reference_rdm_distance_metric = config["reference_rdm_distance_metric"]
         
         # compute RSA scores for each reference RDM
-        rsa_similarity_metric = config.get("rsa_similarity_metric", "spearman")
+        rsa_similarity_metric = config["rsa_similarity_metric"]
 
         rsa_results = {}
-        for reference_rdm_name, reference_rdm in reference_rdms.items():
-            if reference_rdm.shape != model_rdm.shape:
+        for reference_rdm_name, reference_rdm_upper_tri_vector in reference_rdms_upper_tri_vectors.items():
+            if reference_rdm_upper_tri_vector.shape != model_rdm_upper_tri_vector.shape:
                 raise ValueError(
-                    f"Reference RDM for ROI '{reference_rdm_name}' has shape {reference_rdm.shape} "
-                    f"but model RDM has shape {model_rdm.shape}"
+                    f"Reference RDM for ROI '{reference_rdm_name}' has shape {reference_rdm_upper_tri_vector.shape} "
+                    f"but model RDM has shape {model_rdm_upper_tri_vector.shape}"
                 )
 
             rho, p_value = compute_rdm_similarity(
-                model_rdm,
-                reference_rdm,
+                model_rdm_upper_tri_vector,
+                reference_rdm_upper_tri_vector,
                 similarity_metric=rsa_similarity_metric,
             )
 
             rsa_results[reference_rdm_name] = {
-                "alignment_target": evaluation_type,
+                "epoch": epoch,
+                "evaluation_type": evaluation_type,
+                "dataset": config['dataset'],
+                "reference_rdm_name": reference_rdm_name,
                 "score": float(rho),
                 "p_value": float(p_value),
                 "rsa_similarity_metric": rsa_similarity_metric,
-                "model_rdm_distance_metric": config.get("model_rdm_distance_metric", "pearson"),
+                "model_rdm_distance_metric": config["model_rdm_distance_metric"],
                 "reference_rdm_distance_metric": reference_rdm_distance_metric,
             }
 
@@ -239,21 +301,14 @@ def run_inference(config):
                     reference_rdm_name,
                     rho,
                     p_value,
-                    config.get("model_rdm_distance_metric"),
+                    config["model_rdm_distance_metric"],
                 )
 
-        # Prepare results as a dictionary 
-        results = {}
-        results["epoch"] = epoch
-        if len(rsa_results) == 1:
-            single_rsa = next(iter(rsa_results.values()))
-            results["p_value"] = single_rsa["p_value"]
-        results["model_rdm_distance_metric"] = config.get("model_rdm_distance_metric")
-        results["reference_rdm_distance_metric"] = reference_rdm_distance_metric
-        results["rsa_similarity_metric"] = rsa_similarity_metric
-        results["rsa_results"] = rsa_results
+        # Persist RSA results 
+        results = rsa_results
+        score = None
 
-        # Write results to a JSON file (in addition to .pt)
+        # Write results to a JSON file 
         results_json_path = Path(config['inference_save_dir']) / f"inference_results_{config['dataset']}_{evaluation_type}_epoch{epoch}.json"
         import json
         with open(results_json_path, "w", encoding="utf-8") as f:
@@ -265,12 +320,25 @@ def run_inference(config):
             model=model,
             nights_dir=config['img_dir'],
             split='test',
-            batch_size=config.get('batch_size', 32),
+            batch_size=config['batch_size'],
             device=device,
             use_image_features=False,
             cached_batches=None,
         )
         score = float(results.get("accuracy", 0.0))
+
+        triplet_evaluation_results = {
+            "evaluation_type": evaluation_type,
+            "dataset": config['dataset'],
+            "score": score,
+        }
+
+        if logger:
+            logger.info(
+            "Triplet score for '%s' dataset: %.4f",
+            config['dataset'],
+            score,
+            )
 
     else:
         raise ValueError(
@@ -278,21 +346,10 @@ def run_inference(config):
             f"and evaluation_type '{evaluation_type}'."
         )
 
-    logger.info("Score for epoch %s (%s): %.4f", epoch, evaluation_type, score)
-
-    # Persist results for downstream analysis
-    results_path = Path(config['inference_save_dir']) / f"inference_results_{config['dataset']}_{evaluation_type}_epoch{epoch}.pt"
-    torch.save(
-        {
-            "dataset": config["dataset"],
-            "evaluation_type": evaluation_type,
-            "epoch": epoch,
-            "results": results,
-            "score": score,
-        },
-        results_path,
-    )
-    logger.info("Saved inference results to %s", results_path)
+    if score is None:
+        logger.info("Triplet score for epoch %s (%s): None", epoch, evaluation_type)
+    else:
+        logger.info("Triplet score for epoch %s (%s): %.4f", epoch, evaluation_type, score)
 
     return {
         "epoch": epoch,

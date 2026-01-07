@@ -177,7 +177,7 @@ class SubsetWithIndices(Dataset):
         return len(self.indices)
 
 
-class ThingsDataset(Dataset):
+class ThingsBehavioralDataset(Dataset):
     def __init__(self, csv_file, img_dir):
         self.img_dir = img_dir
         self.transform = transforms.Compose([
@@ -1093,7 +1093,7 @@ def run_behavioral_training(config):
     logger.info("="*80)
     
     # Initialize dataset
-    dataset = ThingsDataset(csv_file=config['csv_file'], img_dir=config['img_dir'])
+    dataset = ThingsBehavioralDataset(csv_file=config['csv_file'], img_dir=config['img_dir'])
 
     embeddings = dataset.annotations.iloc[:, 1:].values.astype('float32')
 

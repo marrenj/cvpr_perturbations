@@ -33,8 +33,8 @@ def main():
         config_path,
         numeric_keys=INFERENCE_NUMERIC_KEYS,
     )
-    ## SAVE A COPY OF THE CONFIG
-    save_config(config_path, config.get("inference_save_path"))
+    ## SAVE A COPY OF THE CONFIG INTO THE INFERENCE OUTPUT DIR
+    save_config(config_path, config["inference_save_dir"])
     ## RUN INFERENCE
     inference_module = import_module("src.inference.inference_core")
     run_inference = inference_module.run_inference
