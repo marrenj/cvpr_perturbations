@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eu
+set -o pipefail
 
 export SAVE_ROOT="/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/perturb_sweep_replication"
 export BASE_CONFIG="configs/training_config.yaml"
@@ -26,7 +27,7 @@ trap cleanup EXIT
 
 for EPOCH in $(seq 0 97); do
   TMP_CFG="${TMP_DIR}/epoch${EPOCH}.yaml"
-  CUDA="$CUDA" EPOCH="$EPOCH" PERTURB_SEED="$PERTURB_SEED" RANDOM_SEED="$RANDOM_SEED" TMP_CFG="$TMP_CFG" python - <<'PY'
+  CUDA="$CUDA" EPOCH="$EPOCH" PERTURB_SEED="$PERTURB_SEED" RANDOM_SEED="$RANDOM_SEED" TMP_CFG="$TMP_CFG" "$PYTHON_CMD" - <<'PY'
 import os, yaml, copy
 base_cfg = yaml.safe_load(open(os.environ["BASE_CONFIG"]))
 cfg = copy.deepcopy(base_cfg)
@@ -46,5 +47,5 @@ cfg["cuda"] = int(os.environ["CUDA"])
 with open(os.environ["TMP_CFG"], "w") as f:
     yaml.safe_dump(cfg, f)
 PY
-  CUDA="$CUDA" python scripts/run_training.py --config "$TMP_CFG"
+  CUDA="$CUDA" "$PYTHON_CMD" scripts/run_training.py --config "$TMP_CFG"
 done
