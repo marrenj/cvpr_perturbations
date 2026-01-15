@@ -5,7 +5,7 @@ from tqdm import tqdm
 from numpy.random import set_state as np_set_state
 import torch 
 import torch.nn as nn
-
+import numpy as np
 from datetime import datetime
 from torch.utils.data import DataLoader, random_split, Subset
 from torch.nn import DataParallel
@@ -243,9 +243,11 @@ def run_training_experiment(config):
             dataset.annotations.iloc[:, 1:].values.astype('float32'),
             dtype=torch.float32,
         )
-        flat_targets = target_array.flatten()
-        global_target_mean = flat_targets.mean()
-        global_target_std = flat_targets.std(unbiased=False)
+
+        embeddings = dataset.annotations.iloc[:, 1:].values.astype('float32')
+        
+        global_target_mean = torch.tensor(np.mean(embeddings), dtype=torch.float32)
+        global_target_std = torch.tensor(np.std(embeddings), dtype=torch.float32)
 
     baseline_checkpoint_path = config.get('baseline_checkpoint_path')
     split_indices_path = None
@@ -341,6 +343,7 @@ def run_training_experiment(config):
         random_state_file = os.path.join(
             resume_checkpoint_path,
             'random_states',
+            f'random_states_seed{config["random_seed"]}',
             f'epoch{resume_from_epoch}_random_states.pth'
         )
         if not os.path.isfile(random_state_file):

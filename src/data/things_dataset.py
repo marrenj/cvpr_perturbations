@@ -25,6 +25,7 @@ class ThingsBehavioralDataset(Dataset):
 
     def __getitem__(self, index):
         image_name = self.annotations.iloc[index, 0]
+        # concept = '_'.join(image_name.split('_')[:-1])
         img_path = os.path.join(self.img_dir, image_name)
         image = Image.open(img_path).convert("RGB")
         image = self.transform(image)

@@ -422,7 +422,10 @@ def load_dora_checkpoint(
         Path to the loaded checkpoint file, useful for logging.
     """
     checkpoint_root = Path(checkpoint_root)
-    dora_path = checkpoint_root / dora_dir
+    if dora_dir is not None:
+        dora_path = checkpoint_root / dora_dir
+    else:
+        dora_path = checkpoint_root
     checkpoint_path = dora_path / f"epoch{epoch}_dora_params.pth"
 
     if not checkpoint_path.is_file():

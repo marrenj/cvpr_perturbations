@@ -1,8 +1,8 @@
 ## ---PATHS--- ##
-img_dir: "/home/wallacelab/teba/multimodal_brain_inspired/THINGS_images" # root directory for inference image dataset
-annotations_file: "/home/wallacelab/Documents/GitHub/cvpr_perturbations/data/things_fmri_stimulus_metadata_all_images.csv"
-inference_save_dir: "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/baseline_runs/clip_hba_behavior_seed2/test_things_neural_inference"
-model_weights_path: "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/baseline_runs/clip_hba_behavior_seed2/training_artifacts/dora_params/dora_params_seed2/epoch2_dora_params.pth"
+img_dir: "/home/wallacelab/investigating-complexity/Images/THINGS" # root directory for inference image dataset
+annotations_file: "data/spose_embedding66d_rescaled_48val_reordered.csv"
+inference_save_dir: "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/perturb_sweep_replication/random_target_perturb_seed42/test_things_neural_inference"
+model_weights_path: "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/perturb_sweep_replication/random_target_perturb_seed42/training_artifacts/dora_params/dora_params_seed42/epoch0_dora_params.pth"
 
 ## ---MODEL PARAMETERS--- ##
 backbone : ViT-L/14
@@ -14,23 +14,16 @@ load_hba: true
 ## ---INFERENCE PARAMETERS--- ##
 dataset: things # which dataset's inference to run (nights, nod, things)
 max_images_per_category: 12
-evaluation_type: neural # options: triplet, behavioral, neural
-epoch: 1
+evaluation_type: behavioral # options: triplet, behavioral, neural
+epoch: 0
 cuda: 0 #(device selector):
 batch_size: 512
 num_workers: 8 # (for THINGS/NOD extraction, defaults to 8)
 
 # ---RSA OPTIONS (used for behavioral/neural alignment)---
-model_rdm_distance_metric: cosine # Either pearson or cosine distance. Generally, use pearson distance when conducting behavioral RSA and cosine distance when conducting neural RSA.
+model_rdm_distance_metric: pearson # Either pearson or cosine distance. Generally, use pearson distance when conducting behavioral RSA and cosine distance when conducting neural RSA.
 rsa_similarity_metric: spearman 
 reference_rdm_paths: {
-    "LOC": "/home/wallacelab/marren/things_fmri_rdms/things_fmri_LOC_rdm_uppertri_vector.npy",
-    "rLOC": "/home/wallacelab/marren/things_fmri_rdms/things_fmri_rLOC_rdm_uppertri_vector.npy",
-    "lLOC": "/home/wallacelab/marren/things_fmri_rdms/things_fmri_lLOC_rdm_uppertri_vector.npy",
-    "va-1": "/home/wallacelab/marren/things_fmri_rdms/things_fmri_va-1_rdm_uppertri_vector.npy",
-    "va-2": "/home/wallacelab/marren/things_fmri_rdms/things_fmri_va-2_rdm_uppertri_vector.npy",
-    "va-3": "/home/wallacelab/marren/things_fmri_rdms/things_fmri_va-3_rdm_uppertri_vector.npy",
-    "va-7": "/home/wallacelab/marren/things_fmri_rdms/things_fmri_va-7_rdm_uppertri_vector.npy",
-    "va-8": "/home/wallacelab/marren/things_fmri_rdms/things_fmri_va-8_rdm_uppertri_vector.npy",
+    "behavioral_rdm": "/home/wallacelab/marren/cvpr_old_repo/clip_hba_behavior/Data/RDM48_triplet.mat"
 }
-reference_rdm_distance_metric: cosine
+reference_rdm_distance_metric: pearson
