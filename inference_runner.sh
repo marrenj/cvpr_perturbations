@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Resolve repository root (directory containing this script's parent)
+# Resolve repository root (directory containing this script)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}" && pwd)"
 
-# Allow overriding via environment; fall back to absolute defaults.
-BASE_CONFIG="${BASE_CONFIG:-/home/wallacelab/Documents/GitHub/cvpr_perturbations/configs/inference_config.yaml}"
-PTH_ROOT="${PTH_ROOT:-/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/perturb_sweep_replication/random_target_perturb_seed42}"
-BASE_INFERENCE_SAVE_DIR="${BASE_INFERENCE_SAVE_DIR:-/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/perturb_sweep_replication/random_target_perturb_seed42}"
+# Allow overriding via environment; fall back to repo-relative defaults.
+BASE_CONFIG="${BASE_CONFIG:-${REPO_ROOT}/configs/inference_config.yaml}"
+
+# Root where training_run*/ live (override via env)
+PTH_ROOT="${PTH_ROOT:-${REPO_ROOT}/../..}"
+
+# Where to save inference outputs (override via env)
+BASE_INFERENCE_SAVE_DIR="${BASE_INFERENCE_SAVE_DIR:-${PTH_ROOT}}"
+
 CUDA_DEVICE="${CUDA_DEVICE:-0}"
 
 find "${PTH_ROOT}" -maxdepth 2 -type d -name 'training_run*' | sort -V | while read -r training_dir; do

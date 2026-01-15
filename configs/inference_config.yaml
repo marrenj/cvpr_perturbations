@@ -15,7 +15,7 @@ load_hba: true
 dataset: things # which dataset's inference to run (nights, nod, things)
 max_images_per_category: 12
 evaluation_type: behavioral # options: triplet, behavioral, neural
-epoch: 0
+epoch: 1
 cuda: 0 #(device selector):
 batch_size: 512
 num_workers: 8 # (for THINGS/NOD extraction, defaults to 8)
