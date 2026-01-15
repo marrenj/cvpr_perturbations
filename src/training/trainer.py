@@ -343,7 +343,7 @@ def run_training_experiment(config):
         if not os.path.isfile(random_state_file):
             raise FileNotFoundError(f"Missing resume random state file: {random_state_file}")
 
-        state_payload = torch.load(random_state_file, map_location='cpu')
+        state_payload = torch.load(random_state_file, map_location='cpu', weights_only=False)
         torch.set_rng_state(state_payload['torch_rng_state'])
         np_set_state(state_payload['numpy_rng_state'])
         random.setstate(state_payload['python_rng_state'])
@@ -385,7 +385,7 @@ def run_training_experiment(config):
         if not os.path.isfile(random_state_file):
             raise FileNotFoundError(f"Missing baseline random state file: {random_state_file}")
 
-        state_payload = torch.load(random_state_file, map_location='cpu')
+        state_payload = torch.load(random_state_file, map_location='cpu', weights_only=False)
         torch.set_rng_state(state_payload['torch_rng_state'])
         np_set_state(state_payload['numpy_rng_state'])
         random.setstate(state_payload['python_rng_state'])
