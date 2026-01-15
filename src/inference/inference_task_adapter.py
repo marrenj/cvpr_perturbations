@@ -1,4 +1,4 @@
-from src.data.things_dataset import ThingsDataset
+from src.data.things_dataset import ThingsBehavioralDataset
 from src.data.nights_dataset import NightsTripletDataset
 
 

@@ -10,7 +10,7 @@ The training and inference in this repository is built off of the original CLIP-
 
 The folder structure is organized into modular components as follows:
 
-- `src/` – Core code. This includes submodules for models (e.g. CLIP-HBA definitions), data (dataset loaders like `ThingsDataset`, `NODDataset`, etc.), training (training loops and trainer functions), inference (scripts to run evaluation on held-out data), perturbations (perturbation strategy implementations like `TargetNoisePerturbation`, `LabelShufflePerturbation`, etc.), evaluation (e.g. RSA or behavioral analysis utilities), and generic utility functions (logging, seeding, path setup, etc.). For example, the training code imports from s`rc.models.clip_hba`, `src.data`, and `src.perturbations` to build and perturb the model.
+- `src/` – Core code. This includes submodules for models (e.g. CLIP-HBA definitions), data (dataset loaders like `ThingsBehavioralDataset`, `NODDataset`, etc.), training (training loops and trainer functions), inference (scripts to run evaluation on held-out data), perturbations (perturbation strategy implementations like `TargetNoisePerturbation`, `LabelShufflePerturbation`, etc.), evaluation (e.g. RSA or behavioral analysis utilities), and generic utility functions (logging, seeding, path setup, etc.). For example, the training code imports from s`rc.models.clip_hba`, `src.data`, and `src.perturbations` to build and perturb the model.
 - `scripts/` – High-level entry-point scripts. These scripts parse command-line arguments (e.g. `--config`) and call into the `src.training` or `src.inference` functions to execute the experiment. For example:
   - `scripts/run_training.py` loads a training config and launches the training pipeline.
   - `scripts/run_inference.py` loads an inference config and runs the evaluation (e.g. computing predictions or metrics on a test set).
@@ -62,7 +62,7 @@ These settings are all loaded at runtime (see code in `src/training/trainer.py` 
 
 By editing or creating your own YAML files, you can run new experiments. For example, to sweep over different seeds or perturbation lengths, duplicate a config and change the random_seed, perturb_length, etc., then run `run_training.py` for each. The modular structure makes it easy to plug in new perturbations or datasets if needed.
 
-The core logic for training is implemented in `src/training/` (see `run_training_experiment` in `trainer.py`). Perturbation strategies are defined in `src/perturbations/perturbation_utils.py` (classes like `TargetNoisePerturbation`, `LabelShufflePerturbation`, etc.). The inference logic is in `src/inference/` (e.g. `run_inference` in `inference_core.py`). Configuration is fully driven by the YAML files under `configs/`, as shown above.
+The core logic for training is implemented in `src/training/` (see `run_training_experiment` in `trainer.py`). Perturbation strategies are defined in `src/perturbations/perturbation_utils.py` (classes like `TargetNoisePerturbation`, `LabelShufflePerturbation`, etc.). The inference logic is in `src/inference/` (e.g. `run_inference` in `inference_core.py`). Configuration is fully driven by the YAML files under `configs/`, as shown above. For inference, set `evaluation_type` to `behavioral` or `neural` to extract embeddings, build RDMs, and run RSA against a reference RDM (provided via `reference_rdm_path` or derived from dataset targets); set `evaluation_type: triplet` to evaluate the NIGHTS triplet task via `evaluate_nights`. Each run returns and saves the score per checkpoint epoch.
 
 ### References
 

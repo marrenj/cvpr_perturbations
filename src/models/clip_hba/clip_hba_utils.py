@@ -1,4 +1,5 @@
 import os
+from types import NoneType
 import torch
 from src.models.clip_hba import clip
 from pathlib import Path
@@ -421,7 +422,10 @@ def load_dora_checkpoint(
         Path to the loaded checkpoint file, useful for logging.
     """
     checkpoint_root = Path(checkpoint_root)
-    dora_path = checkpoint_root / dora_dir
+    if dora_dir is not None:
+        dora_path = checkpoint_root / dora_dir
+    else:
+        dora_path = checkpoint_root
     checkpoint_path = dora_path / f"epoch{epoch}_dora_params.pth"
 
     if not checkpoint_path.is_file():
@@ -431,3 +435,33 @@ def load_dora_checkpoint(
     model.load_state_dict(state_dict, strict=strict)
 
     return checkpoint_path
+
+
+def initialize_cliphba_model(
+    backbone_name,
+    classnames,
+    vision_layers,
+    transformer_layers,
+    rank,
+    dora_dropout,
+    logger=None
+):
+
+    
+    ## INITIALIZE CLIPHBA MODEL
+    # Determine pos_embedding based on backbone
+    pos_embedding = False if backbone_name == 'RN50' else True
+    logger.info(f"pos_embedding is {pos_embedding}")
+
+    model = CLIPHBA(classnames=classnames, backbone_name=backbone_name, 
+                pos_embedding=pos_embedding)
+    model.eval() # inference mode
+
+    # Apply DoRA
+    apply_dora_to_ViT(model, 
+                      n_vision_layers=vision_layers,
+                      n_transformer_layers=transformer_layers,
+                      r=rank,
+                      dora_dropout=dora_dropout)
+    
+    return model
