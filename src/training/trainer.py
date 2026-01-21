@@ -98,9 +98,7 @@ def train_model(
     log("*********************************")
     log("Evaluating initial model")
     best_test_loss = evaluate_model(model, test_loader, device, criterion)
-    # initial_behavioral_rsa_rho, initial_behavioral_rsa_p_value, initial_model_rdm = behavioral_RSA(model, inference_loader, device)
     log(f"Initial Validation Loss: {best_test_loss:.4f}")
-    # log(f"Initial Behavioral RSA Correlation & p-value: {initial_behavioral_rsa_rho:.4f}, {initial_behavioral_rsa_p_value:.4f}")
     log("*********************************\n")
 
     # Create folder to store checkpoints
@@ -151,11 +149,6 @@ def train_model(
 
         if perturb_strategy.is_active_epoch(epoch_idx):
             logger.info(f"*** Perturbation '{perturb_strategy.__class__.__name__}' was applied during epoch {epoch} ***")
-
-        # # Conduct behavioral RSA at every epoch
-        # rho, p_value, model_rdm = behavioral_RSA(model, inference_loader, device)
-        # log(f"Behavioral RSA Correlation & p-value: {rho:.4f}, {p_value:.4f}")
-        # model.train() # put the model back in training mode
 
         # Prepare the data row with the epoch number and loss values
         data_row = [epoch, avg_train_loss, avg_test_loss]
