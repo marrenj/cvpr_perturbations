@@ -9,7 +9,7 @@ export IMG_ANNOTATIONS_FILE="/home/wallacelab/Documents/GitHub/cvpr_perturbation
 export IMG_DIR="/home/wallacelab/investigating-complexity/Images/THINGS"
 export CUDA=0
 export PERTURB_TYPE="random_target"
-export PERTURB_SEED=42
+export PERTURB_SEED=0
 export RANDOM_SEED=1
 export PYTHON_CMD="${PYTHON_CMD:-python3}"
 
@@ -34,7 +34,9 @@ trap cleanup EXIT
 
 for EPOCH in "${START_EPOCHS[@]}"; do
   for PERTURB_LEN in "${PERTURB_LENGTHS[@]}"; do
-    RUN_SAVE_PATH="${SAVE_ROOT}/${PERTURB_TYPE}_epoch${EPOCH}_len${PERTURB_LEN}"
+    # Use SAVE_ROOT as the base so run_training.py can build
+    # <perturb_type>_perturb_seed*/epoch*_length* directories consistently.
+    RUN_SAVE_PATH="${SAVE_ROOT}"
     TMP_CFG="${TMP_DIR}/${PERTURB_TYPE}_epoch${EPOCH}_len${PERTURB_LEN}.yaml"
     CUDA="$CUDA" PERTURB_TYPE="$PERTURB_TYPE" EPOCH="$EPOCH" PERTURB_LEN="$PERTURB_LEN" PERTURB_SEED="$PERTURB_SEED" RANDOM_SEED="$RANDOM_SEED" RUN_SAVE_PATH="$RUN_SAVE_PATH" TMP_CFG="$TMP_CFG" "$PYTHON_CMD" - <<'PY'
 import os, yaml, copy
