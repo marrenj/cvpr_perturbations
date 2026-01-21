@@ -111,6 +111,11 @@ def prepare_reference_rdms(config: dict) -> dict:
             else:
                 raise ValueError(f"Unsupported reference RDM format: {reference_rdm_path.suffix}")
 
+            rdm = np.asarray(rdm)
+            # If square, flatten upper triangle (k=1 to drop diagonal)
+            if rdm.ndim == 2 and rdm.shape[0] == rdm.shape[1]:
+                tri_idx = np.triu_indices_from(rdm, k=1)
+                rdm = rdm[tri_idx]
             reference_rdms[roi_name] = rdm
 
     elif mapping is None:

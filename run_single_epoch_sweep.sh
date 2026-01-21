@@ -4,12 +4,13 @@ set -o pipefail
 
 export SAVE_ROOT="/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/perturb_sweep_replication"
 export BASE_CONFIG="configs/training_config.yaml"
-export BASELINE_CHECKPOINT_PATH="/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/perturb_sweep_replication"
+export BASELINE_CHECKPOINT_PATH="/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/perturb_sweep_replication/baseline_seed2"
 export IMG_ANNOTATIONS_FILE="/home/wallacelab/Documents/GitHub/cvpr_perturbations/data/spose_embedding66d_rescaled_1806train.csv"
 export IMG_DIR="/home/wallacelab/investigating-complexity/Images/THINGS"
-export CUDA=1
-export PERTURB_SEED=42
-export RANDOM_SEED=1
+export CUDA=0
+export PERTURB_SEED=43
+export RANDOM_SEED=2
+export PYTHON_CMD="${PYTHON_CMD:-python3}"
 
 # REQUIRED: set these before running
 : "${SAVE_ROOT:?Set SAVE_ROOT to the base output directory for runs}"
@@ -18,14 +19,15 @@ export RANDOM_SEED=1
 : "${IMG_ANNOTATIONS_FILE:?Set IMG_ANNOTATIONS_FILE to your annotations CSV}"
 : "${IMG_DIR:?Set IMG_DIR to your images directory}"
 : "${CUDA:=0}"
-: "${PERTURB_SEED:=42}"
-: "${RANDOM_SEED:=1}"
+: "${PERTURB_SEED:=43}"
+: "${RANDOM_SEED:=2}"
+: "${PYTHON_CMD:=python3}"
 
 TMP_DIR="$(mktemp -d)"
 cleanup() { rm -rf "$TMP_DIR"; }
 trap cleanup EXIT
 
-for EPOCH in $(seq 0 97); do
+for EPOCH in $(seq 1 91); do
   TMP_CFG="${TMP_DIR}/epoch${EPOCH}.yaml"
   CUDA="$CUDA" EPOCH="$EPOCH" PERTURB_SEED="$PERTURB_SEED" RANDOM_SEED="$RANDOM_SEED" TMP_CFG="$TMP_CFG" "$PYTHON_CMD" - <<'PY'
 import os, yaml, copy
