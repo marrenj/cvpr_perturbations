@@ -162,9 +162,10 @@ def train_model(
         save_random_states(optimizer, epoch, random_state_save_path, dataloader_generator, logger=logger)
 
         # Save the DoRA parameters (i.e., the checkpoint weights)
+        dora_params_dir = os.path.join(save_path, "dora_params")
         save_dora_parameters(
             model,
-            save_path,
+            dora_params_dir,
             epoch,
             vision_layers,
             transformer_layers,
@@ -193,7 +194,6 @@ def setup_paths(save_path):
     os.makedirs(save_path, exist_ok=True)
     training_results_save_path = os.path.join(save_path, 'training_res.csv')
     random_state_save_path = os.path.join(save_path, 'random_states')
-    
     return save_path, training_results_save_path, random_state_save_path
 
 
@@ -336,7 +336,6 @@ def run_training_experiment(config):
         random_state_file = os.path.join(
             resume_checkpoint_path,
             'random_states',
-            f'random_states_seed{config["random_seed"]}',
             f'epoch{resume_from_epoch}_random_states.pth'
         )
         if not os.path.isfile(random_state_file):

@@ -84,8 +84,16 @@ def _resume_from_previous(config: dict, run_root: Path) -> dict:
         return config
 
     resume_from_epoch = perturb_epoch + prev_length - 1
-    random_state_file = prev_dir / "random_states" / f"epoch{resume_from_epoch}_random_states.pth"
-    dora_file = prev_dir / f"epoch{resume_from_epoch}_dora_params.pth"
+    dora_file = (
+        prev_dir 
+        / "dora_params"
+        / f"epoch{resume_from_epoch}_dora_params.pth"
+    )
+    random_state_file = (
+        prev_dir 
+        / "random_states" 
+        / f"epoch{resume_from_epoch}_random_states.pth"
+    )
 
     if random_state_file.exists() and dora_file.exists():
         config["resume_checkpoint_path"] = str(prev_dir)

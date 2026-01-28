@@ -4,10 +4,10 @@ set -o pipefail
 
 export SAVE_ROOT="/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/perturb_length_replication"
 export BASE_CONFIG="configs/training_config.yaml"
-export BASELINE_CHECKPOINT_PATH="/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/perturb_sweep_replication"
+export BASELINE_CHECKPOINT_PATH="/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/perturb_sweep_replication/baseline_seed1"
 export IMG_ANNOTATIONS_FILE="/home/wallacelab/Documents/GitHub/cvpr_perturbations/data/spose_embedding66d_rescaled_1806train.csv"
 export IMG_DIR="/home/wallacelab/investigating-complexity/Images/THINGS"
-export CUDA=0
+export CUDA=1
 export PERTURB_TYPE="random_target"
 export PERTURB_SEED=0
 export RANDOM_SEED=1
@@ -34,6 +34,9 @@ trap cleanup EXIT
 
 for EPOCH in "${START_EPOCHS[@]}"; do
   for PERTURB_LEN in "${PERTURB_LENGTHS[@]}"; do
+    if [[ "$EPOCH" -eq 0 && "$PERTURB_LEN" -eq 2 ]]; then 
+      continue
+    fi
     # Use SAVE_ROOT as the base so run_training.py can build
     # <perturb_type>_perturb_seed*/epoch*_length* directories consistently.
     RUN_SAVE_PATH="${SAVE_ROOT}"
@@ -59,6 +62,16 @@ with open(os.environ["TMP_CFG"], "w") as f:
     yaml.safe_dump(cfg, f)
 PY
     CUDA="$CUDA" "$PYTHON_CMD" scripts/run_training.py --config "$TMP_CFG"
+
+    # Normalize DoRA checkpoints into dora_params/ for consistent resume.
+    RUN_ROOT="${SAVE_ROOT}/${PERTURB_TYPE}_perturb_seed${PERTURB_SEED}/epoch${EPOCH}_length${PERTURB_LEN}"
+    DORA_DIR="${RUN_ROOT}/dora_params"
+    mkdir -p "$DORA_DIR"
+    shopt -s nullglob
+    for f in "$RUN_ROOT"/epoch*_dora_params.pth; do
+      mv "$f" "$DORA_DIR/"
+    done
+    shopt -u nullglob
   done
 done
 
