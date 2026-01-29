@@ -1,3 +1,11 @@
+"""
+CLIP-HBA Training Script with DoRA Adaptation
+
+Trains CLIP-based HBA models using DoRA (Weight-Decomposed
+Low-Rank Adaptation) on behavioral similarity data. Supports perturbation strategies
+and checkpoint resumption for reproducible experiments.
+"""
+
 import os
 import random
 import csv
@@ -29,6 +37,219 @@ from src.data.spose_dimensions import classnames66
 from src.perturbations.perturbation_utils import choose_perturbation_strategy
 
 
+# =============================================================================
+# Path Setup
+# =============================================================================
+
+def setup_paths(config):
+    """
+    Create and return all necessary directory paths for training outputs.
+    
+    Args:
+        save_path: Root directory for saving all training artifacts
+        
+    Returns:
+        tuple: (save_path, training_results_save_path, random_state_save_path)
+    """
+    os.makedirs(config['save_path'], exist_ok=True)
+    training_results_save_path = os.path.join(config['save_path'], 'training_res.csv')
+    random_state_save_path = os.path.join(config['save_path'], 'random_states')
+    checkpoints_save_path = os.path.join(config['save_path'], 'model_checkpoints')
+
+    # Check if files/directories already exist and ask for overwrite permission
+    for path, description in [
+        (training_results_save_path, 'training results file'),
+        (random_state_save_path, 'random state save directory'),
+        (checkpoints_save_path, 'model checkpoints save directory'),
+    ]:
+        if os.path.exists(path):
+            while True:
+                response = input(f"{description.capitalize()} '{path}' already exists, are you sure you want to rewrite it? (Yes/No): ")
+                if response.lower() in ["yes", "y"]:
+                    break
+                elif response.lower() in ["no", "n"]:
+                    raise FileExistsError(f"Aborted because {description} '{path}' already exists.")
+                else:
+                    print("Please answer 'Yes' or 'No'.")
+                return config['save_path'], training_results_save_path, random_state_save_path, checkpoints_save_path
+
+
+# =============================================================================
+# Dataset Setup
+# =============================================================================
+
+def setup_dataset(config, logger):
+    """
+    Initialize and split dataset according to configuration.
+    
+    Args:
+        config: Configuration dictionary containing dataset parameters
+        logger: Logger instance for tracking dataset operations
+        
+    Returns:
+        tuple: (train_dataset, test_dataset, split_info, global_target_stats)
+    """
+    # Initialize dataset
+    if config['dataset_type'] == 'things':
+        dataset = ThingsBehavioralDataset(
+            img_annotations_file=config['img_annotations_file'],
+            img_dir=config['img_dir'],
+        )
+    else:
+        raise ValueError(f"Dataset type {config['dataset_type']} not supported")
+    
+    # Compute global dataset statistics if needed for random target perturbations
+    global_target_mean = None
+    global_target_std = None
+    
+    if config['perturb_type'] == 'random_target':
+        embeddings = dataset.annotations.iloc[:, 1:].values.astype('float32')
+        global_target_mean = torch.tensor(np.mean(embeddings), dtype=torch.float32)
+        global_target_std = torch.tensor(np.std(embeddings), dtype=torch.float32)
+    
+    # Determine if we should reuse an existing split
+    baseline_checkpoint_path = config.get('baseline_checkpoint_path')
+    split_indices_path = None
+    if baseline_checkpoint_path:
+        split_candidate = os.path.join(baseline_checkpoint_path, 'random_states', 'dataset_split_indices.pth')
+        if os.path.isfile(split_candidate):
+            split_indices_path = split_candidate
+    
+    # Load or create dataset split
+    if split_indices_path:
+        if not os.path.isfile(split_indices_path):
+            raise FileNotFoundError(f"dataset_split_indices_path not found: {split_indices_path}")
+        split_info = torch.load(split_indices_path)
+        train_dataset = Subset(dataset, split_info['train_indices'])
+        test_dataset = Subset(dataset, split_info['test_indices'])
+        logger.info(f"Loaded dataset split indices from {split_indices_path}")
+    else:
+        train_size = int(config['train_portion'] * len(dataset))
+        test_size = len(dataset) - train_size
+        train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+        split_info = {
+            'train_indices': list(train_dataset.indices),
+            'test_indices': list(test_dataset.indices),
+            'random_seed': config['random_seed'],
+            'train_portion': config['train_portion']
+        }
+    
+    return train_dataset, test_dataset, split_info, (global_target_mean, global_target_std)
+
+
+def create_dataloaders(train_dataset, test_dataset, config):
+    """
+    Create DataLoader instances for training and testing.
+    
+    Args:
+        train_dataset: Training dataset
+        test_dataset: Test/validation dataset
+        config: Configuration dictionary with batch_size and random_seed
+        
+    Returns:
+        tuple: (train_loader, test_loader, dataloader_generator)
+    """
+    # Create generator for reproducible DataLoader shuffling
+    dataloader_generator = torch.Generator()
+    dataloader_generator.manual_seed(config['random_seed'])
+    
+    train_loader = DataLoader(
+        train_dataset, 
+        batch_size=config['batch_size'], 
+        shuffle=True, 
+        generator=dataloader_generator
+    )
+    test_loader = DataLoader(
+        test_dataset, 
+        batch_size=config['batch_size'],
+        shuffle=False
+    )
+    
+    return train_loader, test_loader, dataloader_generator
+
+
+# =============================================================================
+# Model Setup
+# =============================================================================
+
+def setup_model(config, device):
+    """
+    Initialize model and move to device.
+    
+    Args:
+        config: Configuration dictionary containing model parameters
+        device: Target device for model
+        
+    Returns:
+        torch.nn.Module: Configured model ready for training
+    """
+    # Determine positional embedding based on backbone
+    pos_embedding = False if config['backbone'] == 'RN50' else True
+    print(f"pos_embedding is {pos_embedding}")
+    
+    # Initialize base model
+    model = CLIPHBA(
+        classnames=classnames66, 
+        backbone_name=config['backbone'], 
+        pos_embedding=pos_embedding
+    )
+    
+    # Apply DoRA adapters
+    apply_dora_to_ViT(
+        model, 
+        n_vision_layers=config['vision_layers'],
+        n_transformer_layers=config['transformer_layers'],
+        r=config['rank'],
+        dora_dropout=0.1
+    )
+    switch_dora_layers(model, freeze_all=True, dora_state=True)
+    
+    # Use DataParallel if using all GPUs
+    if config['cuda'] == -1:
+        print(f"Using {torch.cuda.device_count()} GPUs")
+        model = DataParallel(model)
+    
+    model.to(device)
+    
+    return model
+
+
+def get_device(cuda_config, logger):
+    """
+    Get the appropriate device based on CUDA configuration.
+    
+    Args:
+        cuda_config: CUDA device configuration (-1 for all, 0/1 for specific GPU)
+        logger: Logger instance for logging messages
+        
+    Returns:
+        torch.device: Configured device
+    """
+    if torch.cuda.is_available():
+        if cuda_config == -1:
+            device = torch.device("cuda")
+            logger.info(f"Using all {torch.cuda.device_count()} GPUs")
+        elif cuda_config == 0:
+            device = torch.device("cuda:0")
+            logger.info(f"Using GPU 0")
+        elif cuda_config == 1:
+            device = torch.device("cuda:1")
+            logger.info(f"Using GPU 1")
+        else:
+            device = torch.device("cuda")
+            logger.info(f"Using all {torch.cuda.device_count()} GPUs")
+    else:
+        device = torch.device("cpu")
+        logger.info(f"Using CPU")
+    logger.info(f"Using device: {device}")
+    return device
+
+
+# =============================================================================
+# Checkpoint & State Management
+# =============================================================================
+
+
 def train_model(
     model,
     train_loader,
@@ -40,6 +261,7 @@ def train_model(
     training_results_save_path,
     save_path,
     random_state_save_path,
+    checkpoints_save_path,
     logger=None,
     early_stopping_patience=5,
     dataloader_generator=None,
@@ -74,6 +296,8 @@ def train_model(
         Directory where DoRA checkpoints are written.
     random_state_save_path : str | Path
         Directory that stores RNG and optimizer state snapshots.
+    checkpoints_save_path : str | Path
+        Directory where model checkpoints are written.
     logger : logging.Logger, optional
         Logger for structured output; defaults to ``print`` when omitted.
     early_stopping_patience : int, default 5
@@ -100,12 +324,6 @@ def train_model(
     best_test_loss = evaluate_model(model, test_loader, device, criterion)
     log(f"Initial Validation Loss: {best_test_loss:.4f}")
     log("*********************************\n")
-
-    # Create folder to store checkpoints
-    os.makedirs(save_path, exist_ok=True)
-
-    # Create directory for training results CSV if it doesn't exist
-    os.makedirs(os.path.dirname(training_results_save_path), exist_ok=True)
 
     headers = ['epoch', 'train_loss', 'test_loss']
 
@@ -162,10 +380,9 @@ def train_model(
         save_random_states(optimizer, epoch, random_state_save_path, dataloader_generator, logger=logger)
 
         # Save the DoRA parameters (i.e., the checkpoint weights)
-        dora_params_dir = os.path.join(save_path, "dora_params")
         save_dora_parameters(
             model,
-            dora_params_dir,
+            checkpoints_save_path,
             epoch,
             vision_layers,
             transformer_layers,
@@ -185,16 +402,6 @@ def train_model(
             log(f"Early stopping triggered at epoch {epoch}")
             log("*********************************\n\n")
             break
-
-
-def setup_paths(save_path):
-    """
-    Set up paths for the training run.
-    """
-    os.makedirs(save_path, exist_ok=True)
-    training_results_save_path = os.path.join(save_path, 'training_res.csv')
-    random_state_save_path = os.path.join(save_path, 'random_states')
-    return save_path, training_results_save_path, random_state_save_path
 
 
 def run_training_experiment(config):
@@ -217,7 +424,7 @@ def run_training_experiment(config):
     logger.info("="*80)
 
     # Set up paths
-    save_path, training_results_save_path, random_state_save_path = setup_paths(config['save_path'])
+    save_path, training_results_save_path, random_state_save_path, checkpoints_save_path = setup_paths(config)
     
     # Initialize dataset
     if config['dataset_type'] == 'things':
