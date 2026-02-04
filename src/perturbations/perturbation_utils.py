@@ -95,7 +95,9 @@ def choose_perturbation_strategy(
     target_mean=None,
     target_std=None,
 ):
-    if perturb_type == 'random_target':
+    normalized_type = str(perturb_type).lower() if perturb_type is not None else 'none'
+
+    if normalized_type == 'random_target':
         perturb_strategy = TargetNoisePerturbation(
             perturb_epoch=perturb_epoch,
             perturb_length=perturb_length,
@@ -103,13 +105,13 @@ def choose_perturbation_strategy(
             target_mean=target_mean,
             target_std=target_std
         )
-    elif perturb_type == 'label_shuffle':
+    elif normalized_type == 'label_shuffle':
         perturb_strategy = LabelShufflePerturbation(perturb_epoch=perturb_epoch, perturb_length=perturb_length, perturb_seed=perturb_seed)
-    elif perturb_type == 'image_noise':
+    elif normalized_type == 'image_noise':
         perturb_strategy = ImageNoisePerturbation(perturb_epoch=perturb_epoch, perturb_length=perturb_length, perturb_seed=perturb_seed)
-    elif perturb_type == 'uniform_images':
+    elif normalized_type == 'uniform_images':
         perturb_strategy = UniformImagePerturbation(perturb_epoch=perturb_epoch, perturb_length=perturb_length, perturb_seed=perturb_seed)
-    elif perturb_type == 'None':
+    elif normalized_type == 'none':
         perturb_strategy = NoPerturbation(perturb_epoch=perturb_epoch, perturb_length=perturb_length, perturb_seed=perturb_seed)
     else:
         raise ValueError(f"Perturbation type {perturb_type} not supported")

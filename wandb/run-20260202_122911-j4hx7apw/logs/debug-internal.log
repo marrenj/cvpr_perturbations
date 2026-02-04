@@ -1,0 +1,16 @@
+{"time":"2026-02-02T12:29:12.195394601-06:00","level":"INFO","msg":"stream: starting","core version":"0.24.0"}
+{"time":"2026-02-02T12:29:12.388862588-06:00","level":"INFO","msg":"stream: created new stream","id":"j4hx7apw"}
+{"time":"2026-02-02T12:29:12.388952978-06:00","level":"INFO","msg":"handler: started","stream_id":"j4hx7apw"}
+{"time":"2026-02-02T12:29:12.389147054-06:00","level":"INFO","msg":"stream: started","id":"j4hx7apw"}
+{"time":"2026-02-02T12:29:12.38921876-06:00","level":"INFO","msg":"writer: started","stream_id":"j4hx7apw"}
+{"time":"2026-02-02T12:29:12.389238697-06:00","level":"INFO","msg":"sender: started","stream_id":"j4hx7apw"}
+{"time":"2026-02-02T12:29:12.436233097-06:00","level":"ERROR","msg":"api: HTTP error","status":404,"method":"POST","url":"https://api.wandb.ai/graphql"}
+{"time":"2026-02-02T12:29:12.436330611-06:00","level":"ERROR","msg":"runupserter: failed to init run","error":"returned error 404: {\"data\":{\"upsertBucket\":null},\"errors\":[{\"message\":\"entity marrenj, not found during upsertBucket\",\"path\":[\"upsertBucket\"]}]}"}
+{"time":"2026-02-02T12:29:12.446492527-06:00","level":"INFO","msg":"stream: closing","id":"j4hx7apw"}
+{"time":"2026-02-02T12:29:12.446949058-06:00","level":"ERROR","msg":"sender: uploadConfigFile: runhandle: run not yet initialized"}
+{"time":"2026-02-02T12:29:12.497379231-06:00","level":"ERROR","msg":"runfiles: runhandle: run not yet initialized"}
+{"time":"2026-02-02T12:29:12.497971709-06:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-02-02T12:29:12.497997518-06:00","level":"INFO","msg":"handler: closed","stream_id":"j4hx7apw"}
+{"time":"2026-02-02T12:29:12.498063903-06:00","level":"INFO","msg":"sender: closed","stream_id":"j4hx7apw"}
+{"time":"2026-02-02T12:29:12.498071888-06:00","level":"INFO","msg":"stream: closed","id":"j4hx7apw"}
+{"time":"2026-02-02T12:29:12.498547906-06:00","level":"ERROR","msg":"stream: runURL: runhandle: run not yet initialized"}

@@ -1,0 +1,6 @@
+{"time":"2026-02-04T12:23:59.076408665-06:00","level":"INFO","msg":"stream: starting","core version":"0.24.0"}
+{"time":"2026-02-04T12:23:59.283000777-06:00","level":"INFO","msg":"stream: created new stream","id":"bwliperz"}
+{"time":"2026-02-04T12:23:59.283072633-06:00","level":"INFO","msg":"handler: started","stream_id":"bwliperz"}
+{"time":"2026-02-04T12:23:59.283230032-06:00","level":"INFO","msg":"stream: started","id":"bwliperz"}
+{"time":"2026-02-04T12:23:59.28325564-06:00","level":"INFO","msg":"writer: started","stream_id":"bwliperz"}
+{"time":"2026-02-04T12:23:59.283254217-06:00","level":"INFO","msg":"sender: started","stream_id":"bwliperz"}

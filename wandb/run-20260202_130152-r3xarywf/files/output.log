@@ -1,0 +1,57 @@
+2026-02-02 13:01:53 - INFO - Dataset split indices saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/baseline_seed1/vit_l_14_rank32_perturb-type-none_init-seed1/random_states/dataset_split_indices.pth
+2026-02-02 13:01:53 - INFO - Using GPU 1
+2026-02-02 13:01:53 - INFO - Using device: cuda:1
+pos_embedding is True
+2026-02-02 13:01:57 - INFO - Total parameters: 427,802,369
+2026-02-02 13:01:57 - INFO - Trainable parameters: 183,040 (0.04%)
+2026-02-02 13:01:57 - INFO -
+Model Configuration:
+2026-02-02 13:01:57 - INFO - -------------------
+2026-02-02 13:01:57 - INFO - wandb_project: temporal-dynamics-of-human-alignment
+2026-02-02 13:01:57 - INFO - wandb_entity: None
+2026-02-02 13:01:57 - INFO - experiment_type: baseline
+2026-02-02 13:01:57 - INFO - save_path: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/baseline_seed1/vit_l_14_rank32_perturb-type-none_init-seed1
+2026-02-02 13:01:57 - INFO - baseline_checkpoint_path: None
+2026-02-02 13:01:57 - INFO - img_annotations_file: ./data/spose_embedding66d_rescaled_1806train.csv
+2026-02-02 13:01:57 - INFO - img_dir: /home/wallacelab/investigating-complexity/Images/THINGS
+2026-02-02 13:01:57 - INFO - backbone: ViT-L/14
+2026-02-02 13:01:57 - INFO - vision_layers: 2
+2026-02-02 13:01:57 - INFO - transformer_layers: 1
+2026-02-02 13:01:57 - INFO - rank: 32
+2026-02-02 13:01:57 - INFO - dataset_type: things
+2026-02-02 13:01:57 - INFO - epochs: 500
+2026-02-02 13:01:57 - INFO - early_stopping_patience: 20
+2026-02-02 13:01:57 - INFO - batch_size: 64
+2026-02-02 13:01:57 - INFO - train_portion: 0.8
+2026-02-02 13:01:57 - INFO - lr: 0.0003
+2026-02-02 13:01:57 - INFO - criterion: MSELoss
+2026-02-02 13:01:57 - INFO - random_seed: 1
+2026-02-02 13:01:57 - INFO - cuda: 1
+2026-02-02 13:01:57 - INFO - logger: None
+2026-02-02 13:01:57 - INFO - perturb_type: none
+2026-02-02 13:01:57 - INFO - perturb_epoch: 0
+2026-02-02 13:01:57 - INFO - perturb_length: 0
+2026-02-02 13:01:57 - INFO - perturb_seed: None
+2026-02-02 13:01:57 - INFO - wandb_run_name: vit_l_14_rank32_perturb-type-none_init-seed1
+2026-02-02 13:01:57 - INFO - wandb_run_id: r3xarywf
+2026-02-02 13:01:57 - INFO -
+Updating layers:
+2026-02-02 13:01:57 - INFO - clip_model.visual.transformer.resblocks.22.attn.out_proj.m
+2026-02-02 13:01:57 - INFO - clip_model.visual.transformer.resblocks.22.attn.out_proj.delta_D_A
+2026-02-02 13:01:57 - INFO - clip_model.visual.transformer.resblocks.22.attn.out_proj.delta_D_B
+2026-02-02 13:01:57 - INFO - clip_model.visual.transformer.resblocks.23.attn.out_proj.m
+2026-02-02 13:01:57 - INFO - clip_model.visual.transformer.resblocks.23.attn.out_proj.delta_D_A
+2026-02-02 13:01:57 - INFO - clip_model.visual.transformer.resblocks.23.attn.out_proj.delta_D_B
+2026-02-02 13:01:57 - INFO - clip_model.transformer.resblocks.11.attn.out_proj.m
+2026-02-02 13:01:57 - INFO - clip_model.transformer.resblocks.11.attn.out_proj.delta_D_A
+2026-02-02 13:01:57 - INFO - clip_model.transformer.resblocks.11.attn.out_proj.delta_D_B
+2026-02-02 13:01:57 - INFO -
+Number of trainable parameters: 183040
+
+2026-02-02 13:01:57 - INFO - *********************************
+2026-02-02 13:01:57 - INFO - Evaluating initial model
+Evaluating: 100%|██████████████████████████████████████████████████████████████| 6/6 [00:08<00:00,  1.34s/it, loss=161]
+2026-02-02 13:02:05 - INFO - Initial Validation Loss: 159.3543
+2026-02-02 13:02:05 - INFO - *********************************
+Epoch 0: 100%|███████████████████████████████████████████████████████████████| 23/23 [00:32<00:00,  1.43s/it, loss=120]
+Evaluating:  33%|████████████████████▋                                         | 2/6 [00:03<00:07,  1.92s/it, loss=115]

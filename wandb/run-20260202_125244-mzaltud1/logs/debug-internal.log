@@ -1,0 +1,12 @@
+{"time":"2026-02-02T12:52:44.315171702-06:00","level":"INFO","msg":"stream: starting","core version":"0.24.0"}
+{"time":"2026-02-02T12:52:44.499345755-06:00","level":"INFO","msg":"stream: created new stream","id":"mzaltud1"}
+{"time":"2026-02-02T12:52:44.499424564-06:00","level":"INFO","msg":"handler: started","stream_id":"mzaltud1"}
+{"time":"2026-02-02T12:52:44.499610745-06:00","level":"INFO","msg":"stream: started","id":"mzaltud1"}
+{"time":"2026-02-02T12:52:44.499651793-06:00","level":"INFO","msg":"writer: started","stream_id":"mzaltud1"}
+{"time":"2026-02-02T12:52:44.499654698-06:00","level":"INFO","msg":"sender: started","stream_id":"mzaltud1"}
+{"time":"2026-02-02T12:53:44.764360485-06:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-02-02T12:53:44.914411015-06:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-02-02T12:53:44.916081427-06:00","level":"INFO","msg":"stream: closing","id":"mzaltud1"}
+{"time":"2026-02-02T12:53:44.916090995-06:00","level":"INFO","msg":"handler: closed","stream_id":"mzaltud1"}
+{"time":"2026-02-02T12:53:44.916134076-06:00","level":"INFO","msg":"sender: closed","stream_id":"mzaltud1"}
+{"time":"2026-02-02T12:53:44.916140117-06:00","level":"INFO","msg":"stream: closed","id":"mzaltud1"}

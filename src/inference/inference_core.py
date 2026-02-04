@@ -1,4 +1,3 @@
-from src.evaluation import rsa
 from src.models.clip_hba.clip_hba_utils import load_dora_checkpoint, initialize_cliphba_model
 from src.data.spose_dimensions import classnames66
 import torch

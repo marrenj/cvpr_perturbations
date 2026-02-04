@@ -1,11 +1,15 @@
+## ---WANDB CONFIGURATION--- ##
+  'wandb_project': temporal-dynamics-of-human-alignment # Required
+  'wandb_entity': # Optional: your username or team name
+
 ## ---EXPERIMENT SETUP--- ##
   experiment_type: baseline # baseline | perturbation_run
 
 ## ---PATHS--- ##
-  save_path: # root path to save training artifacts (checkpoints, training results, random states)
-  baseline_checkpoint_path: # REQUIRED: path to baseline training run checkpoints used for perturbation sweeps
-  img_annotations_file: # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
-  img_dir: # path to the THINGS image directory
+  save_path: "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test" # root path to save training artifacts (checkpoints, training results, random states)
+  baseline_checkpoint_path: # path to baseline training run checkpoints used for perturbation sweeps
+  img_annotations_file: "./data/spose_embedding66d_rescaled_1806train.csv" # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
+  img_dir: "/home/wallacelab/investigating-complexity/Images/THINGS" # path to the THINGS image directory
 
 ## ---MODEL PARAMETERS--- ##
   backbone: ViT-L/14 # model backboneto use for CLIP-HBA
@@ -22,12 +26,18 @@
   lr: 3e-4 # learning rate for the optimizer
   criterion: MSELoss # loss function to use for training
   random_seed: 1 # random seed to use for training
-  cuda: 1 # GPU to use for training; -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
+  cuda: 0 # GPU to use for training; -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
 
   logger: None # Logger to use for training. None for no logging.
 
 ## ---PERTURBATION PARAMETERS--- ##
-  perturb_type: label_shuffle
+  perturb_type: uniform_images # none | random_target | label_shuffle | image_noise | uniform_images
   perturb_epoch: 0 # epoch to start perturbation (0-indexed)
   perturb_length: 1 # number of epochs to perturb
-  perturb_seed: 42
+  perturb_seed: 1 # random seed to use for perturbation
+
+## ---RSA PARAMETERS--- ##
+  behavioral_rsa: True # whether to conduct behavioral RSA within the training loop
+  rsa_annotations_file: "./data/spose_embedding66d_rescaled_1806train.csv" # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
+  model_rdm_distance_metric: pearson # distance metric to use for RSA
+  rsa_similarity_metric: spearman # similarity metric to use for RSA

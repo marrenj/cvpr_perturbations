@@ -1,0 +1,707 @@
+diff --git a/configs/training_config.yaml b/configs/training_config.yaml
+index ab2144d..30c5d1b 100644
+--- a/configs/training_config.yaml
++++ b/configs/training_config.yaml
+@@ -1,11 +1,15 @@
++## ---WANDB CONFIGURATION--- ##
++  'wandb_project': temporal-dynamics-of-human-alignment # Required
++  'wandb_entity': # Optional: your username or team name
++
+ ## ---EXPERIMENT SETUP--- ##
+   experiment_type: baseline # baseline | perturbation_run
+ 
+ ## ---PATHS--- ##
+-  save_path: # root path to save training artifacts (checkpoints, training results, random states)
+-  baseline_checkpoint_path: # REQUIRED: path to baseline training run checkpoints used for perturbation sweeps
+-  img_annotations_file: # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
+-  img_dir: # path to the THINGS image directory
++  save_path: "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test" # root path to save training artifacts (checkpoints, training results, random states)
++  baseline_checkpoint_path: # path to baseline training run checkpoints used for perturbation sweeps
++  img_annotations_file: "./data/spose_embedding66d_rescaled_1806train.csv" # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
++  img_dir: "/home/wallacelab/investigating-complexity/Images/THINGS" # path to the THINGS image directory
+ 
+ ## ---MODEL PARAMETERS--- ##
+   backbone: ViT-L/14 # model backboneto use for CLIP-HBA
+@@ -21,13 +25,19 @@
+   train_portion: 0.8 # portion of the training data to use for training
+   lr: 3e-4 # learning rate for the optimizer
+   criterion: MSELoss # loss function to use for training
+-  random_seed: 1 # random seed to use for training
+-  cuda: 1 # GPU to use for training; -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
++  random_seed: 2 # random seed to use for training
++  cuda: 0 # GPU to use for training; -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
+ 
+   logger: None # Logger to use for training. None for no logging.
+ 
+ ## ---PERTURBATION PARAMETERS--- ##
+-  perturb_type: label_shuffle
+-  perturb_epoch: 0 # epoch to start perturbation (0-indexed)
+-  perturb_length: 1 # number of epochs to perturb
+-  perturb_seed: 42
+\ No newline at end of file
++  perturb_type: none
++  perturb_epoch:  # epoch to start perturbation (0-indexed)
++  perturb_length: # number of epochs to perturb
++  perturb_seed: # random seed to use for perturbation
++
++## ---RSA PARAMETERS--- ##
++  behavioral_rsa: True # whether to conduct behavioral RSA within the training loop
++  rsa_annotations_file: "./data/spose_embedding66d_rescaled_1806train.csv" # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
++  model_rdm_distance_metric: pearson # distance metric to use for RSA
++  rsa_similarity_metric: spearman # similarity metric to use for RSA
+\ No newline at end of file
+diff --git a/scripts/run_training.py b/scripts/run_training.py
+index d062971..efd6eb9 100755
+--- a/scripts/run_training.py
++++ b/scripts/run_training.py
+@@ -116,13 +116,15 @@ def _prepare_single_run(config: dict, config_path: Path) -> dict:
+     if not base_save_path:
+         raise ValueError("Config must set 'save_path'.")
+ 
+-    perturb_type = config.get("perturb_type", "baseline")
+-    perturb_seed = config.get("perturb_seed")
+-    perturb_epoch = int(config.get("perturb_epoch"))
+-    perturb_length = int(config.get("perturb_length"))
++    perturb_type = str(config.get("perturb_type") or "none")
+     random_seed = config.get("random_seed")
++    perturb_seed = config.get("perturb_seed")
++    # Default to zeroed perturb settings for baseline (none) runs
++    perturb_epoch = int(config.get("perturb_epoch") or 0)
++    perturb_length = int(config.get("perturb_length") or 0)
++    perturb_seed = int(perturb_seed if perturb_seed is not None else (random_seed or 0))
+ 
+-    if perturb_type and str(perturb_type).lower() != "none":
++    if perturb_type and perturb_type.lower() != "none":
+         # Include epoch/length tokens for perturbation runs
+         seed_suffix = f"perturb_seed{perturb_seed}"
+         run_root = Path(base_save_path) / f"{perturb_type}_{seed_suffix}" / f"epoch{perturb_epoch}_length{perturb_length}"
+diff --git a/src/inference/__pycache__/inference_core.cpython-311.pyc b/src/inference/__pycache__/inference_core.cpython-311.pyc
+index 1550467..8122c37 100644
+Binary files a/src/inference/__pycache__/inference_core.cpython-311.pyc and b/src/inference/__pycache__/inference_core.cpython-311.pyc differ
+diff --git a/src/inference/inference_core.py b/src/inference/inference_core.py
+index 82ad7ad..3052bbc 100644
+--- a/src/inference/inference_core.py
++++ b/src/inference/inference_core.py
+@@ -1,4 +1,3 @@
+-from src.evaluation import rsa
+ from src.models.clip_hba.clip_hba_utils import load_dora_checkpoint, initialize_cliphba_model
+ from src.data.spose_dimensions import classnames66
+ import torch
+diff --git a/src/perturbations/__pycache__/perturbation_utils.cpython-311.pyc b/src/perturbations/__pycache__/perturbation_utils.cpython-311.pyc
+index 228ba21..598c05b 100644
+Binary files a/src/perturbations/__pycache__/perturbation_utils.cpython-311.pyc and b/src/perturbations/__pycache__/perturbation_utils.cpython-311.pyc differ
+diff --git a/src/perturbations/perturbation_utils.py b/src/perturbations/perturbation_utils.py
+index c2e377b..46f7547 100644
+--- a/src/perturbations/perturbation_utils.py
++++ b/src/perturbations/perturbation_utils.py
+@@ -95,7 +95,9 @@ def choose_perturbation_strategy(
+     target_mean=None,
+     target_std=None,
+ ):
+-    if perturb_type == 'random_target':
++    normalized_type = str(perturb_type).lower() if perturb_type is not None else 'none'
++
++    if normalized_type == 'random_target':
+         perturb_strategy = TargetNoisePerturbation(
+             perturb_epoch=perturb_epoch,
+             perturb_length=perturb_length,
+@@ -103,13 +105,13 @@ def choose_perturbation_strategy(
+             target_mean=target_mean,
+             target_std=target_std
+         )
+-    elif perturb_type == 'label_shuffle':
++    elif normalized_type == 'label_shuffle':
+         perturb_strategy = LabelShufflePerturbation(perturb_epoch=perturb_epoch, perturb_length=perturb_length, perturb_seed=perturb_seed)
+-    elif perturb_type == 'image_noise':
++    elif normalized_type == 'image_noise':
+         perturb_strategy = ImageNoisePerturbation(perturb_epoch=perturb_epoch, perturb_length=perturb_length, perturb_seed=perturb_seed)
+-    elif perturb_type == 'uniform_images':
++    elif normalized_type == 'uniform_images':
+         perturb_strategy = UniformImagePerturbation(perturb_epoch=perturb_epoch, perturb_length=perturb_length, perturb_seed=perturb_seed)
+-    elif perturb_type == 'None':
++    elif normalized_type == 'none':
+         perturb_strategy = NoPerturbation(perturb_epoch=perturb_epoch, perturb_length=perturb_length, perturb_seed=perturb_seed)
+     else:
+         raise ValueError(f"Perturbation type {perturb_type} not supported")
+diff --git a/src/training/__pycache__/trainer.cpython-311.pyc b/src/training/__pycache__/trainer.cpython-311.pyc
+index e716df3..21df877 100644
+Binary files a/src/training/__pycache__/trainer.cpython-311.pyc and b/src/training/__pycache__/trainer.cpython-311.pyc differ
+diff --git a/src/training/trainer.py b/src/training/trainer.py
+index c40e08b..49ee077 100644
+--- a/src/training/trainer.py
++++ b/src/training/trainer.py
+@@ -9,6 +9,8 @@ and checkpoint resumption for reproducible experiments.
+ import os
+ import random
+ import csv
++import yaml
++import wandb
+ from tqdm import tqdm
+ from numpy.random import set_state as np_set_state
+ import torch 
+@@ -22,6 +24,10 @@ from torch.optim import AdamW
+ from src.training.test_loop import evaluate_model
+ from src.utils.save_random_states import save_random_states
+ from src.models.clip_hba.clip_hba_utils import save_dora_parameters
++from src.inference.inference_core import (
++    compute_model_rdm,
++    compute_rdm_similarity,
++)
+ 
+ from src.utils.seed import seed_everything
+ from src.utils.logging import setup_logger
+@@ -41,6 +47,129 @@ from src.perturbations.perturbation_utils import choose_perturbation_strategy
+ # Path Setup
+ # =============================================================================
+ 
++
++def get_wandb_tags(config):
++    """
++    Generate tags for wandb run based on configuration.
++    
++    Args:
++        config: Configuration dictionary
++        
++    Returns:
++        list: List of tags
++    """
++    tags = [
++        f"backbone_{config['backbone']}",
++        f"rank_{config['rank']}",
++        f"perturb_type_{config['perturb_type']}",
++        f"dataset_type_{config['dataset_type']}"
++    ]
++
++    if config['behavioral_rsa']:
++        tags.append(f"behavioral_rsa")
++    
++    if config['perturb_type'] != 'none':
++        tags.append(f"perturb_epoch_{config['perturb_epoch']}")
++        tags.append(f"perturb_length_{config['perturb_length']}")
++        tags.append(f"perturb_seed_{config['perturb_seed']}")
++        tags.append(f"random_seed_{config['random_seed']}")
++    
++    if 'wandb_tags' in config and config['wandb_tags']:
++        tags.extend(config['wandb_tags'])
++    
++    return tags
++
++
++def get_run_name(config):
++    """
++    Build a deterministic run name shared by wandb and local save paths.
++    """
++    def _sanitize(name: str) -> str:
++        # Make a filesystem-safe, lowercase token (replace slashes/spaces)
++        return name.replace("-", "_").replace("/", "_").replace(" ", "_").lower()
++
++    if config.get('wandb_run_name'):
++        return config['wandb_run_name']
++    
++    backbone_token = _sanitize(config['backbone'])
++    perturb_type = str(config.get('perturb_type', 'none'))
++    normalized_ptype = perturb_type.lower()
++
++    if normalized_ptype == 'none':
++        return (
++            f"{backbone_token}_"
++            f"rank{config['rank']}_"
++            f"perturb-type-none_"
++            f"init-seed{config['random_seed']}"
++            f"behavioral-rsa-{config['behavioral_rsa']}"
++        )
++
++    return (
++        f"{backbone_token}_"
++        f"rank{config['rank']}_"
++        f"perturb-type-{perturb_type}_"
++        f"epoch{config['perturb_epoch']}_"
++        f"length{config['perturb_length']}_"
++        f"perturb-seed{config['perturb_seed']}_"
++        f"init-seed{config['random_seed']}"
++        f"behavioral-rsa-{config['behavioral_rsa']}"
++    )
++
++
++def init_wandb(config, resume_epoch=0):
++    """
++    Initialize Weights & Biases run with proper configuration.
++    
++    Args:
++        config: Configuration dictionary
++        resume_epoch: Epoch to resume from
++        
++    Returns:
++        wandb.Run: Weights & Biases run
++    """
++    resume_mode = "allow" if resume_epoch > 0 else None
++    run_id = config.get('wandb_run_id', None)
++    
++    # Create descriptive run name (shared with filesystem path)
++    run_name = get_run_name(config)
++    
++    run = wandb.init(
++        project=config.get('wandb_project', 'clip-hba-training'),
++        entity=config.get('wandb_entity', None),
++        name=run_name,
++        id=run_id,
++        resume=resume_mode,
++        config=config,
++        tags=get_wandb_tags(config),
++        notes=config.get('wandb_notes', ''),
++        save_code=True,
++    )
++    
++    config['wandb_run_id'] = run.id
++    config['wandb_run_name'] = run.name or run_name
++    return run
++
++
++def log_model_architecture(model, logger):
++    """
++    Log model architecture details to wandb.
++    """
++    total_params = sum(p.numel() for p in model.parameters())
++    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
++    
++    wandb.config.update({
++        'total_parameters': total_params,
++        'trainable_parameters': trainable_params,
++        'trainable_percentage': 100 * trainable_params / total_params if total_params > 0 else 0
++    })
++    
++    trainable_layers = [name for name, param in model.named_parameters() if param.requires_grad]
++    wandb.config.update({'trainable_layers': trainable_layers})
++    
++    logger.info(f"Total parameters: {total_params:,}")
++    logger.info(f"Trainable parameters: {trainable_params:,} ({100 * trainable_params / total_params:.2f}%)")
++
++
+ def setup_paths(config):
+     """
+     Create and return all necessary directory paths for training outputs.
+@@ -71,7 +200,7 @@ def setup_paths(config):
+                     raise FileExistsError(f"Aborted because {description} '{path}' already exists.")
+                 else:
+                     print("Please answer 'Yes' or 'No'.")
+-                return config['save_path'], training_results_save_path, random_state_save_path, checkpoints_save_path
++    return config['save_path'], training_results_save_path, random_state_save_path
+ 
+ 
+ # =============================================================================
+@@ -133,6 +262,13 @@ def setup_dataset(config, logger):
+             'random_seed': config['random_seed'],
+             'train_portion': config['train_portion']
+         }
++
++    wandb.config.update({
++        'dataset_size': len(dataset),
++        'train_size': len(train_dataset),
++        'test_size': len(test_dataset),
++        'train_portion': config['train_portion']
++    })
+     
+     return train_dataset, test_dataset, split_info, (global_target_mean, global_target_std)
+ 
+@@ -210,6 +346,9 @@ def setup_model(config, device):
+         model = DataParallel(model)
+     
+     model.to(device)
++
++    if config.get('wandb_watch_model', True):
++        wandb.watch(model, log='all', log_freq=config.get('wandb_log_freq', 100))
+     
+     return model
+ 
+@@ -245,6 +384,52 @@ def get_device(cuda_config, logger):
+     return device
+ 
+ 
++def compute_behavioral_rsa(
++    model,
++    data_loader,
++    device,
++    annotations_file,
++    distance_metric,
++    similarity_metric,
++    logger=None,
++):
++    """
++    Compute behavioral RSA between model embeddings and target embeddings
++    on the provided data_loader.
++    """
++    log = logger.info if logger else print
++    model.eval()
++    preds = []
++    targets = []
++    with torch.no_grad():
++        for _, (_, images, target) in enumerate(data_loader):
++            images = images.to(device)
++            preds.append(model(images).cpu())
++            targets.append(target.cpu())
++
++    preds = torch.cat(preds, dim=0)
++    targets = torch.cat(targets, dim=0)
++
++    model_rdm = compute_model_rdm(
++        preds, dataset_name="things", annotations_file=annotations_file,
++        categories=None, distance_metric=distance_metric
++    )
++    target_rdm = compute_model_rdm(
++        targets, dataset_name="targets", annotations_file=None,
++        categories=None, distance_metric=distance_metric
++    )
++
++    model_ut_idx = np.triu_indices_from(model_rdm, k=1)
++    target_ut_idx = np.triu_indices_from(target_rdm, k=1)
++    model_ut = model_rdm[model_ut_idx]
++    target_ut = target_rdm[target_ut_idx]
++
++    corr, pval = compute_rdm_similarity(model_ut, target_ut, similarity_metric)
++    log(f"Behavioral RSA: corr={corr:.4f}, p={pval:.4g}")
++    wandb.log({'rsa_behavioral_corr': corr, 'rsa_behavioral_p': pval})
++    return corr, pval
++
++
+ # =============================================================================
+ # Checkpoint & State Management
+ # =============================================================================
+@@ -363,7 +548,7 @@ def handle_checkpoint_resumption(config, model, optimizer, dataloader_generator,
+ 
+ 
+ def train_one_epoch(model, train_loader, device, optimizer, criterion, 
+-                   perturb_strategy, epoch_idx, logger):
++                   perturb_strategy, epoch_idx, logger, log_interval=10):
+     """
+     Train model for a single epoch.
+     
+@@ -376,16 +561,21 @@ def train_one_epoch(model, train_loader, device, optimizer, criterion,
+         perturb_strategy: Perturbation strategy to apply
+         epoch_idx: Current epoch index
+         logger: Logger instance
++        log_interval: Interval to log metrics with wandb
+         
+     Returns:
+         float: Average training loss for the epoch
+     """
+     model.train()
+     total_loss = 0.0
++    batch_losses = []
+     
+     # Log if perturbation is active this epoch
+     if perturb_strategy.is_active_epoch(epoch_idx):
+         logger.info(f"Applying {perturb_strategy.__class__.__name__} perturbation during epoch {epoch_idx}")
++        wandb.log({'perturbation_active': 1, 'epoch': epoch_idx})
++    else:
++        wandb.log({'perturbation_active': 0, 'epoch': epoch_idx})
+     
+     progress_bar = tqdm(
+         enumerate(train_loader), 
+@@ -413,14 +603,30 @@ def train_one_epoch(model, train_loader, device, optimizer, criterion,
+         optimizer.step()
+         
+         # Update metrics
++        batch_loss = loss.item()
+         total_loss += loss.item() * images.size(0)
+-        progress_bar.set_postfix({'loss': loss.item()})
++        batch_losses.append(batch_loss)
++        progress_bar.set_postfix({'loss': batch_loss})
++
++        if batch_idx % log_interval == 0:
++            wandb.log({
++                'batch_loss': batch_loss,
++                'batch': epoch_idx * len(train_loader) + batch_idx,
++                'epoch': epoch_idx,
++            })
+     
+     avg_train_loss = total_loss / len(train_loader.dataset)
++
++    wandb.log({
++        'train_loss': avg_train_loss,
++        'train_loss_std': np.std(batch_losses),
++        'epoch': epoch_idx,
++    })
++
+     return avg_train_loss
+ 
+ 
+-def save_epoch_results(epoch, train_loss, test_loss, training_results_save_path):
++def save_epoch_results(epoch, train_loss, test_loss, training_results_save_path, rsa_corr=None, rsa_p=None):
+     """
+     Save training metrics to CSV file.
+     
+@@ -429,8 +635,12 @@ def save_epoch_results(epoch, train_loss, test_loss, training_results_save_path)
+         train_loss: Training loss
+         test_loss: Validation loss
+         training_results_save_path: Path to CSV file
++        rsa_corr: Optional behavioral RSA correlation
++        rsa_p: Optional p-value for behavioral RSA correlation
+     """
+     data_row = [epoch, train_loss, test_loss]
++    if rsa_corr is not None and rsa_p is not None:
++        data_row.extend([rsa_corr, rsa_p])
+     
+     with open(training_results_save_path, 'a', newline='') as file:
+         writer = csv.writer(file)
+@@ -455,6 +665,10 @@ def train_model(
+     transformer_layers=1,
+     perturb_strategy=None,
+     start_epoch=0,
++    behavioral_rsa=False,
++    rsa_annotations_file=None,
++    model_rdm_distance_metric="pearson",
++    rsa_similarity_metric="spearman",
+ ):
+     """
+     Main training loop with logging, checkpointing, and early stopping.
+@@ -489,7 +703,29 @@ def train_model(
+     log("Evaluating initial model")
+     best_test_loss = evaluate_model(model, test_loader, device, criterion)
+     log(f"Initial Validation Loss: {best_test_loss:.4f}")
++    # Optional behavioral RSA at initial evaluation
++    if behavioral_rsa:
++        try:
++            compute_behavioral_rsa(
++                model=model,
++                data_loader=test_loader,
++                device=device,
++                annotations_file=rsa_annotations_file,
++                distance_metric=model_rdm_distance_metric,
++                similarity_metric=rsa_similarity_metric,
++                logger=logger,
++            )
++        except Exception as rsa_err:
++            if logger:
++                logger.warning(f"Initial behavioral RSA failed: {rsa_err}")
++            else:
++                print(f"Initial behavioral RSA failed: {rsa_err}")
+     log("*********************************\n")
++
++    wandb.log({
++        'initial_val_loss': best_test_loss,
++        'epoch': -1,
++    })
+     
+     # Create directories for outputs
+     os.makedirs(save_path, exist_ok=True)
+@@ -499,7 +735,11 @@ def train_model(
+     if not (start_epoch > 0 and os.path.exists(training_results_save_path)):
+         with open(training_results_save_path, 'w', newline='') as file:
+             writer = csv.writer(file)
+-            writer.writerow(['epoch', 'train_loss', 'test_loss'])
++            header = ['epoch', 'train_loss', 'test_loss']
++            if behavioral_rsa:
++                header.extend(['rsa_behavioral_corr', 'rsa_behavioral_p'])
++            writer.writerow(header)
++
+     # Main training loop
+     for epoch in range(start_epoch, epochs):
+         # Train one epoch
+@@ -511,15 +751,42 @@ def train_model(
+         # Evaluate on validation set
+         avg_test_loss = evaluate_model(model, test_loader, device, criterion)
+         
++        rsa_corr = None
++        rsa_p = None
++
+         # Log results
+         print(f"Epoch {epoch}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_test_loss:.4f}")
+         log(f"Epoch {epoch}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_test_loss:.4f}")
+         
+         if perturb_strategy.is_active_epoch(epoch):
+             logger.info(f"*** Perturbation '{perturb_strategy.__class__.__name__}' was applied during epoch {epoch} ***")
++
++        wandb.log({
++            'val_loss': avg_test_loss,
++            'epoch': epoch,
++            'learning_rate': optimizer.param_groups[0]['lr'],
++        })
++
++        # Optional behavioral RSA at end of epoch
++        if behavioral_rsa:
++            try:
++                rsa_corr, rsa_p = compute_behavioral_rsa(
++                    model=model,
++                    data_loader=test_loader,
++                    device=device,
++                    annotations_file=rsa_annotations_file,
++                    distance_metric=model_rdm_distance_metric,
++                    similarity_metric=rsa_similarity_metric,
++                    logger=logger,
++                )
++            except Exception as rsa_err:
++                if logger:
++                    logger.warning(f"Behavioral RSA failed at epoch {epoch}: {rsa_err}")
++                else:
++                    print(f"Behavioral RSA failed at epoch {epoch}: {rsa_err}")
+         
+         # Save metrics to CSV
+-        save_epoch_results(epoch, avg_train_loss, avg_test_loss, training_results_save_path)
++        save_epoch_results(epoch, avg_train_loss, avg_test_loss, training_results_save_path, rsa_corr, rsa_p)
+         
+         # Save random states for reproducibility
+         save_random_states(
+@@ -535,20 +802,49 @@ def train_model(
+             log_fn=log,
+         )
+         log(f"Checkpoint saved for epoch {epoch}")
++
++        save_to_wandb = (epoch < 20) or (epoch % 5 == 0)
++        if save_to_wandb:  # Save every epoch for first 10, then every 5 epochs
++            artifact = wandb.Artifact(
++                name=f"model-checkpoint-epoch-{epoch}",
++                type="model",
++                description=f"Model checkpoint at epoch {epoch}",
++                metadata={
++                    'epoch': epoch,
++                    'train_loss': avg_train_loss,
++                    'val_loss': avg_test_loss,
++                }
++            )
++            artifact.add_dir(dora_params_dir)
++            wandb.log_artifact(artifact)
+         
+         # Early stopping check
+         if avg_test_loss < best_test_loss:
+             best_test_loss = avg_test_loss
+             epochs_no_improve = 0
++            wandb.run.summary["best_val_loss"] = best_test_loss
++            wandb.run.summary["best_epoch"] = epoch
+         else:
+             epochs_no_improve += 1
++
++        wandb.log({
++            'epochs_no_improve': epochs_no_improve,
++            'best_val_loss': best_test_loss,
++            'epoch': epoch,
++        })
+         
+         if epochs_no_improve == early_stopping_patience:
+             log("\n\n*********************************")
+             log(f"Early stopping triggered at epoch {epoch}")
+             log("*********************************\n\n")
++            wandb.run.summary["stopped_early"] = True
++            wandb.run.summary["final_epoch"] = epoch
+             break
+ 
++    if epochs_no_improve < early_stopping_patience:
++        wandb.run.summary["stopped_early"] = False
++        wandb.run.summary["final_epoch"] = epochs
++
+ 
+ # =============================================================================
+ # Main Training Orchestration
+@@ -572,6 +868,22 @@ def run_training_experiment(config):
+     # Set random seed for reproducibility
+     seed_everything(config['random_seed'])
+     
++    # Build run name once so wandb and filesystem stay in sync
++    run_name = get_run_name(config)
++    config['wandb_run_name'] = run_name
++    
++    # Align save_path with the run name (append unless already present)
++    base_save_path = config.get('save_path', '')
++    if base_save_path:
++        normalized_base = os.path.normpath(base_save_path)
++        if os.path.basename(normalized_base) != run_name:
++            save_path = os.path.join(base_save_path, run_name)
++        else:
++            save_path = base_save_path
++    else:
++        save_path = run_name
++    config['save_path'] = save_path
++    
+     # Setup logging
+     os.makedirs(config['save_path'], exist_ok=True)
+     log_file = os.path.join(config['save_path'], f'training_log_{config["perturb_type"]}.txt')
+@@ -582,8 +894,20 @@ def run_training_experiment(config):
+     logger.info(f"Log file: {log_file}")
+     logger.info("="*80)
+     
++    # Persist config snapshots inside the run folder
++    resolved_cfg_path = os.path.join(save_path, "resolved_config.yaml")
++    input_cfg_path = os.path.join(save_path, "training_config_snapshot.yaml")
++    with open(resolved_cfg_path, "w", encoding="utf-8") as f:
++        yaml.safe_dump(config, f)
++    # Input snapshot is the same available config dict; retained for provenance
++    with open(input_cfg_path, "w", encoding="utf-8") as f:
++        yaml.safe_dump(config, f)
++    
+     # Setup paths
+-    save_path, training_results_save_path, random_state_save_path = setup_paths(config['save_path'])
++    save_path, training_results_save_path, random_state_save_path = setup_paths(config)
++
++    # Initialize wandb before any wandb.config updates in dataset setup
++    wandb_run = init_wandb(config, resume_epoch=0)
+     
+     # Setup dataset
+     train_dataset, test_dataset, split_info, target_stats = setup_dataset(config, logger)
+@@ -601,7 +925,7 @@ def run_training_experiment(config):
+     )
+     
+     # Setup device
+-    device = get_device(config['cuda'])
++    device = get_device(config['cuda'], logger)
+     
+     # Setup model
+     model = setup_model(config, device)
+@@ -613,6 +937,8 @@ def run_training_experiment(config):
+     resume_epoch = handle_checkpoint_resumption(
+         config, model, optimizer, dataloader_generator, logger
+     )
++
++    log_model_architecture(model, logger)
+     
+     # Initialize loss criterion
+     if config['criterion'] == 'MSELoss':
+@@ -644,22 +970,29 @@ def run_training_experiment(config):
+     logger.info(f"\nNumber of trainable parameters: {count_trainable_parameters(model)}\n")
+     
+     # Run training
+-    train_model(
+-        model=model,
+-        train_loader=train_loader,
+-        test_loader=test_loader,
+-        device=device,
+-        optimizer=optimizer,
+-        criterion=criterion,
+-        epochs=config['epochs'],
+-        training_results_save_path=training_results_save_path,
+-        logger=logger,
+-        early_stopping_patience=config['early_stopping_patience'],
+-        save_path=save_path,
+-        random_state_save_path=random_state_save_path,
+-        dataloader_generator=dataloader_generator,
+-        vision_layers=config['vision_layers'],
+-        transformer_layers=config['transformer_layers'],
+-        perturb_strategy=perturb_strategy,
+-        start_epoch=resume_epoch,
+-    )
+\ No newline at end of file
++    try:
++        train_model(
++            model=model,
++            train_loader=train_loader,
++            test_loader=test_loader,
++            device=device,
++            optimizer=optimizer,
++            criterion=criterion,
++            epochs=config['epochs'],
++            training_results_save_path=training_results_save_path,
++            logger=logger,
++            early_stopping_patience=config['early_stopping_patience'],
++            save_path=save_path,
++            random_state_save_path=random_state_save_path,
++            dataloader_generator=dataloader_generator,
++            vision_layers=config['vision_layers'],
++            transformer_layers=config['transformer_layers'],
++            perturb_strategy=perturb_strategy,
++            start_epoch=resume_epoch,
++            behavioral_rsa=config.get('behavioral_rsa', False),
++            rsa_annotations_file=config.get('rsa_annotations_file'),
++            model_rdm_distance_metric=config.get('model_rdm_distance_metric', 'pearson'),
++            rsa_similarity_metric=config.get('rsa_similarity_metric', 'spearman'),
++        )
++    finally:
++        wandb.finish()
+\ No newline at end of file

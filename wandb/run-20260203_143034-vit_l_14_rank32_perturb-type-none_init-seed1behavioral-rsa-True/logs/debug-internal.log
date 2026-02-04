@@ -1,0 +1,7 @@
+{"time":"2026-02-03T14:30:34.629742418-06:00","level":"INFO","msg":"stream: starting","core version":"0.24.0"}
+{"time":"2026-02-03T14:30:34.817947816-06:00","level":"INFO","msg":"stream: created new stream","id":"vit_l_14_rank32_perturb-type-none_init-seed1behavioral-rsa-True"}
+{"time":"2026-02-03T14:30:34.818010184-06:00","level":"INFO","msg":"handler: started","stream_id":"vit_l_14_rank32_perturb-type-none_init-seed1behavioral-rsa-True"}
+{"time":"2026-02-03T14:30:34.81815661-06:00","level":"INFO","msg":"stream: started","id":"vit_l_14_rank32_perturb-type-none_init-seed1behavioral-rsa-True"}
+{"time":"2026-02-03T14:30:34.818181276-06:00","level":"INFO","msg":"writer: started","stream_id":"vit_l_14_rank32_perturb-type-none_init-seed1behavioral-rsa-True"}
+{"time":"2026-02-03T14:30:34.818189502-06:00","level":"INFO","msg":"sender: started","stream_id":"vit_l_14_rank32_perturb-type-none_init-seed1behavioral-rsa-True"}
+{"time":"2026-02-03T14:30:34.856438011-06:00","level":"ERROR","msg":"runupserter: failed to init run","error":"no data but must resume"}
