@@ -1,0 +1,12 @@
+{"time":"2026-02-05T12:29:44.806397635-06:00","level":"INFO","msg":"stream: starting","core version":"0.24.0"}
+{"time":"2026-02-05T12:29:44.984007438-06:00","level":"INFO","msg":"stream: created new stream","id":"qbcnarli"}
+{"time":"2026-02-05T12:29:44.984105233-06:00","level":"INFO","msg":"handler: started","stream_id":"qbcnarli"}
+{"time":"2026-02-05T12:29:44.984225571-06:00","level":"INFO","msg":"stream: started","id":"qbcnarli"}
+{"time":"2026-02-05T12:29:44.984239707-06:00","level":"INFO","msg":"writer: started","stream_id":"qbcnarli"}
+{"time":"2026-02-05T12:29:44.984239898-06:00","level":"INFO","msg":"sender: started","stream_id":"qbcnarli"}
+{"time":"2026-02-05T14:04:24.775881784-06:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-02-05T14:04:25.042408607-06:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-02-05T14:04:25.05597859-06:00","level":"INFO","msg":"stream: closing","id":"qbcnarli"}
+{"time":"2026-02-05T14:04:25.055992095-06:00","level":"INFO","msg":"handler: closed","stream_id":"qbcnarli"}
+{"time":"2026-02-05T14:04:25.056069792-06:00","level":"INFO","msg":"sender: closed","stream_id":"qbcnarli"}
+{"time":"2026-02-05T14:04:25.056087115-06:00","level":"INFO","msg":"stream: closed","id":"qbcnarli"}

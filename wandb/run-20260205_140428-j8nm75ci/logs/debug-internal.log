@@ -1,0 +1,13 @@
+{"time":"2026-02-05T14:04:28.866887866-06:00","level":"INFO","msg":"stream: starting","core version":"0.24.0"}
+{"time":"2026-02-05T14:04:29.058859871-06:00","level":"INFO","msg":"stream: created new stream","id":"j8nm75ci"}
+{"time":"2026-02-05T14:04:29.058956333-06:00","level":"INFO","msg":"handler: started","stream_id":"j8nm75ci"}
+{"time":"2026-02-05T14:04:29.059173774-06:00","level":"INFO","msg":"stream: started","id":"j8nm75ci"}
+{"time":"2026-02-05T14:04:29.059189223-06:00","level":"INFO","msg":"writer: started","stream_id":"j8nm75ci"}
+{"time":"2026-02-05T14:04:29.05920861-06:00","level":"INFO","msg":"sender: started","stream_id":"j8nm75ci"}
+{"time":"2026-02-05T14:35:59.750714616-06:00","level":"INFO","msg":"api: retrying HTTP error","status":502,"url":"https://api.wandb.ai/files/marrenj/temporal-dynamics-of-human-alignment/j8nm75ci/file_stream","body":"\n<html><head>\n<meta http-equiv=\"content-type\" content=\"text/html;charset=utf-8\">\n<title>502 Server Error</title>\n</head>\n<body text=#000000 bgcolor=#ffffff>\n<h1>Error: Server Error</h1>\n<h2>The server encountered a temporary error and could not complete your request.<p>Please try again in 30 seconds.</h2>\n<h2></h2>\n</body></html>\n"}
+{"time":"2026-02-05T15:34:18.477850682-06:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-02-05T15:34:18.958699951-06:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-02-05T15:34:18.969969665-06:00","level":"INFO","msg":"stream: closing","id":"j8nm75ci"}
+{"time":"2026-02-05T15:34:18.969981768-06:00","level":"INFO","msg":"handler: closed","stream_id":"j8nm75ci"}
+{"time":"2026-02-05T15:34:18.970055959-06:00","level":"INFO","msg":"sender: closed","stream_id":"j8nm75ci"}
+{"time":"2026-02-05T15:34:18.970076327-06:00","level":"INFO","msg":"stream: closed","id":"j8nm75ci"}

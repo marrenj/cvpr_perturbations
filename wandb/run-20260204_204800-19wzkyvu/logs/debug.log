@@ -1,0 +1,23 @@
+2026-02-04 20:48:00,344 INFO    MainThread:1036915 [wandb_setup.py:_flush():81] Current SDK version is 0.24.0
+2026-02-04 20:48:00,344 INFO    MainThread:1036915 [wandb_setup.py:_flush():81] Configure stats pid to 1036915
+2026-02-04 20:48:00,344 INFO    MainThread:1036915 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2026-02-04 20:48:00,344 INFO    MainThread:1036915 [wandb_init.py:setup_run_log_directory():717] Logging user logs to /home/wallacelab/Documents/GitHub/cvpr_perturbations/wandb/run-20260204_204800-19wzkyvu/logs/debug.log
+2026-02-04 20:48:00,344 INFO    MainThread:1036915 [wandb_init.py:setup_run_log_directory():718] Logging internal logs to /home/wallacelab/Documents/GitHub/cvpr_perturbations/wandb/run-20260204_204800-19wzkyvu/logs/debug-internal.log
+2026-02-04 20:48:00,344 INFO    MainThread:1036915 [wandb_init.py:init():844] calling init triggers
+2026-02-04 20:48:00,344 INFO    MainThread:1036915 [wandb_init.py:init():849] wandb.init called with sweep_config: {}
+config: {'backbone': 'ViT-L/14', 'baseline_checkpoint_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/baseline_seed2/vit_l_14_rank32_perturb-type-none_init-seed1behavioral-rsa-True', 'batch_size': 64, 'behavioral_rsa': True, 'criterion': 'MSELoss', 'cuda': 1, 'dataset_type': 'things', 'early_stopping_patience': 20, 'epochs': 500, 'experiment_type': 'baseline', 'img_annotations_file': './data/spose_embedding66d_rescaled_1806train.csv', 'img_dir': '/home/wallacelab/investigating-complexity/Images/THINGS', 'logger': 'None', 'lr': 0.0003, 'model_rdm_distance_metric': 'pearson', 'perturb_epoch': 1, 'perturb_length': 1, 'perturb_seed': 2, 'perturb_type': 'image_noise', 'random_seed': 1, 'rank': 32, 'rsa_annotations_file': './data/spose_embedding66d_rescaled_1806train.csv', 'rsa_similarity_metric': 'spearman', 'save_path': '/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/image_noise_perturb_seed2/epoch1_length1/vit_l_14_rank32_perturb-type-image_noise_epoch1_length1_perturb-seed2_init-seed1behavioral-rsa-True', 'train_portion': 0.8, 'transformer_layers': 1, 'vision_layers': 2, 'wandb_entity': None, 'wandb_project': 'temporal-dynamics-of-human-alignment', 'wandb_run_name': 'vit_l_14_rank32_perturb-type-image_noise_epoch1_length1_perturb-seed2_init-seed1behavioral-rsa-True', '_wandb': {'code_path': 'code/scripts/run_training.py'}}
+2026-02-04 20:48:00,344 INFO    MainThread:1036915 [wandb_init.py:init():892] starting backend
+2026-02-04 20:48:00,597 INFO    MainThread:1036915 [wandb_init.py:init():895] sending inform_init request
+2026-02-04 20:48:00,601 INFO    MainThread:1036915 [wandb_init.py:init():903] backend started and connected
+2026-02-04 20:48:00,602 INFO    MainThread:1036915 [wandb_init.py:init():973] updated telemetry
+2026-02-04 20:48:00,606 INFO    MainThread:1036915 [wandb_init.py:init():997] communicating run to backend with 90.0 second timeout
+2026-02-04 20:48:01,542 INFO    MainThread:1036915 [wandb_init.py:init():1044] starting run threads in backend
+2026-02-04 20:48:03,405 INFO    MainThread:1036915 [wandb_run.py:_console_start():2529] atexit reg
+2026-02-04 20:48:03,405 INFO    MainThread:1036915 [wandb_run.py:_redirect():2377] redirect: wrap_raw
+2026-02-04 20:48:03,405 INFO    MainThread:1036915 [wandb_run.py:_redirect():2446] Wrapping output streams.
+2026-02-04 20:48:03,405 INFO    MainThread:1036915 [wandb_run.py:_redirect():2469] Redirects installed.
+2026-02-04 20:48:03,408 INFO    MainThread:1036915 [wandb_init.py:init():1084] run started, returning control to user process
+2026-02-04 20:48:03,435 INFO    MainThread:1036915 [wandb_run.py:_config_callback():1404] config_cb None None {'dataset_size': 1806, 'train_size': 1444, 'test_size': 362, 'train_portion': 0.8}
+2026-02-04 20:48:08,018 INFO    MainThread:1036915 [wandb_watch.py:_watch():68] Watching
+2026-02-04 20:48:08,026 INFO    wandb-AsyncioManager-main:1036915 [service_client.py:_forward_responses():80] Reached EOF.
+2026-02-04 20:48:08,026 INFO    wandb-AsyncioManager-main:1036915 [mailbox.py:close():137] Closing mailbox, abandoning 1 handles.

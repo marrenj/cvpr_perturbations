@@ -1,0 +1,12 @@
+{"time":"2026-02-05T20:17:10.963436856-06:00","level":"INFO","msg":"stream: starting","core version":"0.24.0"}
+{"time":"2026-02-05T20:17:11.14554833-06:00","level":"INFO","msg":"stream: created new stream","id":"goxtjir0"}
+{"time":"2026-02-05T20:17:11.145611479-06:00","level":"INFO","msg":"handler: started","stream_id":"goxtjir0"}
+{"time":"2026-02-05T20:17:11.145734441-06:00","level":"INFO","msg":"stream: started","id":"goxtjir0"}
+{"time":"2026-02-05T20:17:11.145747897-06:00","level":"INFO","msg":"writer: started","stream_id":"goxtjir0"}
+{"time":"2026-02-05T20:17:11.145751934-06:00","level":"INFO","msg":"sender: started","stream_id":"goxtjir0"}
+{"time":"2026-02-05T21:54:51.537375008-06:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-02-05T21:54:51.892171814-06:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-02-05T21:54:51.905341225-06:00","level":"INFO","msg":"stream: closing","id":"goxtjir0"}
+{"time":"2026-02-05T21:54:51.90535479-06:00","level":"INFO","msg":"handler: closed","stream_id":"goxtjir0"}
+{"time":"2026-02-05T21:54:51.90541811-06:00","level":"INFO","msg":"sender: closed","stream_id":"goxtjir0"}
+{"time":"2026-02-05T21:54:51.905434932-06:00","level":"INFO","msg":"stream: closed","id":"goxtjir0"}

@@ -1,0 +1,66 @@
+{"time":"2026-02-09T11:34:59.488483458-06:00","level":"INFO","msg":"stream: starting","core version":"0.24.0"}
+{"time":"2026-02-09T11:34:59.670057198-06:00","level":"INFO","msg":"stream: created new stream","id":"957i6q70"}
+{"time":"2026-02-09T11:34:59.670114315-06:00","level":"INFO","msg":"handler: started","stream_id":"957i6q70"}
+{"time":"2026-02-09T11:34:59.670191591-06:00","level":"INFO","msg":"stream: started","id":"957i6q70"}
+{"time":"2026-02-09T11:34:59.670218622-06:00","level":"INFO","msg":"writer: started","stream_id":"957i6q70"}
+{"time":"2026-02-09T11:34:59.670221017-06:00","level":"INFO","msg":"sender: started","stream_id":"957i6q70"}
+{"time":"2026-02-09T11:41:12.23271444-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/4242422352: no space left on device"}
+{"time":"2026-02-09T11:41:12.2327301-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2461337448: no space left on device"}
+{"time":"2026-02-09T11:41:12.232738846-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/766336078: no space left on device"}
+{"time":"2026-02-09T11:41:12.232756299-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2149444160: no space left on device"}
+{"time":"2026-02-09T11:41:12.232765396-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/4167410903: no space left on device"}
+{"time":"2026-02-09T11:41:12.232779703-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/562562715: no space left on device"}
+{"time":"2026-02-09T11:41:12.232770266-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2684711333: no space left on device"}
+{"time":"2026-02-09T11:41:12.232791175-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/3809788317: no space left on device"}
+{"time":"2026-02-09T11:41:12.232813627-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2459164054: no space left on device"}
+{"time":"2026-02-09T11:41:12.232822644-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/3618772958: no space left on device"}
+{"time":"2026-02-09T11:41:12.232830459-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/1275438640: no space left on device"}
+{"time":"2026-02-09T11:41:12.232839727-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/1644125828: no space left on device"}
+{"time":"2026-02-09T11:41:12.23284703-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/336906771: no space left on device"}
+{"time":"2026-02-09T11:41:12.232859624-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/3290953992: no space left on device"}
+{"time":"2026-02-09T11:41:12.232875013-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/3979059837: no space left on device"}
+{"time":"2026-02-09T11:41:12.233008716-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/3986926709: no space left on device"}
+{"time":"2026-02-09T11:41:12.233020598-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2669636062: no space left on device"}
+{"time":"2026-02-09T11:41:12.233034104-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/3570021502: no space left on de{"time":"2026-02-09T11:41:12.239171615-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/3991203510: no space left on device"}
+{"time":"2026-02-09T11:41:12.239181544-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/3615169729: no space left on device"}
+{"time":"2026-02-09T11:41:12.239205579-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2467244609: no space left on device"}
+{"time":"2026-02-09T11:41:12.23923773-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/153374265: no space left on device"}
+{"time":"2026-02-09T11:41:12.23935982-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2734118831: no space left on device"}
+{"time":"2026-02-09T11:41:12.23936492-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2215449084: no space left on device"}
+{"time":"2026-02-09T11:41:12.239525182-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/1488558709: no space left on device"}
+{"time":"2026-02-09T11:41:12.240365147-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2036169843: no space left on device"}
+{"time":"2026-02-09T11:41:12.240375166-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/1088631919: no space left on device"}
+{"time":"2026-02-09T11:41:12.240395885-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/1267570380: no space left on device"}
+{"time":"2026-02-09T11:41:12.240410403-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/4165235928: no space left on device"}
+{"time":"2026-02-09T11:41:12.240417236-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/3238950280: no space left on device"}
+{"time":"2026-02-09T11:41:12.240432645-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2381763315: no space left on device"}
+{"time":"2026-02-09T11:41:12.240453454-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/3641803667: no space left on device"}
+{"time":"2026-02-09T11:41:12.240551699-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/3388718680: no space left on device"}
+{"time":"2026-02-09T11:41:12.240571637-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2786918424: no space left on device"}
+{"time":"2026-02-09T11:41:12.244915714-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2322597559: no space left on device"}
+{"time":"2026-02-09T11:41:12.244920152-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2518548515: no space left on device"}
+{"time":"2026-02-09T11:41:12.244930472-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/930180539: no space left on device"}
+{"time":"2026-02-09T11:41:12.244942555-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2892222492: no space left on device"}
+{"time":"2026-02-09T11:41:12.244952784-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/4087632583: no space left on device"}
+{"time":"2026-02-09T11:41:12.244962172-06:00","level":"ERROR","msg":"{"time":"2026-02-09T11:45:21.46403998-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/1104857754: no space left on device"}
+{"time":"2026-02-09T11:45:21.464048135-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/1934582687: no space left on device"}
+{"time":"2026-02-09T11:45:21.464063644-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2605098333: no space left on device"}
+{"time":"2026-02-09T11:45:21.46407188-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/3766926692: no space left on device"}
+{"time":"2026-02-09T11:45:21.46403997-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/3170215042: no space left on device"}
+{"time":"2026-02-09T11:45:21.464084133-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/838293334: no space left on device"}
+{"time":"2026-02-09T11:45:21.464109371-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2628887560: no space left on device"}
+{"time":"2026-02-09T11:45:21.464178171-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/1045060844: no space left on device"}
+{"time":"2026-02-09T11:45:21.464206534-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/425003487: no space left on device"}
+{"time":"2026-02-09T11:45:21.464228746-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2086712342: no space left on device"}
+{"time":"2026-02-09T11:45:21.464240789-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/3580079306: no space left on device"}
+{"time":"2026-02-09T11:45:21.464353311-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/934297518: no space left on device"}
+{"time":"2026-02-09T11:45:21.464369401-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/3447289536: no space left on device"}
+{"time":"2026-02-09T11:45:21.464403336-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2760318574: no space left on device"}
+{"time":"2026-02-09T11:45:21.46442683-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/3751254080: no space left on device"}
+{"time":"2026-02-09T11:45:21.464440947-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2765535295: no space left on device"}
+{"time":"2026-02-09T11:45:21.464550183-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2676070108: no space left on device"}
+{"time":"2026-02-09T11:45:21.464561314-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/2675768650: no space left on device"}
+{"time":"2026-02-09T11:45:21.464611118-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/1287446881: no space left on device"}
+{"time":"2026-02-09T11:45:21.464634772-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/4066431005: no space left on device"}
+{"time":"2026-02-09T11:45:21.464654099-06:00","level":"ERROR","msg":"error adding file to cache","err":"write /home/wallacelab/.cache/wandb/artifacts/tmp/773343695: no space left on device"}
+{"time":"2026-02-09T11:45:21.464668666-06:00","level":"ERROR","msg":"err

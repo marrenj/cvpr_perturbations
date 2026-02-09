@@ -1,0 +1,21 @@
+2026-02-04 20:48:03 - INFO - Dataset split indices saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/image_noise_perturb_seed2/epoch1_length1/vit_l_14_rank32_perturb-type-image_noise_epoch1_length1_perturb-seed2_init-seed1behavioral-rsa-True/random_states/dataset_split_indices.pth
+2026-02-04 20:48:03 - INFO - Using GPU 1
+2026-02-04 20:48:03 - INFO - Using device: cuda:1
+pos_embedding is True
+Traceback (most recent call last):
+  File "/home/wallacelab/Documents/GitHub/cvpr_perturbations/scripts/run_training.py", line 171, in <module>
+    main()
+  File "/home/wallacelab/Documents/GitHub/cvpr_perturbations/scripts/run_training.py", line 167, in main
+    run_training_experiment(prepared_config)
+  File "/home/wallacelab/Documents/GitHub/cvpr_perturbations/src/training/trainer.py", line 964, in run_training_experiment
+    resume_epoch = handle_checkpoint_resumption(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wallacelab/Documents/GitHub/cvpr_perturbations/src/training/trainer.py", line 541, in handle_checkpoint_resumption
+    resume_epoch = load_checkpoint_and_states(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wallacelab/Documents/GitHub/cvpr_perturbations/src/training/trainer.py", line 460, in load_checkpoint_and_states
+    loaded_dora_path = load_dora_checkpoint(
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wallacelab/Documents/GitHub/cvpr_perturbations/src/models/clip_hba/clip_hba_utils.py", line 432, in load_dora_checkpoint
+    raise FileNotFoundError(f"Missing DoRA checkpoint: {checkpoint_path}")
+FileNotFoundError: Missing DoRA checkpoint: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/baseline_seed2/vit_l_14_rank32_perturb-type-none_init-seed1behavioral-rsa-True/dora_params/epoch0_dora_params.pth

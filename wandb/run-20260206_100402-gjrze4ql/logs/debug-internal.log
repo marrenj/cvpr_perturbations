@@ -1,0 +1,12 @@
+{"time":"2026-02-06T10:04:02.697694357-06:00","level":"INFO","msg":"stream: starting","core version":"0.24.0"}
+{"time":"2026-02-06T10:04:02.878331879-06:00","level":"INFO","msg":"stream: created new stream","id":"gjrze4ql"}
+{"time":"2026-02-06T10:04:02.878487363-06:00","level":"INFO","msg":"handler: started","stream_id":"gjrze4ql"}
+{"time":"2026-02-06T10:04:02.878597922-06:00","level":"INFO","msg":"stream: started","id":"gjrze4ql"}
+{"time":"2026-02-06T10:04:02.87863385-06:00","level":"INFO","msg":"writer: started","stream_id":"gjrze4ql"}
+{"time":"2026-02-06T10:04:02.878660821-06:00","level":"INFO","msg":"sender: started","stream_id":"gjrze4ql"}
+{"time":"2026-02-06T11:39:29.129114803-06:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-02-06T11:39:29.488739509-06:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-02-06T11:39:29.508953356-06:00","level":"INFO","msg":"stream: closing","id":"gjrze4ql"}
+{"time":"2026-02-06T11:39:29.508973915-06:00","level":"INFO","msg":"handler: closed","stream_id":"gjrze4ql"}
+{"time":"2026-02-06T11:39:29.509076398-06:00","level":"INFO","msg":"sender: closed","stream_id":"gjrze4ql"}
+{"time":"2026-02-06T11:39:29.509100113-06:00","level":"INFO","msg":"stream: closed","id":"gjrze4ql"}

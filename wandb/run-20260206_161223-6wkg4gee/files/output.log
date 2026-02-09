@@ -1,0 +1,786 @@
+2026-02-06 16:12:26 - INFO - Loaded dataset split indices from /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/baseline_seed1/vit_l_14_rank32_perturb-type-none_init-seed1behavioral-rsa-True/random_states/dataset_split_indices.pth
+2026-02-06 16:12:26 - INFO - Dataset split indices saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/dataset_split_indices.pth
+2026-02-06 16:12:26 - INFO - Using GPU 0
+2026-02-06 16:12:26 - INFO - Using device: cuda:0
+pos_embedding is True
+2026-02-06 16:12:30 - INFO - Loaded DoRA parameters from: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/baseline_seed1/vit_l_14_rank32_perturb-type-none_init-seed1behavioral-rsa-True/dora_params/epoch18_dora_params.pth
+2026-02-06 16:12:31 - INFO - Restored optimizer and RNG states from /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/baseline_seed1/vit_l_14_rank32_perturb-type-none_init-seed1behavioral-rsa-True/random_states/epoch18_random_states.pth
+2026-02-06 16:12:31 - INFO - Loaded baseline checkpoint from epoch 18
+2026-02-06 16:12:31 - INFO - Total parameters: 427,802,369
+2026-02-06 16:12:31 - INFO - Trainable parameters: 183,040 (0.04%)
+2026-02-06 16:12:31 - INFO -
+Model Configuration:
+2026-02-06 16:12:31 - INFO - -------------------
+2026-02-06 16:12:31 - INFO - backbone: ViT-L/14
+2026-02-06 16:12:31 - INFO - baseline_checkpoint_path: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/baseline_seed1/vit_l_14_rank32_perturb-type-none_init-seed1behavioral-rsa-True
+2026-02-06 16:12:31 - INFO - batch_size: 64
+2026-02-06 16:12:31 - INFO - behavioral_rsa: True
+2026-02-06 16:12:31 - INFO - criterion: MSELoss
+2026-02-06 16:12:31 - INFO - cuda: 0
+2026-02-06 16:12:31 - INFO - dataset_type: things
+2026-02-06 16:12:31 - INFO - early_stopping_patience: 20
+2026-02-06 16:12:31 - INFO - epochs: 500
+2026-02-06 16:12:31 - INFO - experiment_type: baseline
+2026-02-06 16:12:31 - INFO - img_annotations_file: ./data/spose_embedding66d_rescaled_1806train.csv
+2026-02-06 16:12:31 - INFO - img_dir: /home/wallacelab/investigating-complexity/Images/THINGS
+2026-02-06 16:12:31 - INFO - logger: None
+2026-02-06 16:12:31 - INFO - lr: 0.0003
+2026-02-06 16:12:31 - INFO - model_rdm_distance_metric: pearson
+2026-02-06 16:12:31 - INFO - perturb_epoch: 19
+2026-02-06 16:12:31 - INFO - perturb_length: 1
+2026-02-06 16:12:31 - INFO - perturb_seed: 1
+2026-02-06 16:12:31 - INFO - perturb_type: random_target
+2026-02-06 16:12:31 - INFO - random_seed: 1
+2026-02-06 16:12:31 - INFO - rank: 32
+2026-02-06 16:12:31 - INFO - rsa_annotations_file: ./data/spose_embedding66d_rescaled_1806train.csv
+2026-02-06 16:12:31 - INFO - rsa_similarity_metric: spearman
+2026-02-06 16:12:31 - INFO - save_path: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True
+2026-02-06 16:12:31 - INFO - train_portion: 0.8
+2026-02-06 16:12:31 - INFO - transformer_layers: 1
+2026-02-06 16:12:31 - INFO - vision_layers: 2
+2026-02-06 16:12:31 - INFO - wandb_entity: None
+2026-02-06 16:12:31 - INFO - wandb_project: temporal-dynamics-of-human-alignment
+2026-02-06 16:12:31 - INFO - wandb_run_name: vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True
+2026-02-06 16:12:31 - INFO - wandb_run_id: 6wkg4gee
+2026-02-06 16:12:31 - INFO -
+Updating layers:
+2026-02-06 16:12:31 - INFO - clip_model.visual.transformer.resblocks.22.attn.out_proj.m
+2026-02-06 16:12:31 - INFO - clip_model.visual.transformer.resblocks.22.attn.out_proj.delta_D_A
+2026-02-06 16:12:31 - INFO - clip_model.visual.transformer.resblocks.22.attn.out_proj.delta_D_B
+2026-02-06 16:12:31 - INFO - clip_model.visual.transformer.resblocks.23.attn.out_proj.m
+2026-02-06 16:12:31 - INFO - clip_model.visual.transformer.resblocks.23.attn.out_proj.delta_D_A
+2026-02-06 16:12:31 - INFO - clip_model.visual.transformer.resblocks.23.attn.out_proj.delta_D_B
+2026-02-06 16:12:31 - INFO - clip_model.transformer.resblocks.11.attn.out_proj.m
+2026-02-06 16:12:31 - INFO - clip_model.transformer.resblocks.11.attn.out_proj.delta_D_A
+2026-02-06 16:12:31 - INFO - clip_model.transformer.resblocks.11.attn.out_proj.delta_D_B
+2026-02-06 16:12:31 - INFO -
+Number of trainable parameters: 183040
+
+2026-02-06 16:12:31 - INFO - *********************************
+2026-02-06 16:12:31 - INFO - Evaluating initial model
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.36s/it, loss=46.1]
+2026-02-06 16:12:39 - INFO - Initial Validation Loss: 42.1134
+2026-02-06 16:12:47 - INFO - Behavioral RSA: corr=0.8070, p=0
+2026-02-06 16:12:47 - INFO - *********************************
+
+2026-02-06 16:12:47 - INFO - Applying TargetNoisePerturbation perturbation during epoch 19
+Epoch 19: 100%|███████████████████████| 23/23 [00:34<00:00,  1.51s/it, loss=115]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.38s/it, loss=71.5]
+Epoch 19: Training Loss: 136.4302, Validation Loss: 71.5681
+2026-02-06 16:13:30 - INFO - Epoch 19: Training Loss: 136.4302, Validation Loss: 71.5681
+2026-02-06 16:13:30 - INFO - *** Perturbation 'TargetNoisePerturbation' was applied during epoch 19 ***
+2026-02-06 16:13:38 - INFO - Behavioral RSA: corr=0.7131, p=0
+2026-02-06 16:13:38 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch19_random_states.pth
+2026-02-06 16:13:38 - INFO - Checkpoint saved for epoch 19
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.0s
+Epoch 20: 100%|██████████████████████| 23/23 [00:33<00:00,  1.47s/it, loss=53.1]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.37s/it, loss=56.7]
+Epoch 20: Training Loss: 62.7884, Validation Loss: 54.5321
+2026-02-06 16:14:21 - INFO - Epoch 20: Training Loss: 62.7884, Validation Loss: 54.5321
+2026-02-06 16:14:29 - INFO - Behavioral RSA: corr=0.7303, p=0
+2026-02-06 16:14:29 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch20_random_states.pth
+2026-02-06 16:14:29 - INFO - Checkpoint saved for epoch 20
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.0s
+Epoch 21: 100%|██████████████████████| 23/23 [00:35<00:00,  1.56s/it, loss=42.2]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.43s/it, loss=48.5]
+Epoch 21: Training Loss: 48.9167, Validation Loss: 45.3193
+2026-02-06 16:15:14 - INFO - Epoch 21: Training Loss: 48.9167, Validation Loss: 45.3193
+2026-02-06 16:15:22 - INFO - Behavioral RSA: corr=0.8018, p=0
+2026-02-06 16:15:22 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch21_random_states.pth
+2026-02-06 16:15:22 - INFO - Checkpoint saved for epoch 21
+Epoch 22: 100%|██████████████████████| 23/23 [00:34<00:00,  1.50s/it, loss=40.8]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.39s/it, loss=45.1]
+Epoch 22: Training Loss: 41.2740, Validation Loss: 41.3692
+2026-02-06 16:16:05 - INFO - Epoch 22: Training Loss: 41.2740, Validation Loss: 41.3692
+2026-02-06 16:16:13 - INFO - Behavioral RSA: corr=0.8100, p=0
+2026-02-06 16:16:13 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch22_random_states.pth
+2026-02-06 16:16:13 - INFO - Checkpoint saved for epoch 22
+Epoch 23: 100%|██████████████████████| 23/23 [00:34<00:00,  1.49s/it, loss=36.1]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.39s/it, loss=44.1]
+Epoch 23: Training Loss: 39.1293, Validation Loss: 40.2953
+2026-02-06 16:16:56 - INFO - Epoch 23: Training Loss: 39.1293, Validation Loss: 40.2953
+2026-02-06 16:17:04 - INFO - Behavioral RSA: corr=0.8123, p=0
+2026-02-06 16:17:04 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch23_random_states.pth
+2026-02-06 16:17:04 - INFO - Checkpoint saved for epoch 23
+Epoch 24: 100%|██████████████████████| 23/23 [00:35<00:00,  1.56s/it, loss=37.6]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.40s/it, loss=43.3]
+Epoch 24: Training Loss: 38.1183, Validation Loss: 39.5776
+2026-02-06 16:17:49 - INFO - Epoch 24: Training Loss: 38.1183, Validation Loss: 39.5776
+2026-02-06 16:17:57 - INFO - Behavioral RSA: corr=0.8142, p=0
+2026-02-06 16:17:57 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch24_random_states.pth
+2026-02-06 16:17:57 - INFO - Checkpoint saved for epoch 24
+Epoch 25: 100%|██████████████████████| 23/23 [00:34<00:00,  1.49s/it, loss=39.2]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.42s/it, loss=42.6]
+Epoch 25: Training Loss: 37.2316, Validation Loss: 38.8496
+2026-02-06 16:18:40 - INFO - Epoch 25: Training Loss: 37.2316, Validation Loss: 38.8496
+2026-02-06 16:18:48 - INFO - Behavioral RSA: corr=0.8164, p=0
+2026-02-06 16:18:48 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch25_random_states.pth
+2026-02-06 16:18:48 - INFO - Checkpoint saved for epoch 25
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.1s
+Epoch 26: 100%|██████████████████████| 23/23 [00:34<00:00,  1.48s/it, loss=38.9]
+Evaluating: 100%|████████████████████████| 6/6 [00:08<00:00,  1.35s/it, loss=42]
+Epoch 26: Training Loss: 36.4335, Validation Loss: 38.2556
+2026-02-06 16:19:31 - INFO - Epoch 26: Training Loss: 36.4335, Validation Loss: 38.2556
+2026-02-06 16:19:39 - INFO - Behavioral RSA: corr=0.8200, p=0
+2026-02-06 16:19:39 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch26_random_states.pth
+2026-02-06 16:19:39 - INFO - Checkpoint saved for epoch 26
+Epoch 27: 100%|████████████████████████| 23/23 [00:34<00:00,  1.49s/it, loss=36]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.37s/it, loss=41.5]
+Epoch 27: Training Loss: 35.6713, Validation Loss: 37.7101
+2026-02-06 16:20:21 - INFO - Epoch 27: Training Loss: 35.6713, Validation Loss: 37.7101
+2026-02-06 16:20:29 - INFO - Behavioral RSA: corr=0.8202, p=0
+2026-02-06 16:20:29 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch27_random_states.pth
+2026-02-06 16:20:29 - INFO - Checkpoint saved for epoch 27
+Epoch 28: 100%|██████████████████████| 23/23 [00:33<00:00,  1.46s/it, loss=35.9]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.36s/it, loss=40.9]
+Epoch 28: Training Loss: 34.9721, Validation Loss: 37.1763
+2026-02-06 16:21:11 - INFO - Epoch 28: Training Loss: 34.9721, Validation Loss: 37.1763
+2026-02-06 16:21:20 - INFO - Behavioral RSA: corr=0.8226, p=0
+2026-02-06 16:21:20 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch28_random_states.pth
+2026-02-06 16:21:20 - INFO - Checkpoint saved for epoch 28
+Epoch 29: 100%|██████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=32.6]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.35s/it, loss=40.5]
+Epoch 29: Training Loss: 34.3412, Validation Loss: 36.6401
+2026-02-06 16:22:01 - INFO - Epoch 29: Training Loss: 34.3412, Validation Loss: 36.6401
+2026-02-06 16:22:10 - INFO - Behavioral RSA: corr=0.8236, p=0
+2026-02-06 16:22:10 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch29_random_states.pth
+2026-02-06 16:22:10 - INFO - Checkpoint saved for epoch 29
+Epoch 30: 100%|██████████████████████| 23/23 [00:33<00:00,  1.48s/it, loss=34.7]
+Evaluating: 100%|████████████████████████| 6/6 [00:08<00:00,  1.35s/it, loss=40]
+Epoch 30: Training Loss: 33.6874, Validation Loss: 36.1716
+2026-02-06 16:22:52 - INFO - Epoch 30: Training Loss: 33.6874, Validation Loss: 36.1716
+2026-02-06 16:23:00 - INFO - Behavioral RSA: corr=0.8248, p=0
+2026-02-06 16:23:00 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch30_random_states.pth
+2026-02-06 16:23:00 - INFO - Checkpoint saved for epoch 30
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.1s
+Epoch 31: 100%|████████████████████████| 23/23 [00:33<00:00,  1.44s/it, loss=32]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.33s/it, loss=39.7]
+Epoch 31: Training Loss: 33.1166, Validation Loss: 35.7849
+2026-02-06 16:23:41 - INFO - Epoch 31: Training Loss: 33.1166, Validation Loss: 35.7849
+2026-02-06 16:23:49 - INFO - Behavioral RSA: corr=0.8249, p=0
+2026-02-06 16:23:49 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch31_random_states.pth
+2026-02-06 16:23:49 - INFO - Checkpoint saved for epoch 31
+Epoch 32: 100%|██████████████████████| 23/23 [00:33<00:00,  1.44s/it, loss=28.3]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.35s/it, loss=39.3]
+Epoch 32: Training Loss: 32.5598, Validation Loss: 35.3534
+2026-02-06 16:24:30 - INFO - Epoch 32: Training Loss: 32.5598, Validation Loss: 35.3534
+2026-02-06 16:24:39 - INFO - Behavioral RSA: corr=0.8269, p=0
+2026-02-06 16:24:40 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch32_random_states.pth
+2026-02-06 16:24:40 - INFO - Checkpoint saved for epoch 32
+Epoch 33: 100%|██████████████████████| 23/23 [00:33<00:00,  1.46s/it, loss=29.1]
+Evaluating: 100%|████████████████████████| 6/6 [00:08<00:00,  1.33s/it, loss=39]
+Epoch 33: Training Loss: 32.0582, Validation Loss: 35.0099
+2026-02-06 16:25:21 - INFO - Epoch 33: Training Loss: 32.0582, Validation Loss: 35.0099
+2026-02-06 16:25:29 - INFO - Behavioral RSA: corr=0.8263, p=0
+2026-02-06 16:25:29 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch33_random_states.pth
+2026-02-06 16:25:29 - INFO - Checkpoint saved for epoch 33
+Epoch 34: 100%|██████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=36.3]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.32s/it, loss=38.7]
+Epoch 34: Training Loss: 31.5354, Validation Loss: 34.7198
+2026-02-06 16:26:10 - INFO - Epoch 34: Training Loss: 31.5354, Validation Loss: 34.7198
+2026-02-06 16:26:18 - INFO - Behavioral RSA: corr=0.8267, p=0
+2026-02-06 16:26:18 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch34_random_states.pth
+2026-02-06 16:26:18 - INFO - Checkpoint saved for epoch 34
+Epoch 35: 100%|██████████████████████| 23/23 [00:33<00:00,  1.44s/it, loss=29.6]
+Evaluating: 100%|██████████████████████| 6/6 [00:09<00:00,  1.52s/it, loss=38.3]
+Epoch 35: Training Loss: 31.1231, Validation Loss: 34.3785
+2026-02-06 16:27:01 - INFO - Epoch 35: Training Loss: 31.1231, Validation Loss: 34.3785
+2026-02-06 16:27:08 - INFO - Behavioral RSA: corr=0.8281, p=0
+2026-02-06 16:27:09 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch35_random_states.pth
+2026-02-06 16:27:09 - INFO - Checkpoint saved for epoch 35
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.1s
+Epoch 36: 100%|██████████████████████| 23/23 [00:33<00:00,  1.46s/it, loss=28.1]
+Evaluating: 100%|████████████████████████| 6/6 [00:08<00:00,  1.33s/it, loss=38]
+Epoch 36: Training Loss: 30.6321, Validation Loss: 34.0261
+2026-02-06 16:27:50 - INFO - Epoch 36: Training Loss: 30.6321, Validation Loss: 34.0261
+2026-02-06 16:27:58 - INFO - Behavioral RSA: corr=0.8295, p=0
+2026-02-06 16:27:58 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch36_random_states.pth
+2026-02-06 16:27:58 - INFO - Checkpoint saved for epoch 36
+Epoch 37: 100%|██████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=29.1]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.32s/it, loss=37.8]
+Epoch 37: Training Loss: 30.1996, Validation Loss: 33.7880
+2026-02-06 16:28:40 - INFO - Epoch 37: Training Loss: 30.1996, Validation Loss: 33.7880
+2026-02-06 16:28:48 - INFO - Behavioral RSA: corr=0.8308, p=0
+2026-02-06 16:28:48 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch37_random_states.pth
+2026-02-06 16:28:48 - INFO - Checkpoint saved for epoch 37
+Epoch 38: 100%|██████████████████████| 23/23 [00:34<00:00,  1.50s/it, loss=28.8]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.31s/it, loss=37.5]
+Epoch 38: Training Loss: 29.7897, Validation Loss: 33.5442
+2026-02-06 16:29:30 - INFO - Epoch 38: Training Loss: 29.7897, Validation Loss: 33.5442
+2026-02-06 16:29:38 - INFO - Behavioral RSA: corr=0.8302, p=0
+2026-02-06 16:29:38 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch38_random_states.pth
+2026-02-06 16:29:38 - INFO - Checkpoint saved for epoch 38
+Epoch 39: 100%|██████████████████████| 23/23 [00:33<00:00,  1.46s/it, loss=30.3]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.33s/it, loss=37.3]
+Epoch 39: Training Loss: 29.4119, Validation Loss: 33.3029
+2026-02-06 16:30:20 - INFO - Epoch 39: Training Loss: 29.4119, Validation Loss: 33.3029
+2026-02-06 16:30:27 - INFO - Behavioral RSA: corr=0.8300, p=0
+2026-02-06 16:30:28 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch39_random_states.pth
+2026-02-06 16:30:28 - INFO - Checkpoint saved for epoch 39
+Epoch 40: 100%|██████████████████████| 23/23 [00:33<00:00,  1.44s/it, loss=29.3]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.33s/it, loss=37.1]
+Epoch 40: Training Loss: 29.0405, Validation Loss: 33.0872
+2026-02-06 16:31:09 - INFO - Epoch 40: Training Loss: 29.0405, Validation Loss: 33.0872
+2026-02-06 16:31:17 - INFO - Behavioral RSA: corr=0.8302, p=0
+2026-02-06 16:31:17 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch40_random_states.pth
+2026-02-06 16:31:17 - INFO - Checkpoint saved for epoch 40
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.2s
+Epoch 41: 100%|████████████████████████| 23/23 [00:34<00:00,  1.50s/it, loss=28]
+Evaluating: 100%|████████████████████████| 6/6 [00:07<00:00,  1.32s/it, loss=37]
+Epoch 41: Training Loss: 28.7113, Validation Loss: 32.8927
+2026-02-06 16:31:59 - INFO - Epoch 41: Training Loss: 28.7113, Validation Loss: 32.8927
+2026-02-06 16:32:07 - INFO - Behavioral RSA: corr=0.8304, p=0
+2026-02-06 16:32:07 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch41_random_states.pth
+2026-02-06 16:32:07 - INFO - Checkpoint saved for epoch 41
+Epoch 42: 100%|██████████████████████| 23/23 [00:33<00:00,  1.47s/it, loss=27.3]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.31s/it, loss=36.6]
+Epoch 42: Training Loss: 28.3519, Validation Loss: 32.6937
+2026-02-06 16:32:49 - INFO - Epoch 42: Training Loss: 28.3519, Validation Loss: 32.6937
+2026-02-06 16:32:57 - INFO - Behavioral RSA: corr=0.8313, p=0
+2026-02-06 16:32:57 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch42_random_states.pth
+2026-02-06 16:32:57 - INFO - Checkpoint saved for epoch 42
+Epoch 43: 100%|██████████████████████| 23/23 [00:33<00:00,  1.46s/it, loss=28.4]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.35s/it, loss=36.6]
+Epoch 43: Training Loss: 28.0016, Validation Loss: 32.5103
+2026-02-06 16:33:39 - INFO - Epoch 43: Training Loss: 28.0016, Validation Loss: 32.5103
+2026-02-06 16:33:47 - INFO - Behavioral RSA: corr=0.8320, p=0
+2026-02-06 16:33:47 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch43_random_states.pth
+2026-02-06 16:33:47 - INFO - Checkpoint saved for epoch 43
+Epoch 44: 100%|██████████████████████| 23/23 [00:34<00:00,  1.50s/it, loss=26.5]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.31s/it, loss=36.3]
+Epoch 44: Training Loss: 27.6875, Validation Loss: 32.3078
+2026-02-06 16:34:29 - INFO - Epoch 44: Training Loss: 27.6875, Validation Loss: 32.3078
+2026-02-06 16:34:37 - INFO - Behavioral RSA: corr=0.8319, p=0
+2026-02-06 16:34:37 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch44_random_states.pth
+2026-02-06 16:34:37 - INFO - Checkpoint saved for epoch 44
+Epoch 45: 100%|██████████████████████| 23/23 [00:33<00:00,  1.47s/it, loss=28.9]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.33s/it, loss=36.3]
+Epoch 45: Training Loss: 27.3653, Validation Loss: 32.1769
+2026-02-06 16:35:19 - INFO - Epoch 45: Training Loss: 27.3653, Validation Loss: 32.1769
+2026-02-06 16:35:27 - INFO - Behavioral RSA: corr=0.8317, p=0
+2026-02-06 16:35:27 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch45_random_states.pth
+2026-02-06 16:35:27 - INFO - Checkpoint saved for epoch 45
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.2s
+Epoch 46: 100%|██████████████████████| 23/23 [00:32<00:00,  1.43s/it, loss=24.2]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.32s/it, loss=35.9]
+Epoch 46: Training Loss: 27.0735, Validation Loss: 31.9793
+2026-02-06 16:36:08 - INFO - Epoch 46: Training Loss: 27.0735, Validation Loss: 31.9793
+2026-02-06 16:36:16 - INFO - Behavioral RSA: corr=0.8322, p=0
+2026-02-06 16:36:16 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch46_random_states.pth
+2026-02-06 16:36:16 - INFO - Checkpoint saved for epoch 46
+Epoch 47: 100%|██████████████████████| 23/23 [00:33<00:00,  1.47s/it, loss=26.1]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.32s/it, loss=35.8]
+Epoch 47: Training Loss: 26.7527, Validation Loss: 31.7607
+2026-02-06 16:36:58 - INFO - Epoch 47: Training Loss: 26.7527, Validation Loss: 31.7607
+2026-02-06 16:37:06 - INFO - Behavioral RSA: corr=0.8318, p=0
+2026-02-06 16:37:06 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch47_random_states.pth
+2026-02-06 16:37:06 - INFO - Checkpoint saved for epoch 47
+Epoch 48: 100%|██████████████████████| 23/23 [00:33<00:00,  1.46s/it, loss=25.1]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.33s/it, loss=35.7]
+Epoch 48: Training Loss: 26.4890, Validation Loss: 31.7022
+2026-02-06 16:37:48 - INFO - Epoch 48: Training Loss: 26.4890, Validation Loss: 31.7022
+2026-02-06 16:37:56 - INFO - Behavioral RSA: corr=0.8311, p=0
+2026-02-06 16:37:56 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch48_random_states.pth
+2026-02-06 16:37:56 - INFO - Checkpoint saved for epoch 48
+Epoch 49: 100%|██████████████████████| 23/23 [00:33<00:00,  1.44s/it, loss=25.3]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.32s/it, loss=35.7]
+Epoch 49: Training Loss: 26.2086, Validation Loss: 31.5587
+2026-02-06 16:38:37 - INFO - Epoch 49: Training Loss: 26.2086, Validation Loss: 31.5587
+2026-02-06 16:38:45 - INFO - Behavioral RSA: corr=0.8312, p=0
+2026-02-06 16:38:45 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch49_random_states.pth
+2026-02-06 16:38:45 - INFO - Checkpoint saved for epoch 49
+Epoch 50: 100%|██████████████████████| 23/23 [00:34<00:00,  1.51s/it, loss=26.8]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.34s/it, loss=35.6]
+Epoch 50: Training Loss: 25.9324, Validation Loss: 31.4665
+2026-02-06 16:39:27 - INFO - Epoch 50: Training Loss: 25.9324, Validation Loss: 31.4665
+2026-02-06 16:39:35 - INFO - Behavioral RSA: corr=0.8320, p=0
+2026-02-06 16:39:35 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch50_random_states.pth
+2026-02-06 16:39:35 - INFO - Checkpoint saved for epoch 50
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.2s
+Epoch 51: 100%|██████████████████████| 23/23 [00:32<00:00,  1.43s/it, loss=24.6]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.30s/it, loss=35.4]
+Epoch 51: Training Loss: 25.6703, Validation Loss: 31.3198
+2026-02-06 16:40:17 - INFO - Epoch 51: Training Loss: 25.6703, Validation Loss: 31.3198
+2026-02-06 16:40:24 - INFO - Behavioral RSA: corr=0.8308, p=0
+2026-02-06 16:40:24 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch51_random_states.pth
+2026-02-06 16:40:24 - INFO - Checkpoint saved for epoch 51
+Epoch 52: 100%|██████████████████████| 23/23 [00:33<00:00,  1.44s/it, loss=30.1]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.35s/it, loss=35.3]
+Epoch 52: Training Loss: 25.4357, Validation Loss: 31.1533
+2026-02-06 16:41:06 - INFO - Epoch 52: Training Loss: 25.4357, Validation Loss: 31.1533
+2026-02-06 16:41:15 - INFO - Behavioral RSA: corr=0.8313, p=0
+2026-02-06 16:41:15 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch52_random_states.pth
+2026-02-06 16:41:15 - INFO - Checkpoint saved for epoch 52
+Epoch 53: 100%|██████████████████████| 23/23 [00:32<00:00,  1.43s/it, loss=24.3]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.31s/it, loss=35.2]
+Epoch 53: Training Loss: 25.1788, Validation Loss: 31.0380
+2026-02-06 16:41:56 - INFO - Epoch 53: Training Loss: 25.1788, Validation Loss: 31.0380
+2026-02-06 16:42:04 - INFO - Behavioral RSA: corr=0.8305, p=0
+2026-02-06 16:42:04 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch53_random_states.pth
+2026-02-06 16:42:04 - INFO - Checkpoint saved for epoch 53
+Epoch 54: 100%|██████████████████████| 23/23 [00:33<00:00,  1.47s/it, loss=23.9]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.30s/it, loss=35.1]
+Epoch 54: Training Loss: 24.9525, Validation Loss: 31.0270
+2026-02-06 16:42:45 - INFO - Epoch 54: Training Loss: 24.9525, Validation Loss: 31.0270
+2026-02-06 16:42:53 - INFO - Behavioral RSA: corr=0.8297, p=0
+2026-02-06 16:42:53 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch54_random_states.pth
+2026-02-06 16:42:53 - INFO - Checkpoint saved for epoch 54
+Epoch 55: 100%|██████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=26.3]
+Evaluating: 100%|████████████████████████| 6/6 [00:09<00:00,  1.51s/it, loss=35]
+Epoch 55: Training Loss: 24.6868, Validation Loss: 30.8323
+2026-02-06 16:43:36 - INFO - Epoch 55: Training Loss: 24.6868, Validation Loss: 30.8323
+2026-02-06 16:43:44 - INFO - Behavioral RSA: corr=0.8308, p=0
+2026-02-06 16:43:44 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch55_random_states.pth
+2026-02-06 16:43:44 - INFO - Checkpoint saved for epoch 55
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.3s
+Epoch 56: 100%|██████████████████████| 23/23 [00:32<00:00,  1.43s/it, loss=23.8]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.34s/it, loss=34.9]
+Epoch 56: Training Loss: 24.4812, Validation Loss: 30.7453
+2026-02-06 16:44:25 - INFO - Epoch 56: Training Loss: 24.4812, Validation Loss: 30.7453
+2026-02-06 16:44:33 - INFO - Behavioral RSA: corr=0.8303, p=0
+2026-02-06 16:44:33 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch56_random_states.pth
+2026-02-06 16:44:33 - INFO - Checkpoint saved for epoch 56
+Epoch 57: 100%|██████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=23.9]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.35s/it, loss=34.9]
+Epoch 57: Training Loss: 24.2172, Validation Loss: 30.6962
+2026-02-06 16:45:15 - INFO - Epoch 57: Training Loss: 24.2172, Validation Loss: 30.6962
+2026-02-06 16:45:23 - INFO - Behavioral RSA: corr=0.8296, p=0
+2026-02-06 16:45:23 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch57_random_states.pth
+2026-02-06 16:45:23 - INFO - Checkpoint saved for epoch 57
+Epoch 58: 100%|██████████████████████| 23/23 [00:34<00:00,  1.51s/it, loss=23.6]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.33s/it, loss=34.8]
+Epoch 58: Training Loss: 23.9985, Validation Loss: 30.5884
+2026-02-06 16:46:06 - INFO - Epoch 58: Training Loss: 23.9985, Validation Loss: 30.5884
+2026-02-06 16:46:14 - INFO - Behavioral RSA: corr=0.8305, p=0
+2026-02-06 16:46:14 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch58_random_states.pth
+2026-02-06 16:46:14 - INFO - Checkpoint saved for epoch 58
+Epoch 59: 100%|██████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=25.3]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.34s/it, loss=34.6]
+Epoch 59: Training Loss: 23.8016, Validation Loss: 30.5061
+2026-02-06 16:46:55 - INFO - Epoch 59: Training Loss: 23.8016, Validation Loss: 30.5061
+2026-02-06 16:47:03 - INFO - Behavioral RSA: corr=0.8294, p=0
+2026-02-06 16:47:03 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch59_random_states.pth
+2026-02-06 16:47:03 - INFO - Checkpoint saved for epoch 59
+Epoch 60: 100%|██████████████████████| 23/23 [00:33<00:00,  1.44s/it, loss=23.9]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.32s/it, loss=34.6]
+Epoch 60: Training Loss: 23.5780, Validation Loss: 30.3901
+2026-02-06 16:47:44 - INFO - Epoch 60: Training Loss: 23.5780, Validation Loss: 30.3901
+2026-02-06 16:47:52 - INFO - Behavioral RSA: corr=0.8295, p=0
+2026-02-06 16:47:52 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch60_random_states.pth
+2026-02-06 16:47:52 - INFO - Checkpoint saved for epoch 60
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.3s
+Epoch 61: 100%|██████████████████████| 23/23 [00:34<00:00,  1.50s/it, loss=23.2]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.32s/it, loss=34.6]
+Epoch 61: Training Loss: 23.3574, Validation Loss: 30.3753
+2026-02-06 16:48:35 - INFO - Epoch 61: Training Loss: 23.3574, Validation Loss: 30.3753
+2026-02-06 16:48:43 - INFO - Behavioral RSA: corr=0.8289, p=0
+2026-02-06 16:48:43 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch61_random_states.pth
+2026-02-06 16:48:43 - INFO - Checkpoint saved for epoch 61
+Epoch 62: 100%|██████████████████████| 23/23 [00:32<00:00,  1.43s/it, loss=22.3]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.35s/it, loss=34.6]
+Epoch 62: Training Loss: 23.1661, Validation Loss: 30.3162
+2026-02-06 16:49:24 - INFO - Epoch 62: Training Loss: 23.1661, Validation Loss: 30.3162
+2026-02-06 16:49:32 - INFO - Behavioral RSA: corr=0.8293, p=0
+2026-02-06 16:49:32 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch62_random_states.pth
+2026-02-06 16:49:32 - INFO - Checkpoint saved for epoch 62
+Epoch 63: 100%|██████████████████████| 23/23 [00:33<00:00,  1.44s/it, loss=22.7]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.32s/it, loss=34.6]
+Epoch 63: Training Loss: 22.9716, Validation Loss: 30.2852
+2026-02-06 16:50:13 - INFO - Epoch 63: Training Loss: 22.9716, Validation Loss: 30.2852
+2026-02-06 16:50:21 - INFO - Behavioral RSA: corr=0.8275, p=0
+2026-02-06 16:50:21 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch63_random_states.pth
+2026-02-06 16:50:21 - INFO - Checkpoint saved for epoch 63
+Epoch 64: 100%|██████████████████████| 23/23 [00:34<00:00,  1.49s/it, loss=19.6]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.33s/it, loss=34.5]
+Epoch 64: Training Loss: 22.7612, Validation Loss: 30.1680
+2026-02-06 16:51:03 - INFO - Epoch 64: Training Loss: 22.7612, Validation Loss: 30.1680
+2026-02-06 16:51:11 - INFO - Behavioral RSA: corr=0.8281, p=0
+2026-02-06 16:51:11 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch64_random_states.pth
+2026-02-06 16:51:11 - INFO - Checkpoint saved for epoch 64
+Epoch 65: 100%|██████████████████████| 23/23 [00:33<00:00,  1.46s/it, loss=23.8]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.32s/it, loss=34.4]
+Epoch 65: Training Loss: 22.5393, Validation Loss: 30.0395
+2026-02-06 16:51:53 - INFO - Epoch 65: Training Loss: 22.5393, Validation Loss: 30.0395
+2026-02-06 16:52:01 - INFO - Behavioral RSA: corr=0.8274, p=0
+2026-02-06 16:52:01 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch65_random_states.pth
+2026-02-06 16:52:01 - INFO - Checkpoint saved for epoch 65
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.3s
+Epoch 66: 100%|██████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=20.8]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.31s/it, loss=34.3]
+Epoch 66: Training Loss: 22.3515, Validation Loss: 30.0093
+2026-02-06 16:52:43 - INFO - Epoch 66: Training Loss: 22.3515, Validation Loss: 30.0093
+2026-02-06 16:52:51 - INFO - Behavioral RSA: corr=0.8278, p=0
+2026-02-06 16:52:51 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch66_random_states.pth
+2026-02-06 16:52:51 - INFO - Checkpoint saved for epoch 66
+Epoch 67: 100%|██████████████████████| 23/23 [00:34<00:00,  1.48s/it, loss=21.2]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.34s/it, loss=34.2]
+Epoch 67: Training Loss: 22.1627, Validation Loss: 29.9597
+2026-02-06 16:53:33 - INFO - Epoch 67: Training Loss: 22.1627, Validation Loss: 29.9597
+2026-02-06 16:53:41 - INFO - Behavioral RSA: corr=0.8269, p=0
+2026-02-06 16:53:41 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch67_random_states.pth
+2026-02-06 16:53:41 - INFO - Checkpoint saved for epoch 67
+Epoch 68: 100%|██████████████████████| 23/23 [00:33<00:00,  1.47s/it, loss=24.6]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.33s/it, loss=34.2]
+Epoch 68: Training Loss: 21.9837, Validation Loss: 29.8680
+2026-02-06 16:54:23 - INFO - Epoch 68: Training Loss: 21.9837, Validation Loss: 29.8680
+2026-02-06 16:54:31 - INFO - Behavioral RSA: corr=0.8269, p=0
+2026-02-06 16:54:31 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch68_random_states.pth
+2026-02-06 16:54:31 - INFO - Checkpoint saved for epoch 68
+Epoch 69: 100%|██████████████████████| 23/23 [00:33<00:00,  1.47s/it, loss=20.4]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.32s/it, loss=34.2]
+Epoch 69: Training Loss: 21.7966, Validation Loss: 29.8951
+2026-02-06 16:55:12 - INFO - Epoch 69: Training Loss: 21.7966, Validation Loss: 29.8951
+2026-02-06 16:55:20 - INFO - Behavioral RSA: corr=0.8263, p=0
+2026-02-06 16:55:20 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch69_random_states.pth
+2026-02-06 16:55:20 - INFO - Checkpoint saved for epoch 69
+Epoch 70: 100%|██████████████████████| 23/23 [00:34<00:00,  1.48s/it, loss=20.3]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.31s/it, loss=34.2]
+Epoch 70: Training Loss: 21.6013, Validation Loss: 29.8026
+2026-02-06 16:56:02 - INFO - Epoch 70: Training Loss: 21.6013, Validation Loss: 29.8026
+2026-02-06 16:56:10 - INFO - Behavioral RSA: corr=0.8263, p=0
+2026-02-06 16:56:10 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch70_random_states.pth
+2026-02-06 16:56:10 - INFO - Checkpoint saved for epoch 70
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.4s
+Epoch 71: 100%|██████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=24.7]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.33s/it, loss=34.2]
+Epoch 71: Training Loss: 21.4463, Validation Loss: 29.7878
+2026-02-06 16:56:52 - INFO - Epoch 71: Training Loss: 21.4463, Validation Loss: 29.7878
+2026-02-06 16:57:00 - INFO - Behavioral RSA: corr=0.8256, p=0
+2026-02-06 16:57:00 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch71_random_states.pth
+2026-02-06 16:57:00 - INFO - Checkpoint saved for epoch 71
+Epoch 72: 100%|██████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=21.6]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.31s/it, loss=34.1]
+Epoch 72: Training Loss: 21.2814, Validation Loss: 29.7171
+2026-02-06 16:57:41 - INFO - Epoch 72: Training Loss: 21.2814, Validation Loss: 29.7171
+2026-02-06 16:57:51 - INFO - Behavioral RSA: corr=0.8260, p=0
+2026-02-06 16:57:51 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch72_random_states.pth
+2026-02-06 16:57:51 - INFO - Checkpoint saved for epoch 72
+Epoch 73: 100%|██████████████████████| 23/23 [00:32<00:00,  1.43s/it, loss=18.9]
+Evaluating: 100%|████████████████████████| 6/6 [00:07<00:00,  1.31s/it, loss=34]
+Epoch 73: Training Loss: 21.0897, Validation Loss: 29.6833
+2026-02-06 16:58:32 - INFO - Epoch 73: Training Loss: 21.0897, Validation Loss: 29.6833
+2026-02-06 16:58:40 - INFO - Behavioral RSA: corr=0.8256, p=0
+2026-02-06 16:58:40 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch73_random_states.pth
+2026-02-06 16:58:40 - INFO - Checkpoint saved for epoch 73
+Epoch 74: 100%|██████████████████████| 23/23 [00:33<00:00,  1.46s/it, loss=21.3]
+Evaluating: 100%|████████████████████████| 6/6 [00:07<00:00,  1.31s/it, loss=34]
+Epoch 74: Training Loss: 20.9243, Validation Loss: 29.6425
+2026-02-06 16:59:21 - INFO - Epoch 74: Training Loss: 20.9243, Validation Loss: 29.6425
+2026-02-06 16:59:29 - INFO - Behavioral RSA: corr=0.8247, p=0
+2026-02-06 16:59:29 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch74_random_states.pth
+2026-02-06 16:59:29 - INFO - Checkpoint saved for epoch 74
+Epoch 75: 100%|██████████████████████| 23/23 [00:33<00:00,  1.46s/it, loss=19.8]
+Evaluating: 100%|████████████████████████| 6/6 [00:09<00:00,  1.51s/it, loss=34]
+Epoch 75: Training Loss: 20.7751, Validation Loss: 29.6224
+2026-02-06 17:00:12 - INFO - Epoch 75: Training Loss: 20.7751, Validation Loss: 29.6224
+2026-02-06 17:00:20 - INFO - Behavioral RSA: corr=0.8246, p=0
+2026-02-06 17:00:20 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch75_random_states.pth
+2026-02-06 17:00:20 - INFO - Checkpoint saved for epoch 75
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.4s
+Epoch 76: 100%|██████████████████████| 23/23 [00:33<00:00,  1.44s/it, loss=24.5]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.34s/it, loss=34.1]
+Epoch 76: Training Loss: 20.6105, Validation Loss: 29.6279
+2026-02-06 17:01:01 - INFO - Epoch 76: Training Loss: 20.6105, Validation Loss: 29.6279
+2026-02-06 17:01:09 - INFO - Behavioral RSA: corr=0.8238, p=0
+2026-02-06 17:01:09 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch76_random_states.pth
+2026-02-06 17:01:09 - INFO - Checkpoint saved for epoch 76
+Epoch 77: 100%|██████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=19.3]
+Evaluating: 100%|████████████████████████| 6/6 [00:08<00:00,  1.34s/it, loss=34]
+Epoch 77: Training Loss: 20.4427, Validation Loss: 29.5627
+2026-02-06 17:01:51 - INFO - Epoch 77: Training Loss: 20.4427, Validation Loss: 29.5627
+2026-02-06 17:01:59 - INFO - Behavioral RSA: corr=0.8238, p=0
+2026-02-06 17:01:59 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch77_random_states.pth
+2026-02-06 17:01:59 - INFO - Checkpoint saved for epoch 77
+Epoch 78: 100%|██████████████████████| 23/23 [00:34<00:00,  1.49s/it, loss=20.6]
+Evaluating: 100%|████████████████████████| 6/6 [00:08<00:00,  1.35s/it, loss=34]
+Epoch 78: Training Loss: 20.2963, Validation Loss: 29.5402
+2026-02-06 17:02:41 - INFO - Epoch 78: Training Loss: 20.2963, Validation Loss: 29.5402
+2026-02-06 17:02:49 - INFO - Behavioral RSA: corr=0.8237, p=0
+2026-02-06 17:02:49 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch78_random_states.pth
+2026-02-06 17:02:49 - INFO - Checkpoint saved for epoch 78
+Epoch 79: 100%|████████████████████████| 23/23 [00:33<00:00,  1.46s/it, loss=18]
+Evaluating: 100%|████████████████████████| 6/6 [00:07<00:00,  1.33s/it, loss=34]
+Epoch 79: Training Loss: 20.1262, Validation Loss: 29.5061
+2026-02-06 17:03:31 - INFO - Epoch 79: Training Loss: 20.1262, Validation Loss: 29.5061
+2026-02-06 17:03:38 - INFO - Behavioral RSA: corr=0.8228, p=0
+2026-02-06 17:03:39 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch79_random_states.pth
+2026-02-06 17:03:39 - INFO - Checkpoint saved for epoch 79
+Epoch 80: 100%|██████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=20.7]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.34s/it, loss=33.9]
+Epoch 80: Training Loss: 19.9697, Validation Loss: 29.4423
+2026-02-06 17:04:20 - INFO - Epoch 80: Training Loss: 19.9697, Validation Loss: 29.4423
+2026-02-06 17:04:28 - INFO - Behavioral RSA: corr=0.8227, p=0
+2026-02-06 17:04:28 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch80_random_states.pth
+2026-02-06 17:04:28 - INFO - Checkpoint saved for epoch 80
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.4s
+Epoch 81: 100%|██████████████████████| 23/23 [00:34<00:00,  1.49s/it, loss=19.6]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.30s/it, loss=33.9]
+Epoch 81: Training Loss: 19.8181, Validation Loss: 29.4223
+2026-02-06 17:05:11 - INFO - Epoch 81: Training Loss: 19.8181, Validation Loss: 29.4223
+2026-02-06 17:05:18 - INFO - Behavioral RSA: corr=0.8223, p=0
+2026-02-06 17:05:19 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch81_random_states.pth
+2026-02-06 17:05:19 - INFO - Checkpoint saved for epoch 81
+Epoch 82: 100%|██████████████████████| 23/23 [00:33<00:00,  1.44s/it, loss=19.8]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.35s/it, loss=33.9]
+Epoch 82: Training Loss: 19.6583, Validation Loss: 29.4283
+2026-02-06 17:06:00 - INFO - Epoch 82: Training Loss: 19.6583, Validation Loss: 29.4283
+2026-02-06 17:06:08 - INFO - Behavioral RSA: corr=0.8211, p=0
+2026-02-06 17:06:08 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch82_random_states.pth
+2026-02-06 17:06:08 - INFO - Checkpoint saved for epoch 82
+Epoch 83: 100%|██████████████████████| 23/23 [00:33<00:00,  1.44s/it, loss=18.9]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.36s/it, loss=33.8]
+Epoch 83: Training Loss: 19.5298, Validation Loss: 29.3594
+2026-02-06 17:06:49 - INFO - Epoch 83: Training Loss: 19.5298, Validation Loss: 29.3594
+2026-02-06 17:06:57 - INFO - Behavioral RSA: corr=0.8218, p=0
+2026-02-06 17:06:57 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch83_random_states.pth
+2026-02-06 17:06:57 - INFO - Checkpoint saved for epoch 83
+Epoch 84: 100%|██████████████████████| 23/23 [00:34<00:00,  1.51s/it, loss=18.5]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.31s/it, loss=33.8]
+Epoch 84: Training Loss: 19.3854, Validation Loss: 29.3463
+2026-02-06 17:07:40 - INFO - Epoch 84: Training Loss: 19.3854, Validation Loss: 29.3463
+2026-02-06 17:07:48 - INFO - Behavioral RSA: corr=0.8218, p=0
+2026-02-06 17:07:48 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch84_random_states.pth
+2026-02-06 17:07:48 - INFO - Checkpoint saved for epoch 84
+Epoch 85: 100%|████████████████████████| 23/23 [00:33<00:00,  1.44s/it, loss=19]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.35s/it, loss=33.9]
+Epoch 85: Training Loss: 19.2384, Validation Loss: 29.3327
+2026-02-06 17:08:29 - INFO - Epoch 85: Training Loss: 19.2384, Validation Loss: 29.3327
+2026-02-06 17:08:37 - INFO - Behavioral RSA: corr=0.8213, p=0
+2026-02-06 17:08:37 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch85_random_states.pth
+2026-02-06 17:08:37 - INFO - Checkpoint saved for epoch 85
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.5s
+Epoch 86: 100%|████████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=18]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.31s/it, loss=33.9]
+Epoch 86: Training Loss: 19.0981, Validation Loss: 29.3343
+2026-02-06 17:09:19 - INFO - Epoch 86: Training Loss: 19.0981, Validation Loss: 29.3343
+2026-02-06 17:09:27 - INFO - Behavioral RSA: corr=0.8207, p=0
+2026-02-06 17:09:27 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch86_random_states.pth
+2026-02-06 17:09:27 - INFO - Checkpoint saved for epoch 86
+Epoch 87: 100%|██████████████████████| 23/23 [00:34<00:00,  1.51s/it, loss=20.2]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.35s/it, loss=33.9]
+Epoch 87: Training Loss: 18.9660, Validation Loss: 29.3474
+2026-02-06 17:10:10 - INFO - Epoch 87: Training Loss: 18.9660, Validation Loss: 29.3474
+2026-02-06 17:10:17 - INFO - Behavioral RSA: corr=0.8206, p=0
+2026-02-06 17:10:17 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch87_random_states.pth
+2026-02-06 17:10:17 - INFO - Checkpoint saved for epoch 87
+Epoch 88: 100%|██████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=18.6]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.31s/it, loss=33.8]
+Epoch 88: Training Loss: 18.8374, Validation Loss: 29.3208
+2026-02-06 17:10:59 - INFO - Epoch 88: Training Loss: 18.8374, Validation Loss: 29.3208
+2026-02-06 17:11:07 - INFO - Behavioral RSA: corr=0.8202, p=0
+2026-02-06 17:11:07 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch88_random_states.pth
+2026-02-06 17:11:07 - INFO - Checkpoint saved for epoch 88
+Epoch 89: 100%|██████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=16.3]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.33s/it, loss=33.9]
+Epoch 89: Training Loss: 18.7002, Validation Loss: 29.3170
+2026-02-06 17:11:48 - INFO - Epoch 89: Training Loss: 18.7002, Validation Loss: 29.3170
+2026-02-06 17:11:56 - INFO - Behavioral RSA: corr=0.8193, p=0
+2026-02-06 17:11:56 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch89_random_states.pth
+2026-02-06 17:11:56 - INFO - Checkpoint saved for epoch 89
+Epoch 90: 100%|██████████████████████| 23/23 [00:34<00:00,  1.50s/it, loss=18.8]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.33s/it, loss=33.8]
+Epoch 90: Training Loss: 18.5673, Validation Loss: 29.2693
+2026-02-06 17:12:39 - INFO - Epoch 90: Training Loss: 18.5673, Validation Loss: 29.2693
+2026-02-06 17:12:47 - INFO - Behavioral RSA: corr=0.8191, p=0
+2026-02-06 17:12:47 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch90_random_states.pth
+2026-02-06 17:12:47 - INFO - Checkpoint saved for epoch 90
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.5s
+Epoch 91: 100%|██████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=18.4]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.34s/it, loss=33.8]
+Epoch 91: Training Loss: 18.4201, Validation Loss: 29.2602
+2026-02-06 17:13:29 - INFO - Epoch 91: Training Loss: 18.4201, Validation Loss: 29.2602
+2026-02-06 17:13:37 - INFO - Behavioral RSA: corr=0.8188, p=0
+2026-02-06 17:13:37 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch91_random_states.pth
+2026-02-06 17:13:37 - INFO - Checkpoint saved for epoch 91
+Epoch 92: 100%|██████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=19.8]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.32s/it, loss=33.8]
+Epoch 92: Training Loss: 18.2883, Validation Loss: 29.2674
+2026-02-06 17:14:18 - INFO - Epoch 92: Training Loss: 18.2883, Validation Loss: 29.2674
+2026-02-06 17:14:27 - INFO - Behavioral RSA: corr=0.8176, p=0
+2026-02-06 17:14:27 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch92_random_states.pth
+2026-02-06 17:14:27 - INFO - Checkpoint saved for epoch 92
+Epoch 93: 100%|██████████████████████| 23/23 [00:33<00:00,  1.46s/it, loss=16.9]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.31s/it, loss=33.8]
+Epoch 93: Training Loss: 18.1858, Validation Loss: 29.2323
+2026-02-06 17:15:09 - INFO - Epoch 93: Training Loss: 18.1858, Validation Loss: 29.2323
+2026-02-06 17:15:17 - INFO - Behavioral RSA: corr=0.8182, p=0
+2026-02-06 17:15:17 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch93_random_states.pth
+2026-02-06 17:15:17 - INFO - Checkpoint saved for epoch 93
+Epoch 94: 100%|██████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=17.7]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.31s/it, loss=33.8]
+Epoch 94: Training Loss: 18.0494, Validation Loss: 29.3004
+2026-02-06 17:15:58 - INFO - Epoch 94: Training Loss: 18.0494, Validation Loss: 29.3004
+2026-02-06 17:16:06 - INFO - Behavioral RSA: corr=0.8188, p=0
+2026-02-06 17:16:06 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch94_random_states.pth
+2026-02-06 17:16:06 - INFO - Checkpoint saved for epoch 94
+Epoch 95: 100%|████████████████████████| 23/23 [00:32<00:00,  1.43s/it, loss=18]
+Evaluating: 100%|██████████████████████| 6/6 [00:09<00:00,  1.54s/it, loss=33.8]
+Epoch 95: Training Loss: 17.9455, Validation Loss: 29.2367
+2026-02-06 17:16:48 - INFO - Epoch 95: Training Loss: 17.9455, Validation Loss: 29.2367
+2026-02-06 17:16:56 - INFO - Behavioral RSA: corr=0.8176, p=0
+2026-02-06 17:16:56 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch95_random_states.pth
+2026-02-06 17:16:56 - INFO - Checkpoint saved for epoch 95
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.5s
+Epoch 96: 100%|████████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=20]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.35s/it, loss=33.8]
+Epoch 96: Training Loss: 17.8070, Validation Loss: 29.2592
+2026-02-06 17:17:38 - INFO - Epoch 96: Training Loss: 17.8070, Validation Loss: 29.2592
+2026-02-06 17:17:46 - INFO - Behavioral RSA: corr=0.8174, p=0
+2026-02-06 17:17:46 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch96_random_states.pth
+2026-02-06 17:17:46 - INFO - Checkpoint saved for epoch 96
+Epoch 97: 100%|██████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=17.9]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.34s/it, loss=33.7]
+Epoch 97: Training Loss: 17.6960, Validation Loss: 29.1801
+2026-02-06 17:18:28 - INFO - Epoch 97: Training Loss: 17.6960, Validation Loss: 29.1801
+2026-02-06 17:18:36 - INFO - Behavioral RSA: corr=0.8175, p=0
+2026-02-06 17:18:36 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch97_random_states.pth
+2026-02-06 17:18:36 - INFO - Checkpoint saved for epoch 97
+Epoch 98: 100%|████████████████████████| 23/23 [00:34<00:00,  1.51s/it, loss=17]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.34s/it, loss=33.8]
+Epoch 98: Training Loss: 17.5727, Validation Loss: 29.2391
+2026-02-06 17:19:19 - INFO - Epoch 98: Training Loss: 17.5727, Validation Loss: 29.2391
+2026-02-06 17:19:26 - INFO - Behavioral RSA: corr=0.8167, p=0
+2026-02-06 17:19:27 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch98_random_states.pth
+2026-02-06 17:19:27 - INFO - Checkpoint saved for epoch 98
+Epoch 99: 100%|██████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=17.9]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.31s/it, loss=33.8]
+Epoch 99: Training Loss: 17.4555, Validation Loss: 29.2122
+2026-02-06 17:20:08 - INFO - Epoch 99: Training Loss: 17.4555, Validation Loss: 29.2122
+2026-02-06 17:20:16 - INFO - Behavioral RSA: corr=0.8159, p=0
+2026-02-06 17:20:16 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch99_random_states.pth
+2026-02-06 17:20:16 - INFO - Checkpoint saved for epoch 99
+Epoch 100: 100%|█████████████████████| 23/23 [00:33<00:00,  1.46s/it, loss=16.6]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.31s/it, loss=33.7]
+Epoch 100: Training Loss: 17.3294, Validation Loss: 29.2224
+2026-02-06 17:20:57 - INFO - Epoch 100: Training Loss: 17.3294, Validation Loss: 29.2224
+2026-02-06 17:21:05 - INFO - Behavioral RSA: corr=0.8158, p=0
+2026-02-06 17:21:05 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch100_random_states.pth
+2026-02-06 17:21:05 - INFO - Checkpoint saved for epoch 100
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.5s
+Epoch 101: 100%|█████████████████████| 23/23 [00:34<00:00,  1.49s/it, loss=17.8]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.33s/it, loss=33.9]
+Epoch 101: Training Loss: 17.2373, Validation Loss: 29.2273
+2026-02-06 17:21:48 - INFO - Epoch 101: Training Loss: 17.2373, Validation Loss: 29.2273
+2026-02-06 17:21:56 - INFO - Behavioral RSA: corr=0.8158, p=0
+2026-02-06 17:21:56 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch101_random_states.pth
+2026-02-06 17:21:56 - INFO - Checkpoint saved for epoch 101
+Epoch 102: 100%|█████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=14.4]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.33s/it, loss=33.8]
+Epoch 102: Training Loss: 17.1148, Validation Loss: 29.1975
+2026-02-06 17:22:38 - INFO - Epoch 102: Training Loss: 17.1148, Validation Loss: 29.1975
+2026-02-06 17:22:46 - INFO - Behavioral RSA: corr=0.8148, p=0
+2026-02-06 17:22:46 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch102_random_states.pth
+2026-02-06 17:22:46 - INFO - Checkpoint saved for epoch 102
+Epoch 103: 100%|█████████████████████| 23/23 [00:33<00:00,  1.48s/it, loss=15.4]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.31s/it, loss=33.8]
+Epoch 103: Training Loss: 16.9962, Validation Loss: 29.2255
+2026-02-06 17:23:28 - INFO - Epoch 103: Training Loss: 16.9962, Validation Loss: 29.2255
+2026-02-06 17:23:36 - INFO - Behavioral RSA: corr=0.8147, p=0
+2026-02-06 17:23:36 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch103_random_states.pth
+2026-02-06 17:23:36 - INFO - Checkpoint saved for epoch 103
+Epoch 104: 100%|█████████████████████| 23/23 [00:34<00:00,  1.49s/it, loss=17.5]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.33s/it, loss=33.9]
+Epoch 104: Training Loss: 16.9016, Validation Loss: 29.2379
+2026-02-06 17:24:18 - INFO - Epoch 104: Training Loss: 16.9016, Validation Loss: 29.2379
+2026-02-06 17:24:26 - INFO - Behavioral RSA: corr=0.8141, p=0
+2026-02-06 17:24:26 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch104_random_states.pth
+2026-02-06 17:24:26 - INFO - Checkpoint saved for epoch 104
+Epoch 105: 100%|█████████████████████| 23/23 [00:32<00:00,  1.43s/it, loss=16.9]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.36s/it, loss=33.8]
+Epoch 105: Training Loss: 16.7949, Validation Loss: 29.2257
+2026-02-06 17:25:07 - INFO - Epoch 105: Training Loss: 16.7949, Validation Loss: 29.2257
+2026-02-06 17:25:15 - INFO - Behavioral RSA: corr=0.8135, p=0
+2026-02-06 17:25:15 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch105_random_states.pth
+2026-02-06 17:25:15 - INFO - Checkpoint saved for epoch 105
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.6s
+Epoch 106: 100%|█████████████████████| 23/23 [00:33<00:00,  1.46s/it, loss=17.9]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.35s/it, loss=33.9]
+Epoch 106: Training Loss: 16.6751, Validation Loss: 29.2357
+2026-02-06 17:25:57 - INFO - Epoch 106: Training Loss: 16.6751, Validation Loss: 29.2357
+2026-02-06 17:26:05 - INFO - Behavioral RSA: corr=0.8140, p=0
+2026-02-06 17:26:05 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch106_random_states.pth
+2026-02-06 17:26:05 - INFO - Checkpoint saved for epoch 106
+Epoch 107: 100%|█████████████████████| 23/23 [00:34<00:00,  1.49s/it, loss=16.5]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.34s/it, loss=33.9]
+Epoch 107: Training Loss: 16.5700, Validation Loss: 29.2130
+2026-02-06 17:26:48 - INFO - Epoch 107: Training Loss: 16.5700, Validation Loss: 29.2130
+2026-02-06 17:26:56 - INFO - Behavioral RSA: corr=0.8133, p=0
+2026-02-06 17:26:56 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch107_random_states.pth
+2026-02-06 17:26:56 - INFO - Checkpoint saved for epoch 107
+Epoch 108: 100%|█████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=16.8]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.33s/it, loss=33.9]
+Epoch 108: Training Loss: 16.4567, Validation Loss: 29.2449
+2026-02-06 17:27:37 - INFO - Epoch 108: Training Loss: 16.4567, Validation Loss: 29.2449
+2026-02-06 17:27:45 - INFO - Behavioral RSA: corr=0.8136, p=0
+2026-02-06 17:27:45 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch108_random_states.pth
+2026-02-06 17:27:45 - INFO - Checkpoint saved for epoch 108
+Epoch 109: 100%|█████████████████████| 23/23 [00:33<00:00,  1.46s/it, loss=16.4]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.32s/it, loss=33.9]
+Epoch 109: Training Loss: 16.3684, Validation Loss: 29.2588
+2026-02-06 17:28:27 - INFO - Epoch 109: Training Loss: 16.3684, Validation Loss: 29.2588
+2026-02-06 17:28:34 - INFO - Behavioral RSA: corr=0.8123, p=0
+2026-02-06 17:28:34 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch109_random_states.pth
+2026-02-06 17:28:34 - INFO - Checkpoint saved for epoch 109
+Epoch 110: 100%|█████████████████████| 23/23 [00:34<00:00,  1.49s/it, loss=15.1]
+Evaluating: 100%|████████████████████████| 6/6 [00:08<00:00,  1.34s/it, loss=34]
+Epoch 110: Training Loss: 16.2712, Validation Loss: 29.2763
+2026-02-06 17:29:17 - INFO - Epoch 110: Training Loss: 16.2712, Validation Loss: 29.2763
+2026-02-06 17:29:25 - INFO - Behavioral RSA: corr=0.8125, p=0
+2026-02-06 17:29:25 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch110_random_states.pth
+2026-02-06 17:29:25 - INFO - Checkpoint saved for epoch 110
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.6s
+Epoch 111: 100%|█████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=15.5]
+Evaluating: 100%|████████████████████████| 6/6 [00:07<00:00,  1.33s/it, loss=34]
+Epoch 111: Training Loss: 16.1632, Validation Loss: 29.2750
+2026-02-06 17:30:07 - INFO - Epoch 111: Training Loss: 16.1632, Validation Loss: 29.2750
+2026-02-06 17:30:15 - INFO - Behavioral RSA: corr=0.8117, p=0
+2026-02-06 17:30:15 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch111_random_states.pth
+2026-02-06 17:30:15 - INFO - Checkpoint saved for epoch 111
+Epoch 112: 100%|█████████████████████| 23/23 [00:33<00:00,  1.44s/it, loss=14.5]
+Evaluating: 100%|████████████████████████| 6/6 [00:08<00:00,  1.34s/it, loss=34]
+Epoch 112: Training Loss: 16.0747, Validation Loss: 29.2778
+2026-02-06 17:30:56 - INFO - Epoch 112: Training Loss: 16.0747, Validation Loss: 29.2778
+2026-02-06 17:31:06 - INFO - Behavioral RSA: corr=0.8120, p=0
+2026-02-06 17:31:06 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch112_random_states.pth
+2026-02-06 17:31:06 - INFO - Checkpoint saved for epoch 112
+Epoch 113: 100%|█████████████████████| 23/23 [00:33<00:00,  1.44s/it, loss=17.2]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.34s/it, loss=33.9]
+Epoch 113: Training Loss: 15.9581, Validation Loss: 29.2484
+2026-02-06 17:31:47 - INFO - Epoch 113: Training Loss: 15.9581, Validation Loss: 29.2484
+2026-02-06 17:31:55 - INFO - Behavioral RSA: corr=0.8111, p=0
+2026-02-06 17:31:55 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch113_random_states.pth
+2026-02-06 17:31:55 - INFO - Checkpoint saved for epoch 113
+Epoch 114: 100%|█████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=17.9]
+Evaluating: 100%|██████████████████████| 6/6 [00:07<00:00,  1.31s/it, loss=33.9]
+Epoch 114: Training Loss: 15.8624, Validation Loss: 29.3103
+2026-02-06 17:32:36 - INFO - Epoch 114: Training Loss: 15.8624, Validation Loss: 29.3103
+2026-02-06 17:32:44 - INFO - Behavioral RSA: corr=0.8116, p=0
+2026-02-06 17:32:44 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch114_random_states.pth
+2026-02-06 17:32:44 - INFO - Checkpoint saved for epoch 114
+Epoch 115: 100%|█████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=16.8]
+Evaluating: 100%|████████████████████████| 6/6 [00:09<00:00,  1.53s/it, loss=34]
+Epoch 115: Training Loss: 15.7807, Validation Loss: 29.2605
+2026-02-06 17:33:27 - INFO - Epoch 115: Training Loss: 15.7807, Validation Loss: 29.2605
+2026-02-06 17:33:35 - INFO - Behavioral RSA: corr=0.8107, p=0
+2026-02-06 17:33:35 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch115_random_states.pth
+2026-02-06 17:33:35 - INFO - Checkpoint saved for epoch 115
+[34m[1mwandb[0m: Adding directory to artifact (/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/dora_params)... Done. 0.7s
+Epoch 116: 100%|█████████████████████| 23/23 [00:33<00:00,  1.45s/it, loss=16.1]
+Evaluating: 100%|████████████████████████| 6/6 [00:07<00:00,  1.32s/it, loss=34]
+Epoch 116: Training Loss: 15.6707, Validation Loss: 29.3118
+2026-02-06 17:34:17 - INFO - Epoch 116: Training Loss: 15.6707, Validation Loss: 29.3118
+2026-02-06 17:34:25 - INFO - Behavioral RSA: corr=0.8103, p=0
+2026-02-06 17:34:25 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch116_random_states.pth
+2026-02-06 17:34:25 - INFO - Checkpoint saved for epoch 116
+Epoch 117: 100%|█████████████████████| 23/23 [00:33<00:00,  1.44s/it, loss=16.5]
+Evaluating: 100%|██████████████████████| 6/6 [00:08<00:00,  1.35s/it, loss=34.1]
+Epoch 117: Training Loss: 15.5739, Validation Loss: 29.3209
+2026-02-06 17:35:06 - INFO - Epoch 117: Training Loss: 15.5739, Validation Loss: 29.3209
+2026-02-06 17:35:14 - INFO - Behavioral RSA: corr=0.8096, p=0
+2026-02-06 17:35:14 - INFO - Random states saved: /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/random_target_perturb_seed1/epoch19_length1/vit_l_14_rank32_perturb-type-random_target_epoch19_length1_perturb-seed1_init-seed1behavioral-rsa-True/random_states/epoch117_random_states.pth
+2026-02-06 17:35:14 - INFO - Checkpoint saved for epoch 117
+2026-02-06 17:35:14 - INFO -
+
+*********************************
+2026-02-06 17:35:14 - INFO - Early stopping triggered at epoch 117
+2026-02-06 17:35:14 - INFO - *********************************

@@ -1,0 +1,12 @@
+{"time":"2026-02-05T18:48:38.524435535-06:00","level":"INFO","msg":"stream: starting","core version":"0.24.0"}
+{"time":"2026-02-05T18:48:38.71199306-06:00","level":"INFO","msg":"stream: created new stream","id":"oggjulgk"}
+{"time":"2026-02-05T18:48:38.712060076-06:00","level":"INFO","msg":"handler: started","stream_id":"oggjulgk"}
+{"time":"2026-02-05T18:48:38.712158693-06:00","level":"INFO","msg":"stream: started","id":"oggjulgk"}
+{"time":"2026-02-05T18:48:38.712175094-06:00","level":"INFO","msg":"writer: started","stream_id":"oggjulgk"}
+{"time":"2026-02-05T18:48:38.712174312-06:00","level":"INFO","msg":"sender: started","stream_id":"oggjulgk"}
+{"time":"2026-02-05T20:17:06.965911598-06:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-02-05T20:17:07.214868548-06:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-02-05T20:17:07.226152346-06:00","level":"INFO","msg":"stream: closing","id":"oggjulgk"}
+{"time":"2026-02-05T20:17:07.226167384-06:00","level":"INFO","msg":"handler: closed","stream_id":"oggjulgk"}
+{"time":"2026-02-05T20:17:07.226216737-06:00","level":"INFO","msg":"sender: closed","stream_id":"oggjulgk"}
+{"time":"2026-02-05T20:17:07.226230884-06:00","level":"INFO","msg":"stream: closed","id":"oggjulgk"}

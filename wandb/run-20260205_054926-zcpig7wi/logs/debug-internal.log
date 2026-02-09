@@ -1,0 +1,12 @@
+{"time":"2026-02-05T05:49:26.871933581-06:00","level":"INFO","msg":"stream: starting","core version":"0.24.0"}
+{"time":"2026-02-05T05:49:27.059818484-06:00","level":"INFO","msg":"stream: created new stream","id":"zcpig7wi"}
+{"time":"2026-02-05T05:49:27.059998083-06:00","level":"INFO","msg":"handler: started","stream_id":"zcpig7wi"}
+{"time":"2026-02-05T05:49:27.060145071-06:00","level":"INFO","msg":"stream: started","id":"zcpig7wi"}
+{"time":"2026-02-05T05:49:27.060170459-06:00","level":"INFO","msg":"writer: started","stream_id":"zcpig7wi"}
+{"time":"2026-02-05T05:49:27.060183223-06:00","level":"INFO","msg":"sender: started","stream_id":"zcpig7wi"}
+{"time":"2026-02-05T07:42:30.642959137-06:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-02-05T07:42:30.982289064-06:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-02-05T07:42:30.997823081-06:00","level":"INFO","msg":"stream: closing","id":"zcpig7wi"}
+{"time":"2026-02-05T07:42:30.997839933-06:00","level":"INFO","msg":"handler: closed","stream_id":"zcpig7wi"}
+{"time":"2026-02-05T07:42:30.997911288-06:00","level":"INFO","msg":"sender: closed","stream_id":"zcpig7wi"}
+{"time":"2026-02-05T07:42:30.997929983-06:00","level":"INFO","msg":"stream: closed","id":"zcpig7wi"}

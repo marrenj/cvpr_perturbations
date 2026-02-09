@@ -1,0 +1,141 @@
+_wandb:
+    value:
+        cli_version: 0.24.0
+        code_path: code/wandb_runner.py
+        e:
+            w9ecd3xkpj45wluxk1rmmpdw6tvdfxyy:
+                codePath: wandb_runner.py
+                codePathLocal: wandb_runner.py
+                cpu_count: 16
+                cpu_count_logical: 32
+                cudaVersion: "12.7"
+                disk:
+                    /:
+                        total: "1888559353856"
+                        used: "1780329148416"
+                email: mej.jenkins@gmail.com
+                executable: /home/wallacelab/miniconda/envs/adaptive-clip/bin/python
+                git:
+                    commit: 50c0ca479db35b6ce46588b2f441425eeab7f63a
+                    remote: https://github.com/marrenj/cvpr_perturbations.git
+                gpu: NVIDIA RTX A6000
+                gpu_count: 2
+                gpu_nvidia:
+                    - architecture: Ampere
+                      cudaCores: 10752
+                      memoryTotal: "51527024640"
+                      name: NVIDIA RTX A6000
+                      uuid: GPU-ac1e7360-8b1e-ed4b-f978-73fc25e7633b
+                    - architecture: Ampere
+                      cudaCores: 10752
+                      memoryTotal: "51527024640"
+                      name: NVIDIA RTX A6000
+                      uuid: GPU-b0d28ed1-ef1b-ccca-52e6-4d98c79c3624
+                host: ASWALL1PD5CYD2D.vuds.vanderbilt.edu
+                memory:
+                    total: "270093541376"
+                os: Linux-6.8.0-90-generic-x86_64-with-glibc2.35
+                program: /home/wallacelab/Documents/GitHub/cvpr_perturbations/wandb_runner.py
+                python: CPython 3.11.13
+                root: /home/wallacelab/Documents/GitHub/cvpr_perturbations
+                startedAt: "2026-02-04T23:11:04.542243Z"
+                writerId: w9ecd3xkpj45wluxk1rmmpdw6tvdfxyy
+        m: []
+        python_version: 3.11.13
+        t:
+            "1":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 53
+            "2":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 53
+            "3":
+                - 1
+                - 13
+                - 15
+                - 16
+            "4": 3.11.13
+            "5": 0.24.0
+            "6": 4.57.0
+            "12": 0.24.0
+            "13": linux-x86_64
+backbone:
+    value: ViT-L/14
+baseline_checkpoint_path:
+    value: null
+batch_size:
+    value: 64
+behavioral_rsa:
+    value: true
+criterion:
+    value: MSELoss
+cuda:
+    value: 0
+dataset_size:
+    value: 1806
+dataset_type:
+    value: things
+early_stopping_patience:
+    value: 20
+epochs:
+    value: 500
+experiment_type:
+    value: baseline
+img_annotations_file:
+    value: ./data/spose_embedding66d_rescaled_1806train.csv
+img_dir:
+    value: /home/wallacelab/investigating-complexity/Images/THINGS
+logger:
+    value: None
+lr:
+    value: "3e-4"
+model_rdm_distance_metric:
+    value: pearson
+perturb_epoch:
+    value: 0
+perturb_length:
+    value: 1
+perturb_seed:
+    value: 1
+perturb_type:
+    value: none
+random_seed:
+    value: 1
+rank:
+    value: 32
+rsa_annotations_file:
+    value: ./data/spose_embedding66d_rescaled_1806train.csv
+rsa_similarity_metric:
+    value: spearman
+save_path:
+    value: ./experiments/sequential/none_seed1/seq01_none_seed1
+test_size:
+    value: 362
+train_portion:
+    value: 0.8
+train_size:
+    value: 1444
+transformer_layers:
+    value: 1
+vision_layers:
+    value: 2
+wandb_entity:
+    value: null
+wandb_notes:
+    value: none
+wandb_project:
+    value: temporal-dynamics-of-human-alignment
+wandb_run_name:
+    value: seq01_none_seed1
+wandb_tags:
+    value:
+        - sequential
+        - none
