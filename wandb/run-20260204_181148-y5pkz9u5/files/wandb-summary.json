@@ -1,1 +1,0 @@
-{"train_loss_std":10.56392648030346,"batch_loss":143.87538146972656,"train_loss":159.2973343698602,"_runtime":58,"batch":20,"_wandb":{"runtime":58},"rsa_behavioral_p":0,"_step":6,"rsa_behavioral_corr":0.4736288777858031,"epoch":0,"perturbation_active":1,"_timestamp":1.770250364481745e+09,"initial_val_loss":160.29191606216008}
