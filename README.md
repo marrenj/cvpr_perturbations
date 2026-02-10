@@ -124,7 +124,7 @@ The folder structure is organized into modular components as follows:
 - `data/` – Data storage (often git-ignored). This may include raw stimulus annotations or preprocessed files used by the datasets (e.g., the CSVs containing the SPoSE embeddings for each image, or the 48x48 behavioral RDM for testing referenced in configs).
 
 - `notebooks/` – Additional code (e.g. analysis notebooks) as needed.
-  - `notebooks/figures/` contains code to generate each figure.
+  - `notebooks/figures/all_figures.ipynb` contains code to generate each figure used in the paper.
 
 ## Usage
 
