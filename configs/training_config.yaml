@@ -1,11 +1,11 @@
 ## ---PATHS--- ##
-  save_path: "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test" # root path to save training artifacts (checkpoints, training results, random states)
+  save_path: # root path to save training artifacts (checkpoints, training results, random states)
   baseline_checkpoint_path: # path to baseline training run checkpoints used for perturbation sweeps
   img_annotations_file: "./data/spose_embedding66d_rescaled_1806train.csv" # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
-  img_dir: "/home/wallacelab/investigating-complexity/Images/THINGS" # path to the THINGS image directory
+  img_dir: # path to the THINGS image directory
 
 ## ---WANDB CONFIGURATION--- ##
-  'wandb_project': temporal-dynamics-of-human-alignment # Optional: Name of the WANDB project to use for logging
+  'wandb_project': # Optional: Name of the WANDB project to use for logging
   'wandb_entity': # Optional: your username or team name
 
 ## ---EXPERIMENT SETUP--- ##
