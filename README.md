@@ -10,8 +10,10 @@ The training and inference in this repository is built off of the original CLIP-
 
 ### 1) Clone the repo
 
-<pre> ```git clone https://github.com/marrenj/cvpr_perturbations.git
-cd cvpr_perturbations``` <pre>
+``` bash
+git clone https://github.com/marrenj/cvpr_perturbations.git
+cd cvpr_perturbations
+```
 
 ### 2) Create environment
 
