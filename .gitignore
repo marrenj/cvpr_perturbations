@@ -11,3 +11,4 @@
 /wandb/*
 /logs/
 /logs/*
+*.sh
