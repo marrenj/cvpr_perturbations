@@ -8,6 +8,24 @@ The training logic (`run_training_experiment`) reads a config file describing th
 
 The training and inference in this repository is built off of the original CLIP-HBA sourcecode published at https://github.com/stephenczhao/CLIP-HBA-Official/tree/main<sup>1</sup>.
 
+## Data Availability
+
+This project uses data from three datasets: (1) THINGS, (2) NOD, and (3) NIGHTS.
+
+### THINGS
+
+As in the original CLIP-HBA paper, the THINGS dataset in this project consists of the same 1,854 images that were used to approximate human perceptual embeddings in Hebart et al., . Of these 1,854 images in the paper by Hebart et al., , 48 of them were fully sampled in the triplet odd-one-out task, and therefore held out for inference in the current project. In other words, we used the 48x48 RDM created from the 48 fully-sampled image embeddings to measure model alignment with human behavior. 1,806 THINGS images were thus left for training, which we divided into an 80/20 train/validation split.
+
+The 66-dimensional, human-derived embeddings for the 1,854 training images can be found in the `data/` folder as `spose_embedding66d_rescaled.csv`. The original file can be downloaded from [WEBSITE]. The embeddings for the 1,806 training images are further set aside in `data/spose_embedding66d_rescaled_1806train.csv`, and the embeddings for the 48 test images are further set aside in `data/spose_embedding66d_rescaled_48val_reordered.csv` for each of use.
+
+The 48x48 behaviorally-derived RDM used for inference is also available in the `data/` folder as `RDM48_triplet.mat` for ease of use.
+
+### NOD
+
+
+
+### NIGHTS  
+
 ## Quickstart
 
 ### 1) Clone the repo
