@@ -26,6 +26,8 @@ The 48x48 behaviorally-derived RDM used for inference is also available in the `
 
 ### NIGHTS  
 
+
+
 ## Quickstart
 
 ### 1) Clone the repo
@@ -80,6 +82,12 @@ This will:
 
 ### 6) Configure your own experiment
 
+Configuration files provide direct access to the main experimental parameters such as the type of perturbation to apply and when to apply it.
+
+Configure your experiment via the provided YAML files and run the training or inference scripts. These settings are all loaded at runtime (see code in `src/training/trainer.py` and `src/inference/inference_core.py`). For example, the training code uses `choose_perturbation_strategy` to apply the specified perturbation at a given epoch(s). The inference code loads a saved checkpoint and calls a dataset-specific evaluation function (e.g. `evaluate_nights`) based on `config['dataset']`.
+
+By editing or creating your own YAML files, you can run new experiments. For example, to sweep over different seeds or perturbation lengths, duplicate a config and change the random_seed, perturb_length, etc., then run `run_training.py` for each. The modular structure makes it easy to plug in new perturbations or datasets if needed.
+
 ### 7) Data paths
 
 Datasets are not included in the repository.
@@ -120,11 +128,9 @@ The folder structure is organized into modular components as follows:
 
 ## Usage
 
-Configure your experiment via the provided YAML files and run the training or inference scripts. These settings are all loaded at runtime (see code in `src/training/trainer.py` and `src/inference/inference_core.py`). For example, the training code uses `choose_perturbation_strategy` to apply the specified perturbation at a given epoch(s). The inference code loads a saved checkpoint and calls a dataset-specific evaluation function (e.g. `evaluate_nights`) based on `config['dataset']`.
-
-By editing or creating your own YAML files, you can run new experiments. For example, to sweep over different seeds or perturbation lengths, duplicate a config and change the random_seed, perturb_length, etc., then run `run_training.py` for each. The modular structure makes it easy to plug in new perturbations or datasets if needed.
-
 The core logic for training is implemented in `src/training/` (see `run_training_experiment` in `trainer.py`). Perturbation strategies are defined in `src/perturbations/perturbation_utils.py` (classes like `TargetNoisePerturbation`, `LabelShufflePerturbation`, etc.). The inference logic is in `src/inference/` (see `run_inference` in `inference_core.py`). Configuration is fully driven by the YAML files under `configs/`, as shown above.
+
+## Inference 
 
 For inference, set `evaluation_type` to `behavioral` or `neural` to extract embeddings, build RDMs, and run RSA against a reference RDM (provided via `reference_rdm_path` or derived from dataset targets); set `evaluation_type: triplet` to evaluate the NIGHTS triplet task via `src/inference/evaluate_nights.py`. Each run returns and saves the score per checkpoint epoch.
 
