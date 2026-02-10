@@ -10,15 +10,12 @@ The training and inference in this repository is built off of the original CLIP-
 
 ### 1) Clone the repo
 
-`git clone https://github.com/marrenj/cvpr_perturbations.git`
-
-`cd cvpr_perturbations`
+```git clone https://github.com/marrenj/cvpr_perturbations.git
+cd cvpr_perturbations```
 
 ### 2) Create environment
 
-`Use environment.yml` for reproducible installs (recommended).
-
-`requirements.txt` is provided for convenience but may require manual PyTorch/CUDA selection.
+Use `environment.yml` for reproducible installs (recommended). `requirements.txt` is provided for convenience but may require manual PyTorch/CUDA selection.
 
 `conda env create -f environment.yml`
 
