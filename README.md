@@ -20,8 +20,9 @@ The training and inference in this repository is built off of the original CLIP-
 
 `requirements.txt` is provided for convenience but may require manual PyTorch/CUDA selection.
 
-`conda env create -f environment.yml
-conda activate cvpr_perturbations`
+`conda env create -f environment.yml`
+
+`conda activate cvpr_perturbations`
 
 ### 3) Verify installation
 
@@ -33,8 +34,7 @@ Expected output:
 
 ### 4) Run a training experiment (minimal example)
 
-`python scripts/run_training.py \
-  --config configs/training_config.yaml`
+`python scripts/run_training.py \  --config configs/training_config.yaml`
 
 This will:
 - Load CLIP-HBA with DoRA layers
@@ -44,8 +44,7 @@ This will:
 
 ### 5) Run inference on a trained model
 
-`python scripts/run_inference.py \
-  --config configs/inference/nights.yaml`
+`python scripts/run_inference.py \  --config configs/inference/nights.yaml`
 
 This will:
 - Load a trained checkpoint
@@ -61,8 +60,9 @@ Datasets are not included in the repository.
 
 Update paths in the YAML config:
 
-`img_dir: /path/to/images
-img_annotations_file: /path/to/annotations.csv`
+`img_dir: /path/to/images`
+
+`img_annotations_file: /path/to/annotations.csv`
 
 ### Reproducibility / logging
 
