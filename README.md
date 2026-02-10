@@ -19,13 +19,16 @@ cd cvpr_perturbations
 
 Use `environment.yml` for reproducible installs (recommended). `requirements.txt` is provided for convenience but may require manual PyTorch/CUDA selection.
 
-`conda env create -f environment.yml`
-
-`conda activate cvpr_perturbations`
+``` bash
+conda env create -f environment.yml
+conda activate cvpr_perturbations
+```
 
 ### 3) Verify installation
 
-`python -c "import torch; print(torch.cuda.is_available())"`
+``` bash
+python -c "import torch; print(torch.cuda.is_available())"
+```
 
 Expected output:
 
@@ -33,7 +36,10 @@ Expected output:
 
 ### 4) Run a training experiment (minimal example)
 
-`python scripts/run_training.py \  --config configs/training_config.yaml`
+``` bash
+python scripts/run_training.py \
+  --config configs/training_config.yaml
+```
 
 This will:
 - Load CLIP-HBA with DoRA layers
@@ -43,7 +49,10 @@ This will:
 
 ### 5) Run inference on a trained model
 
-`python scripts/run_inference.py \  --config configs/inference/nights.yaml`
+``` bash
+python scripts/run_inference.py \
+  --config configs/inference/nights.yaml
+```
 
 This will:
 - Load a trained checkpoint
@@ -59,9 +68,10 @@ Datasets are not included in the repository.
 
 Update paths in the YAML config:
 
-`img_dir: /path/to/images`
-
-`img_annotations_file: /path/to/annotations.csv`
+``` yaml
+img_dir: /path/to/images`
+img_annotations_file: /path/to/annotations.csv
+```
 
 ### Reproducibility / logging
 
@@ -91,15 +101,20 @@ The folder structure is organized into modular components as follows:
 ## Usage
 
 Configure your experiment via the provided YAML files and run the training or inference scripts. For example, to train a model you might run:
-`python scripts/run_training.py --config configs/training/baseline_seed3.yaml`
+
+``` bash
+python scripts/run_training.py --config configs/training/baseline_seed3.yaml
+```
 
 And to run inference (evaluation) on a trained model, e.g. on the “Nights” dataset:
 
-`python scripts/run_inference.py --config configs/inference/nights.yaml`
+``` bash
+python scripts/run_inference.py --config configs/inference/nights.yaml
+```
 
 Each `--config` path points to a YAML file under `configs`/ that sets all relevant parameters. To customize an experiment, copy or edit one of the YAML templates: change the backbone (e.g. `backbone: ViT-L/14`), dataset paths, or perturbation settings (`perturb_type`, `perturb_epoch`, etc.) in the YAML file. The scripts will load these configs and automatically apply your chosen settings.
 
-```
+``` yaml
 backbone: ViT-L/14
 vision_layers: 2
 transformer_layers: 1
