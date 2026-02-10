@@ -2,8 +2,14 @@ import torch
 
 
 class PerturbationStrategy:
+    """Base strategy for applying a perturbation over a fixed epoch window."""
     def __init__(self, perturb_epoch: int, perturb_length: int, perturb_seed: int):
-        # Calculate the perturbation window 
+        """
+        Args:
+            perturb_epoch: First epoch (0-indexed) to apply the perturbation.
+            perturb_length: Number of consecutive epochs to perturb.
+            perturb_seed: Seed used to deterministically drive the perturbation.
+        """
         self.start_epoch = perturb_epoch
         self.end_epoch = perturb_epoch + perturb_length - 1
         self.perturb_seed = perturb_seed
@@ -18,6 +24,7 @@ class PerturbationStrategy:
 
 
 class TargetNoisePerturbation(PerturbationStrategy):
+    """Injects Gaussian noise into targets during the active perturbation window."""
     def __init__(self, perturb_epoch, perturb_length, perturb_seed, target_mean=None, target_std=None):
         super().__init__(perturb_epoch, perturb_length, perturb_seed)
         self.target_mean = target_mean
@@ -42,6 +49,7 @@ class TargetNoisePerturbation(PerturbationStrategy):
 
 
 class LabelShufflePerturbation(PerturbationStrategy):
+    """Shuffles targets within a batch when the perturbation is active."""
     def apply_to_batch(self, images, targets, device, epoch_idx, batch_idx):
         if not self.is_active_epoch(epoch_idx):
             return images, targets
@@ -52,6 +60,7 @@ class LabelShufflePerturbation(PerturbationStrategy):
 
 
 class ImageNoisePerturbation(PerturbationStrategy):
+    """Replaces images with Gaussian noise when active."""
     def apply_to_batch(self, images, targets, device, epoch_idx, batch_idx):
         if not self.is_active_epoch(epoch_idx):
             return images, targets
@@ -65,6 +74,7 @@ class ImageNoisePerturbation(PerturbationStrategy):
 
 
 class UniformImagePerturbation(PerturbationStrategy):
+    """Replaces images with constant 0.5 tensors when active."""
     def apply_to_batch(self, images, targets, device, epoch_idx, batch_idx):
         if not self.is_active_epoch(epoch_idx):
             return images, targets
@@ -73,6 +83,7 @@ class UniformImagePerturbation(PerturbationStrategy):
 
 
 class NoPerturbation(PerturbationStrategy):
+    """No-op perturbation used to disable perturbations cleanly."""
     def apply_to_batch(self, images, targets, device, epoch_idx, batch_idx):
         return images, targets
 
@@ -95,6 +106,21 @@ def choose_perturbation_strategy(
     target_mean=None,
     target_std=None,
 ):
+    """
+    Factory that returns the configured perturbation strategy.
+
+    Args:
+        perturb_type: One of random_target, label_shuffle, image_noise,
+            uniform_images, none.
+        perturb_epoch: First epoch (0-indexed) to apply the perturbation.
+        perturb_length: Number of epochs to apply the perturbation.
+        perturb_seed: Seed to drive deterministic perturbations.
+        target_mean: Mean tensor for target noise (random_target).
+        target_std: Std tensor for target noise (random_target).
+
+    Returns:
+        PerturbationStrategy: Configured strategy instance.
+    """
     normalized_type = str(perturb_type).lower() if perturb_type is not None else 'none'
 
     if normalized_type == 'random_target':

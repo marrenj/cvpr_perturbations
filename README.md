@@ -1,4 +1,4 @@
-### About
+## About
 
 This repository provides tools for training CLIP-HBA models with various perturbations and evaluating the perturbations' effects on model performance and model-human alignment. In particular, the training pipeline supports adding input or target noise (e.g. label shuffle, random target embeddings, image noise, etc.) during training, so one can systematically study how these perturbations impact model behavior.
 
@@ -6,7 +6,76 @@ The core model is a CLIP-based HBA network (with DoRA layers) that is instantiat
 
 The training and inference in this repository is built off of the original CLIP-HBA sourcecode published at https://github.com/stephenczhao/CLIP-HBA-Official/tree/main<sup>1</sup>.
 
-### Folder Structure
+## Quickstart
+
+### 1) Clone the repo
+
+`git clone https://github.com/marrenj/cvpr_perturbations.git
+cd cvpr_perturbations`
+
+### 2) Create environment
+
+`Use environment.yml` for reproducible installs (recommended).
+
+`requirements.txt` is provided for convenience but may require manual PyTorch/CUDA selection.
+
+`conda env create -f environment.yml
+conda activate cvpr_perturbations`
+
+### 3) Verify installation
+
+`python -c "import torch; print(torch.cuda.is_available())"`
+
+Expected output:
+
+`True`
+
+### 4) Run a training experiment (minimal example)
+
+`python scripts/run_training.py \
+  --config configs/training_config.yaml`
+
+This will:
+- Load CLIP-HBA with DoRA layers
+- Apply the perturbation schedule defined in the config
+- Train the model
+- Save checkpoints + logs
+
+### 5) Run inference on a trained model
+
+`python scripts/run_inference.py \
+  --config configs/inference/nights.yaml`
+
+This will:
+- Load a trained checkpoint
+- Extract last-layer embeddings and create an RDM
+- Compute behavioral or neural alignment metrics
+- Save results
+
+### 6) Configure your own experiment
+
+### 7) Data paths
+
+Datasets are not included in the repository.
+
+Update paths in the YAML config:
+
+`img_dir: /path/to/images
+img_annotations_file: /path/to/annotations.csv`
+
+### Reproducibility / logging
+
+Run naming: composed from backbone, rank, perturbation type/epoch/length/seed, init seed, and behavioral RSA flag (e.g., `vit_l_14_rank32_perturb-type-random_target_epoch29_length1_perturb-seed1_init-seed1_behavioral-rsa-True`).
+
+Config snapshots: each run writes both `training_config_snapshot.yaml` and `resolved_config.yaml` inside its save_path.
+
+WandB capture: metrics (losses, RSA correlation/p-value), model checkpoints on the configured cadence, and the full training_res.csv at the end of a training run; runs default to offline mode when wandb_project/wandb_entity are unset.
+
+### A note about WandB logging
+
+A mentioned above, this repo allows for experiment logging with Weights and Biases. If you wish to utilize Weights and Biases, simply point the arguments in the "WANDB CONFIGURATION" section of `training_config.yaml` to your WandB project name and, optionally, your WandB username. If these configurations are left blank, wandb will run in offline mode, and all logging will take place offline on your local file system.
+
+## Folder Structure
 
 The folder structure is organized into modular components as follows:
 
@@ -19,7 +88,7 @@ The folder structure is organized into modular components as follows:
   - `notebooks/figures/` contains code to generate each figure.
   - `notebooks/neural_processing/` contains code to process fMRI data and calculate model-brain alignment.
 
-### Usage
+## Usage
 
 Configure your experiment via the provided YAML files and run the training or inference scripts. For example, to train a model you might run:
 `python scripts/run_training.py --config configs/training/baseline_seed3.yaml`

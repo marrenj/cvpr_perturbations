@@ -1,21 +1,15 @@
-## ---WANDB CONFIGURATION--- ##
-  'wandb_project': temporal-dynamics-of-human-alignment # Required
-  'wandb_entity': # Optional: your username or team name
-
-## ---EXPERIMENT SETUP--- ##
-  experiment_type: baseline # baseline | perturbation_run
-
 ## ---PATHS--- ##
   save_path: "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test" # root path to save training artifacts (checkpoints, training results, random states)
   baseline_checkpoint_path: # path to baseline training run checkpoints used for perturbation sweeps
   img_annotations_file: "./data/spose_embedding66d_rescaled_1806train.csv" # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
   img_dir: "/home/wallacelab/investigating-complexity/Images/THINGS" # path to the THINGS image directory
 
-## ---MODEL PARAMETERS--- ##
-  backbone: ViT-L/14 # model backboneto use for CLIP-HBA
-  vision_layers: 2 # number of vision encoder layers to open up for CLIP-HBA training
-  transformer_layers: 1 # number of text encoder layers to use for CLIP-HBA training
-  rank: 32 # rank of the DoRA layers 
+## ---WANDB CONFIGURATION--- ##
+  'wandb_project': temporal-dynamics-of-human-alignment # Optional: Name of the WANDB project to use for logging
+  'wandb_entity': # Optional: your username or team name
+
+## ---EXPERIMENT SETUP--- ##
+  experiment_type: baseline # Required: baseline | perturbation_run
 
 ## ---TRAINING PARAMETERS--- ##
   dataset_type: things # Dataset to use for training. "things" for THINGS dataset.
@@ -27,7 +21,6 @@
   criterion: MSELoss # loss function to use for training
   random_seed: 1 # random seed to use for training
   cuda: 0 # GPU to use for training; -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
-
   logger: None # Logger to use for training. None for no logging.
 
 ## ---PERTURBATION PARAMETERS--- ##
@@ -41,3 +34,9 @@
   rsa_annotations_file: "./data/spose_embedding66d_rescaled_1806train.csv" # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
   model_rdm_distance_metric: pearson # distance metric to use for RSA
   rsa_similarity_metric: spearman # similarity metric to use for RSA
+
+## ---MODEL PARAMETERS--- ##
+  backbone: ViT-L/14 # model backbone to use for CLIP-HBA
+  vision_layers: 2 # number of vision encoder layers to open up for CLIP-HBA training
+  transformer_layers: 1 # number of text encoder layers to use for CLIP-HBA training
+  rank: 32 # rank of the DoRA layers 

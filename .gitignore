@@ -1,0 +1,13 @@
+*.pth
+*.png
+*.jpg
+*.jpeg
+*.npz
+*.csv
+*/__pycache__/
+/Data/
+/Data/*
+/wandb/
+/wandb/*
+/logs/
+/logs/*

@@ -14,6 +14,9 @@ def save_random_states(optimizer, epoch, random_state_path, dataloader_generator
         epoch: Current epoch number
         random_state_path: Directory to save the checkpoint
         logger: Optional logger for logging messages
+
+    Returns:
+        None. Writes a checkpoint file containing RNG and optimizer state.
     """
     log = logger.info if logger else print
     

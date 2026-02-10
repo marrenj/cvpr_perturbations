@@ -129,13 +129,21 @@ def init_wandb(config, resume_epoch=0):
     """
     resume_mode = "allow" if resume_epoch > 0 else None
     run_id = config.get('wandb_run_id', None)
-    
+
+    # If project/entity are missing or blank, run wandb in offline mode
+    project = config.get('wandb_project')
+    entity = config.get('wandb_entity')
+    offline_mode = (not project) or (entity is None or entity == "")
+    if offline_mode:
+        os.environ["WANDB_MODE"] = "offline"
+        project = project or "offline-run"
+
     # Create descriptive run name (shared with filesystem path)
     run_name = get_run_name(config)
     
     run = wandb.init(
-        project=config.get('wandb_project', 'clip-hba-training'),
-        entity=config.get('wandb_entity', None),
+        project=project,
+        entity=entity if not offline_mode else None,
         name=run_name,
         id=run_id,
         resume=resume_mode,

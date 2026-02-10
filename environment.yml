@@ -1,0 +1,17 @@
+name: cvpr_perturbations
+
+channels:
+  - pytorch
+  - conda-forge
+  - nvidia
+  - defaults
+
+dependencies:
+  - python=3.11
+  - pytorch=2.2.1
+  - pytorch-cuda=12.1
+  - pip
+  - -c pytorch
+  - -c nvidia
+  - pip:
+      - -r requirements.txt
