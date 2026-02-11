@@ -1,15 +1,17 @@
 ## ---PATHS--- ##
-  save_path: # root path to save training artifacts (checkpoints, training results, random states)
-  baseline_checkpoint_path: # path to baseline training run checkpoints used for perturbation sweeps
+  save_path: "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/perturbation_debug_test" # root path to save training artifacts (checkpoints, training results, random states)
+  baseline_checkpoint_path: "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/baseline_seed1/vit_l_14_rank32_perturb-type-none_init-seed1behavioral-rsa-True" # path to baseline training run checkpoints used for perturbation sweeps
   img_annotations_file: "./data/spose_embedding66d_rescaled_1806train.csv" # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
-  img_dir: # path to the THINGS image directory
+  img_dir: "/home/wallacelab/investigating-complexity/Images/THINGS" # path to the THINGS image directory
 
-## ---WANDB CONFIGURATION--- ##
+## ---LOGGING & WANDB CONFIGURATION--- ##
   'wandb_project': # Optional: Name of the WANDB project to use for logging
   'wandb_entity': # Optional: your username or team name
 
+  debug_logging: true # whether to log debug information to the console
+
 ## ---EXPERIMENT SETUP--- ##
-  experiment_type: baseline # Required: baseline | perturbation_run
+  experiment_type: perturbation_run # Required: baseline | perturbation_run
 
 ## ---TRAINING PARAMETERS--- ##
   dataset_type: things # Dataset to use for training. "things" for THINGS dataset.
@@ -25,7 +27,7 @@
 
 ## ---PERTURBATION PARAMETERS--- ##
   perturb_type: uniform_images # none | random_target | label_shuffle | image_noise | uniform_images
-  perturb_epoch: 0 # epoch to start perturbation (0-indexed)
+  perturb_epoch: 10 # epoch to start perturbation (0-indexed)
   perturb_length: 1 # number of epochs to perturb
   perturb_seed: 1 # random seed to use for perturbation
 

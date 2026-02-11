@@ -561,7 +561,7 @@ def handle_checkpoint_resumption(config, model, optimizer, dataloader_generator,
 
 
 def train_one_epoch(model, train_loader, device, optimizer, criterion, 
-                   perturb_strategy, epoch_idx, logger, log_interval=10):
+                   perturb_strategy, epoch_idx, logger, log_interval=10, debug_logging=False):
     """
     Train model for a single epoch.
     
@@ -575,7 +575,7 @@ def train_one_epoch(model, train_loader, device, optimizer, criterion,
         epoch_idx: Current epoch index
         logger: Logger instance
         log_interval: Interval to log metrics with wandb
-        
+        debug_logging: Whether to log debug information to the console
     Returns:
         float: Average training loss for the epoch
     """
@@ -596,15 +596,45 @@ def train_one_epoch(model, train_loader, device, optimizer, criterion,
         desc=f"Epoch {epoch_idx}"
     )
     
-    for batch_idx, (_, images, targets) in progress_bar:
+    for batch_idx, (image_names, images, targets) in progress_bar:
         # Move data to device
         images = images.to(device)
         targets = targets.to(device)
+
+        if debug_logging is True and batch_idx == 0:
+            print("\n=== DEBUG: BEFORE PERTURBATION ===")
+            print("targets (first 10 values in first 10 rows):", targets[:10, :10])
+            print("targets shape:", targets.shape)
+            print("images (first 10):", images[:10])
+            print("images shape:", images.shape)
+            print("image_names (first 10):", image_names[:10])
+            print("image_names shape:", len(image_names))
+
+        images_before = images.clone()
+        targets_before = targets.clone()
         
         # Apply perturbation if active
         images, targets = perturb_strategy.apply_to_batch(
             images, targets, device, epoch_idx, batch_idx
         )
+
+        if debug_logging is True and batch_idx == 0:
+            print("\n=== DEBUG: AFTER PERTURBATION ===")
+            print("targets (first 10 values in first 10 rows):", targets[:10, :10])
+            print("targets shape:", targets.shape)
+            print("images (first 10):", images[:10])
+            print("images shape:", images.shape)
+            print("image_names (first 10):", image_names[:10])
+            print("image_names shape:", len(image_names))
+
+            # Numeric check: how much changed?
+            delta_targets = (targets - targets_before).abs().mean()
+            print("mean |target change|:", delta_targets.item())
+            delta_images = (images - images_before).abs().mean()
+            print("mean |image change|:", delta_images.item())
+            same_rows = (targets == targets_before).all(dim=1).sum().item()
+            print("num target vectors unchanged:", same_rows, "/", targets.shape[0])
+
         
         # Forward pass
         optimizer.zero_grad()
@@ -682,6 +712,7 @@ def train_model(
     rsa_annotations_file=None,
     model_rdm_distance_metric="pearson",
     rsa_similarity_metric="spearman",
+    debug_logging=False,
 ):
     """
     Main training loop with logging, checkpointing, and early stopping.
@@ -704,6 +735,11 @@ def train_model(
         transformer_layers: Number of text transformer layers to save
         perturb_strategy: Perturbation strategy to apply
         start_epoch: Starting epoch (for resumption)
+        behavioral_rsa: Whether to compute behavioral RSA
+        rsa_annotations_file: Path to annotations file for behavioral RSA
+        model_rdm_distance_metric: Distance metric for model RDM
+        rsa_similarity_metric: Similarity metric for behavioral RSA
+        debug_logging: Whether to log debug information to the console
     """
     best_test_loss = float('inf')
     epochs_no_improve = 0
@@ -759,7 +795,7 @@ def train_model(
         # Train one epoch
         avg_train_loss = train_one_epoch(
             model, train_loader, device, optimizer, criterion,
-            perturb_strategy, epoch, logger
+            perturb_strategy, epoch, logger, debug_logging=debug_logging,
         )
         
         # Evaluate on validation set
@@ -1028,6 +1064,7 @@ def run_training_experiment(config):
             rsa_annotations_file=config.get('rsa_annotations_file'),
             model_rdm_distance_metric=config.get('model_rdm_distance_metric', 'pearson'),
             rsa_similarity_metric=config.get('rsa_similarity_metric', 'spearman'),
+            debug_logging=config.get('debug_logging', False),
         )
     finally:
         wandb.finish()
