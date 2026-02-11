@@ -38,6 +38,12 @@
   rsa_similarity_metric: spearman # similarity metric to use for RSA
 
 ## ---MODEL PARAMETERS--- ##
+  training_dataset: things # dataset to use for training: things | imagenet
+  architecture: CLIP-HBA # architecture to use for the model: CLIP-HBA | ViT-B/16 | ViT-L/14 | RN50 | RN101 | CLIP-ViT-L/14
+  pretrained: false # load pretrained weights? (default false for CPU-only)
+  frozen_layers: 0 # how many initial layers to freeze, if any
+
+  # CLIP-HBA specific parameters
   backbone: ViT-L/14 # model backbone to use for CLIP-HBA
   vision_layers: 2 # number of vision encoder layers to open up for CLIP-HBA training
   transformer_layers: 1 # number of text encoder layers to use for CLIP-HBA training
