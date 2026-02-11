@@ -137,3 +137,17 @@ For inference, set `evaluation_type` to `behavioral` or `neural` to extract embe
 ### References
 
 1. Zhao, S. C., Hu, Y., Lee, J., Bender, A., Mazumdar, T., Wallace, M., & Tovar, D. A. (2025). Shifting attention to you: Personalized brain-inspired AI models. arXiv. https://arxiv.org/abs/2502.04658
+
+# Feedback & To-Dos
+
+1. Structure the repo based on the feedback that we got in the CVPR reviews. For example, what are the most important things to highlight in the "About" section? We should be talking about how this can and will be used to examine training dynamics on more models that just CLIP-HBA, so it is also relevant to the ML/AI world. Even if this functionality has not been developed yet, you can explain what you plan to do with the project.
+
+2. Move the "Repo Structure" section to the beginning of the README.
+
+3. Further allow for the config to accept other model architectures/backbones (can make this a class). 
+
+4. Complete the "Data" section of the README.
+
+5. Make all paths relative. For example, provide instructions for where, in relationship to this repo, the user should download the data. The configs will point to that location.
+
+6. Do a full check that all scripts work. 
