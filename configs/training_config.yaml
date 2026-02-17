@@ -11,7 +11,7 @@
   debug_logging: true # whether to log debug information to the console
 
 ## ---EXPERIMENT SETUP--- ##
-  experiment_type: perturbation_run # Required: baseline | perturbation_run
+  experiment_type: baseline # Required: baseline | perturbation_run
 
 ## ---TRAINING PARAMETERS--- ##
   dataset_type: things # Dataset to use for training. "things" for THINGS dataset.
@@ -22,14 +22,14 @@
   lr: 3e-4 # learning rate for the optimizer
   criterion: MSELoss # loss function to use for training
   random_seed: 1 # random seed to use for training
-  cuda: 0 # GPU to use for training; -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
+  cuda: 1 # GPU to use for training; -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
   logger: None # Logger to use for training. None for no logging.
 
 ## ---PERTURBATION PARAMETERS--- ##
-  perturb_type: uniform_images # none | random_target | label_shuffle | image_noise | uniform_images
-  perturb_epoch: 10 # epoch to start perturbation (0-indexed)
-  perturb_length: 1 # number of epochs to perturb
-  perturb_seed: 1 # random seed to use for perturbation
+  perturb_type: none # none | random_target | label_shuffle | image_noise | uniform_images
+  perturb_epoch: # epoch to start perturbation (0-indexed)
+  perturb_length: # number of epochs to perturb
+  perturb_seed: # random seed to use for perturbation
 
 ## ---RSA PARAMETERS--- ##
   behavioral_rsa: True # whether to conduct behavioral RSA within the training loop
@@ -44,7 +44,7 @@
   frozen_layers: 0 # how many initial layers to freeze, if any
 
   # CLIP-HBA specific parameters
-  backbone: ViT-L/14 # model backbone to use for CLIP-HBA
+  clip_hba_backbone: ViT-L/14 # model backbone to use for CLIP-HBA
   vision_layers: 2 # number of vision encoder layers to open up for CLIP-HBA training
   transformer_layers: 1 # number of text encoder layers to use for CLIP-HBA training
   rank: 32 # rank of the DoRA layers 

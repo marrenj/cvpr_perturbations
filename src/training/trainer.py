@@ -28,18 +28,13 @@ from src.inference.inference_core import (
     compute_model_rdm,
     compute_rdm_similarity,
 )
-
+from src.models.factory import build_model
 from src.utils.seed import seed_everything
 from src.utils.logging import setup_logger
 from src.utils.count_parameters import count_trainable_parameters
-from src.models.clip_hba.clip_hba_utils import (
-    CLIPHBA,
-    apply_dora_to_ViT,
-    switch_dora_layers,
-    load_dora_checkpoint,
-)
+from src.models.clip_hba.clip_hba_utils import load_dora_checkpoint
 from src.data.things_dataset import ThingsBehavioralDataset
-from src.data.spose_dimensions import classnames66
+from src.data.imagenet_dataset import ImagenetDataset
 from src.perturbations.perturbation_utils import choose_perturbation_strategy
 
 
@@ -59,7 +54,7 @@ def get_wandb_tags(config):
         list: List of tags
     """
     tags = [
-        f"backbone_{config['backbone']}",
+        f"backbone_{config['clip_hba_backbone']}",
         f"rank_{config['rank']}",
         f"perturb_type_{config['perturb_type']}",
         f"dataset_type_{config['dataset_type']}",
@@ -67,7 +62,7 @@ def get_wandb_tags(config):
     ]
 
     if config['behavioral_rsa']:
-        tags.append(f"behavioral_rsa")
+        tags.append("behavioral_rsa")
     
     if config['perturb_type'] != 'none':
         tags.append(f"perturb_epoch_{config['perturb_epoch']}")
@@ -91,7 +86,7 @@ def get_run_name(config):
     if config.get('wandb_run_name'):
         return config['wandb_run_name']
     
-    backbone_token = _sanitize(config['backbone'])
+    backbone_token = _sanitize(config['clip_hba_backbone'])
     perturb_type = str(config.get('perturb_type', 'none'))
     normalized_ptype = perturb_type.lower()
 
@@ -232,6 +227,13 @@ def setup_dataset(config, logger):
             img_annotations_file=config['img_annotations_file'],
             img_dir=config['img_dir'],
         )
+    
+    elif config['dataset_type'] == 'imagenet':
+        dataset = ImagenetDataset(
+            img_annotations_file=config['img_annotations_file'],
+            img_dir=config['img_dir'],
+        )
+
     else:
         raise ValueError(f"Dataset type {config['dataset_type']} not supported")
     
@@ -315,50 +317,6 @@ def create_dataloaders(train_dataset, test_dataset, config):
 # =============================================================================
 # Model Setup
 # =============================================================================
-
-def setup_model(config, device):
-    """
-    Initialize model and move to device.
-    
-    Args:
-        config: Configuration dictionary containing model parameters
-        device: Target device for model
-        
-    Returns:
-        torch.nn.Module: Configured model ready for training
-    """
-    # Determine positional embedding based on backbone
-    pos_embedding = False if config['backbone'] == 'RN50' else True
-    print(f"pos_embedding is {pos_embedding}")
-    
-    # Initialize base model
-    model = CLIPHBA(
-        classnames=classnames66, 
-        backbone_name=config['backbone'], 
-        pos_embedding=pos_embedding
-    )
-    
-    # Apply DoRA adapters
-    apply_dora_to_ViT(
-        model, 
-        n_vision_layers=config['vision_layers'],
-        n_transformer_layers=config['transformer_layers'],
-        r=config['rank'],
-        dora_dropout=0.1
-    )
-    switch_dora_layers(model, freeze_all=True, dora_state=True)
-    
-    # Use DataParallel if using all GPUs
-    if config['cuda'] == -1:
-        print(f"Using {torch.cuda.device_count()} GPUs")
-        model = DataParallel(model)
-    
-    model.to(device)
-
-    if config.get('wandb_watch_model', True):
-        wandb.watch(model, log='all', log_freq=config.get('wandb_log_freq', 100))
-    
-    return model
 
 
 def get_device(cuda_config, logger):
@@ -999,7 +957,19 @@ def run_training_experiment(config):
     device = get_device(config['cuda'], logger)
     
     # Setup model
-    model = setup_model(config, device)
+    model = build_model(
+    architecture=config.get('architecture'), 
+    pretrained=config.get('pretrained'), 
+    clip_hba_backbone=config.get('clip_hba_backbone'), 
+    vision_layers=config.get('vision_layers'), 
+    transformer_layers=config.get('transformer_layers'), 
+    rank=config.get('rank'),
+    cuda=config.get('cuda'),
+    device=device,
+    wandb_watch_model=config.get('wandb_watch_model'), 
+    wandb_log_freq=config.get('wandb_log_freq')
+    )
+    model.to(device)
     
     # Initialize optimizer
     optimizer = AdamW(model.parameters(), lr=config['lr'])

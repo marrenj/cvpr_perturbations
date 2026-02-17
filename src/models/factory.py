@@ -1,37 +1,105 @@
 # src/models/factory.py
-
 import torch
-from torchvision.models import vit_b_16, vit_l_14, resnet50  # or vit_b_8, etc.
+from torch.nn import DataParallel
+import timm
+import wandb
 
-def build_model(arch_cfg):
-    model_type = arch_cfg.get('type', 'CLIP')
-    if model_type == 'ViT-B/16':
+from src.models.clip_hba.clip_hba_utils import (
+    CLIPHBA,
+    apply_dora_to_ViT,
+    switch_dora_layers,
+)
+
+from src.data.spose_dimensions import classnames66
+
+def build_cliphba(backbone, vision_layers, transformer_layers, rank, cuda, device, wandb_watch_model, wandb_log_freq):
+    """
+    Initialize model and move to device.
+    
+    Args:
+        config: Configuration dictionary containing model parameters
+        device: Target device for model
+        
+    Returns:
+        torch.nn.Module: Configured model ready for training
+    """
+    # Determine positional embedding based on backbone
+    pos_embedding = False if backbone == 'RN50' else True
+    print(f"pos_embedding is {pos_embedding}")
+    
+    # Initialize base model
+    model = CLIPHBA(
+        classnames=classnames66, 
+        backbone_name=backbone, 
+        pos_embedding=pos_embedding
+    )
+    
+    # Apply DoRA adapters
+    apply_dora_to_ViT(
+        model, 
+        n_vision_layers=vision_layers,
+        n_transformer_layers=transformer_layers,
+        r=rank,
+        dora_dropout=0.1
+    )
+    switch_dora_layers(model, freeze_all=True, dora_state=True)
+    
+    # Use DataParallel if using all GPUs
+    if cuda == -1:
+        print(f"Using {torch.cuda.device_count()} GPUs")
+        model = DataParallel(model)
+    
+    model.to(device)
+
+    if wandb_watch_model is True:
+        wandb.watch(model, log='all', log_freq=wandb_log_freq)
+    
+    return model
+
+
+def build_model(
+    architecture, 
+    pretrained, 
+    clip_hba_backbone, 
+    vision_layers, 
+    transformer_layers, 
+    rank, 
+    cuda, 
+    device, 
+    wandb_watch_model, 
+    wandb_log_freq
+    ):
+    
+    if architecture == 'ViT-B/16':
         # Create a Vision Transformer with specified parameters
-        model = vit_b_16(pretrained=arch_cfg.get('pretrained', False))
+        model = timm.create_model('vit_base_patch16_224', pretrained=pretrained)
         # Optionally resize or replace the head if num_classes differs
         # e.g., model.heads.head = torch.nn.Linear(model.heads.head.in_features, num_classes)
-        return model
 
-    elif model_type == 'ViT-L/14':
+    elif architecture == 'ViT-L/14':
         # Create a Vision Transformer with specified parameters
-        model = vit_l_14(pretrained=arch_cfg.get('pretrained', False))
+        model = timm.create_model('vit_large_patch14_224', pretrained=pretrained)
         # Optionally resize or replace the head if num_classes differs
         # e.g., model.heads.head = torch.nn.Linear(model.heads.head.in_features, num_classes)
-        return model
 
-    elif model_type == 'RN50':
+    elif architecture == 'RN50':
         # Create a ResNet with specified parameters
-        model = resnet50(pretrained=arch_cfg.get('pretrained', False))
+        model = timm.create_model('resnet50', pretrained=pretrained)
         # Optionally resize or replace the head if num_classes differs
         # e.g., model.heads.head = torch.nn.Linear(model.heads.head.in_features, num_classes)
-        return model
 
-    elif model_type == 'CLIP-HBA':
-        # Existing CLIP-HBA logic, e.g.:
-        from src.models.clip_hba.clip_hba_utils import initialize_cliphba_model
-        backbone = arch_cfg.get('backbone', 'RN50')
-        model = initialize_cliphba_model(backbone)  # original code path
+    elif architecture == 'CLIP-HBA':
+        model = build_cliphba(
+            clip_hba_backbone, 
+            vision_layers, 
+            transformer_layers, 
+            rank, 
+            cuda, 
+            device, 
+            wandb_watch_model, 
+            wandb_log_freq
+        )
         return model
 
     else:
-        raise ValueError(f"Unknown architecture type: {model_type}")
+        raise ValueError(f"Unknown architecture type: {architecture}")
