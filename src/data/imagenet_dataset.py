@@ -1,66 +1,90 @@
-from torchvision import transforms
+"""
+ImageNet dataset for from-scratch classification training.
+
+Expects the standard ImageNet folder structure:
+
+    img_dir/
+        train/
+            n01234567/   <- synset id folders
+                img.JPEG
+                ...
+        val/
+            n01234567/
+                ...
+
+Returns (image_name, image, class_label) tuples to match the rest of the
+training pipeline, where class_label is an integer in [0, num_classes).
+"""
+
+from torchvision import transforms, datasets
 from torch.utils.data import Dataset
 from pathlib import Path
-import pandas as pd
 from PIL import Image
+
+IMAGENET_MEAN = [0.485, 0.456, 0.406]
+IMAGENET_STD  = [0.229, 0.224, 0.225]
 
 
 class ImagenetDataset(Dataset):
-    def __init__(self, category_index_file, img_dir):
-        # Convert paths to Path objects for OS-agnostic handling
-        self.img_dir = Path(img_dir)
-        self.category_index_file = Path(category_index_file)
-        
-        self.transform = transforms.Compose([
-                        transforms.Resize((224, 224)),
-                        transforms.ToTensor(),
-                        transforms.Normalize(mean=[0.52997664, 0.48070561, 0.41943838],
-                                            std=[0.27608301, 0.26593025, 0.28238822])
-                    ])
+    """
+    Full ImageNet dataset using standard ImageFolder structure.
 
-        # Load the full CSV
-        self.category_index = pd.read_csv(self.category_index_file)
+    Args:
+        img_dir:  Root directory containing ``train/`` and ``val/`` sub-folders.
+        split:    ``'train'`` or ``'val'``.
+        img_size: Spatial resolution to resize/crop images to (default 224).
 
-        # Pre-compute all image paths for all categories
-        # Sample max_images_per_category images from each category
-        self.image_paths = []
-        self.image_names = []
-        self.categories = []
+    Returns per item:
+        (image_name, image_tensor, class_label)
+        image_name  – filename (str)
+        image_tensor – float32 CHW tensor, normalised with ImageNet stats
+        class_label  – integer class index in [0, num_classes)
+    """
 
-        for category in self.category_index['category'].unique():
-            category_path = self.img_dir / category
-            
-            if category_path.is_dir():
-                # # Get all images in this category
-                # all_images = [f.name for f in category_path.iterdir() 
-                #              if f.is_file() and f.suffix.lower() in ('.png', '.jpg', '.jpeg')]
-                
-                # # Sample max_images_per_category images randomly
-                # random.seed(42)  # For reproducibility
-                # sampled_images = random.sample(all_images, min(max_images_per_category, len(all_images)))
+    def __init__(self, img_dir: str, split: str = "train", img_size: int = 224):
+        split_dir = Path(img_dir) / split
+        if not split_dir.exists():
+            raise FileNotFoundError(
+                f"ImageNet {split} split not found at: {split_dir}"
+            )
 
-                # sample the image_name from the category_index
-                sampled_images = self.category_index[self.category_index['category'] == category]['image'].sample(min(max_images_per_category, len(self.category_index[self.category_index['category'] == category])))
-                
-                for image_file in sampled_images:
-                    # Store relative path for compatibility
-                    image_path = Path(category) / image_file
-                    self.image_paths.append(str(image_path))
-                    self.image_names.append(image_file)
-                    self.categories.append(category)
-        
-        print(f"Dataset loaded with {len(self.image_paths)} images from {self.category_index['category'].nunique()} categories ({max_images_per_category} per category)")
+        if split == "train":
+            self.transform = transforms.Compose([
+                transforms.RandomResizedCrop(img_size),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+            ])
+        else:
+            self.transform = transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(img_size),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+            ])
 
-    def __len__(self):
-        return len(self.image_paths)
+        # ImageFolder enumerates (path, class_idx) pairs and builds class maps
+        self._folder = datasets.ImageFolder(root=str(split_dir))
 
-    def __getitem__(self, index):
-        # Get the image at the specified index
-        image_path = self.img_dir / self.image_paths[index]
-        image_name = self.image_names[index]
-        category = self.categories[index]
-        
-        image = Image.open(image_path).convert("RGB")
+        print(
+            f"ImageNet {split}: {len(self._folder):,} images, "
+            f"{len(self._folder.classes)} classes"
+        )
+
+    def __len__(self) -> int:
+        return len(self._folder)
+
+    def __getitem__(self, index: int):
+        path, label = self._folder.samples[index]
+        image_name = Path(path).name
+        image = Image.open(path).convert("RGB")
         image = self.transform(image)
-        
-        return image_name, image, category
+        return image_name, image, label
+
+    @property
+    def num_classes(self) -> int:
+        return len(self._folder.classes)
+
+    @property
+    def class_to_idx(self) -> dict:
+        return self._folder.class_to_idx
