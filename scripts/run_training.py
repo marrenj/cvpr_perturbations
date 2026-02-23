@@ -29,7 +29,7 @@ TRAINING_INT_KEYS = [
     "start_epoch",
     "end_epoch",
 ]
-TRAINING_FLOAT_ONLY = ["lr", "train_portion"]
+TRAINING_FLOAT_ONLY = ["lr", "train_portion", "weight_decay", "momentum"]
 
 
 def _write_resolved_config(resolved_cfg: dict, destination: Path) -> None:

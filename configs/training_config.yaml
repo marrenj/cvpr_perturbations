@@ -40,14 +40,25 @@ debug_logging: false          # Log per-batch debug info to console
 
 ## ---TRAINING PARAMETERS--- ##
 dataset_type: imagenet        # imagenet | things
-epochs: 90                    # Total training epochs (90 is standard ImageNet)
+max_duration: 100ep           # Total training duration as '<N>ep' or plain int
+                              # (overrides 'epochs' when set)
+epochs: 100                   # Fallback if max_duration is not set
 early_stopping_patience: 20   # Epochs without val improvement before stopping
 batch_size: 256               # Samples per batch
 train_portion: 0.8            # Finetune only: train/val split ratio
-lr: 0.1                       # Learning rate (0.1 SGD-style or 3e-4 AdamW)
 criterion: CrossEntropyLoss   # CrossEntropyLoss (scratch) | MSELoss (finetune)
 random_seed: 1                # Global random seed
 cuda: 0                       # -1 = all GPUs | 0 = GPU 0 | 1 = GPU 1
+
+
+## ---OPTIMIZER & LR SCHEDULE--- ##
+opt: sgd                      # sgd | adamw
+lr: 0.1                       # Base learning rate
+momentum: 0.9                 # SGD momentum (SGD only; ignored for AdamW)
+weight_decay: 1e-4            # L2 regularisation
+lr_scheduler: cosineannealinglrwithwarmup
+                              # none | cosineannealinglr | cosineannealinglrwithwarmup
+lr_warmup_duration: 5ep       # Linear warmup duration, e.g. '5ep'
 
 
 ## ---PERTURBATION PARAMETERS--- ##

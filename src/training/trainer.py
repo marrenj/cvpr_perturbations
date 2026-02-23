@@ -13,13 +13,18 @@ import yaml
 import wandb
 from tqdm import tqdm
 from numpy.random import set_state as np_set_state
-import torch 
+import torch
 import torch.nn as nn
 import numpy as np
 from datetime import datetime
 from torch.utils.data import DataLoader, random_split, Subset
 from torch.nn import DataParallel
-from torch.optim import AdamW
+from torch.optim import AdamW, SGD
+from torch.optim.lr_scheduler import (
+    CosineAnnealingLR,
+    LinearLR,
+    SequentialLR,
+)
 
 from src.training.test_loop import evaluate_model
 from src.utils.save_random_states import save_random_states
@@ -36,6 +41,121 @@ from src.models.clip_hba.clip_hba_utils import load_dora_checkpoint
 from src.data.things_dataset import ThingsBehavioralDataset
 from src.data.imagenet_dataset import ImagenetDataset
 from src.perturbations.perturbation_utils import choose_perturbation_strategy
+
+
+# =============================================================================
+# Helpers
+# =============================================================================
+
+
+def parse_epoch_duration(value) -> int:
+    """
+    Parse a duration value into an integer number of epochs.
+
+    Accepts either a plain integer (``90``) or a string with the ``ep``
+    suffix (``'100ep'``, ``'5ep'``).
+
+    Args:
+        value: Integer or string like ``'100ep'``.
+
+    Returns:
+        int: Number of epochs.
+    """
+    if value is None:
+        return None
+    s = str(value).strip().lower()
+    if s.endswith('ep'):
+        return int(s[:-2])
+    return int(s)
+
+
+def build_optimizer(model, config):
+    """
+    Build an optimizer from configuration.
+
+    Supported optimizers (``opt`` key):
+    * ``'sgd'``   – SGD with momentum and optional Nesterov acceleration.
+    * ``'adamw'`` – AdamW (default).
+
+    Args:
+        model:  Model whose parameters to optimise.
+        config: Configuration dictionary.
+
+    Returns:
+        torch.optim.Optimizer
+    """
+    opt_name    = str(config.get('opt', 'adamw')).lower()
+    lr          = float(config['lr'])
+    weight_decay = float(config.get('weight_decay', 0.0))
+
+    if opt_name == 'sgd':
+        momentum = float(config.get('momentum', 0.9))
+        return SGD(
+            model.parameters(),
+            lr=lr,
+            momentum=momentum,
+            weight_decay=weight_decay,
+            nesterov=True,
+        )
+    if opt_name == 'adamw':
+        return AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+
+    raise ValueError(
+        f"Optimizer '{opt_name}' not supported. Use 'sgd' or 'adamw'."
+    )
+
+
+def build_scheduler(optimizer, config, epochs: int):
+    """
+    Build a learning-rate scheduler from configuration.
+
+    Supported schedulers (``lr_scheduler`` key):
+    * ``'cosineannealinglrwithwarmup'`` – Linear warmup followed by cosine
+      annealing. Warmup length is controlled by ``lr_warmup_duration``
+      (e.g. ``'5ep'``).
+    * ``'cosineannealinglr'``           – Cosine annealing with no warmup.
+    * ``'none'`` / absent               – No scheduler (constant LR).
+
+    Args:
+        optimizer: Configured optimizer.
+        config:    Configuration dictionary.
+        epochs:    Total number of training epochs.
+
+    Returns:
+        torch.optim.lr_scheduler._LRScheduler | None
+    """
+    name = str(config.get('lr_scheduler', 'none')).lower().strip()
+    if not name or name == 'none':
+        return None
+
+    warmup_epochs = parse_epoch_duration(config.get('lr_warmup_duration', '0ep')) or 0
+
+    if name == 'cosineannealinglrwithwarmup':
+        cosine_epochs = max(1, epochs - warmup_epochs)
+        if warmup_epochs > 0:
+            warmup_sched = LinearLR(
+                optimizer,
+                start_factor=1e-6,   # near-zero start
+                end_factor=1.0,
+                total_iters=warmup_epochs,
+            )
+            cosine_sched = CosineAnnealingLR(
+                optimizer, T_max=cosine_epochs, eta_min=0
+            )
+            return SequentialLR(
+                optimizer,
+                schedulers=[warmup_sched, cosine_sched],
+                milestones=[warmup_epochs],
+            )
+        return CosineAnnealingLR(optimizer, T_max=epochs, eta_min=0)
+
+    if name == 'cosineannealinglr':
+        return CosineAnnealingLR(optimizer, T_max=epochs, eta_min=0)
+
+    raise ValueError(
+        f"LR scheduler '{name}' not supported. "
+        "Use 'cosineannealinglrwithwarmup', 'cosineannealinglr', or 'none'."
+    )
 
 
 # =============================================================================
@@ -507,7 +627,7 @@ def load_model_checkpoint(model, checkpoint_path: str, logger=None):
 
 def load_checkpoint_and_states(
     model, optimizer, dataloader_generator, checkpoint_path,
-    random_state_path, logger, training_mode='finetune',
+    random_state_path, logger, training_mode='finetune', scheduler=None,
 ):
     """
     Load model weights and restore all random states for reproducibility.
@@ -569,12 +689,15 @@ def load_checkpoint_and_states(
 
     if 'optimizer_state_dict' in state_payload:
         optimizer.load_state_dict(state_payload['optimizer_state_dict'])
-        logger.info(f"Restored optimizer and RNG states from {random_state_path}")
 
+    if scheduler is not None and 'scheduler_state_dict' in state_payload:
+        scheduler.load_state_dict(state_payload['scheduler_state_dict'])
+
+    logger.info(f"Restored optimizer and RNG states from {random_state_path}")
     return epoch_num + 1
 
 
-def handle_checkpoint_resumption(config, model, optimizer, dataloader_generator, logger):
+def handle_checkpoint_resumption(config, model, optimizer, dataloader_generator, logger, scheduler=None):
     """
     Handle checkpoint loading for either explicit resumption or baseline loading.
 
@@ -588,6 +711,7 @@ def handle_checkpoint_resumption(config, model, optimizer, dataloader_generator,
         optimizer:            Optimizer instance.
         dataloader_generator: DataLoader generator.
         logger:               Logger instance.
+        scheduler:            Optional LR scheduler to restore.
 
     Returns:
         int: Epoch to start/resume from.
@@ -607,7 +731,7 @@ def handle_checkpoint_resumption(config, model, optimizer, dataloader_generator,
         resume_epoch = load_checkpoint_and_states(
             model, optimizer, dataloader_generator,
             resume_checkpoint_path, random_state_file, logger,
-            training_mode=training_mode,
+            training_mode=training_mode, scheduler=scheduler,
         )
 
     # Case 2: Load baseline checkpoint before applying perturbation
@@ -628,7 +752,7 @@ def handle_checkpoint_resumption(config, model, optimizer, dataloader_generator,
         resume_epoch = load_checkpoint_and_states(
             model, optimizer, dataloader_generator,
             baseline_checkpoint_path, random_state_file, logger,
-            training_mode=training_mode,
+            training_mode=training_mode, scheduler=scheduler,
         )
         logger.info(f"Loaded baseline checkpoint from epoch {baseline_epoch}")
 
@@ -794,6 +918,7 @@ def train_model(
     rsa_similarity_metric="spearman",
     debug_logging=False,
     training_mode='finetune',
+    scheduler=None,
 ):
     """
     Main training loop with logging, checkpointing, and early stopping.
@@ -892,6 +1017,10 @@ def train_model(
         if perturb_strategy.is_active_epoch(epoch):
             logger.info(f"*** Perturbation '{perturb_strategy.__class__.__name__}' was applied during epoch {epoch} ***")
 
+        # Step LR scheduler (after optimizer.step, before logging)
+        if scheduler is not None:
+            scheduler.step()
+
         wandb.log({
             'val_loss': avg_test_loss,
             'epoch': epoch,
@@ -922,8 +1051,8 @@ def train_model(
         
         # Save random states for reproducibility
         save_random_states(
-            optimizer, epoch, random_state_save_path, 
-            dataloader_generator, logger=logger
+            optimizer, epoch, random_state_save_path,
+            dataloader_generator, logger=logger, scheduler=scheduler,
         )
         
         # Save model checkpoint
@@ -1108,12 +1237,23 @@ def run_training_experiment(config):
     )
     model.to(device)
 
-    # Initialize optimizer
-    optimizer = AdamW(model.parameters(), lr=config['lr'])
+    # Resolve total epoch count (max_duration overrides epochs if present)
+    epochs = (
+        parse_epoch_duration(config['max_duration'])
+        if config.get('max_duration')
+        else int(config['epochs'])
+    )
+    config['epochs'] = epochs  # normalise so downstream code sees an int
+
+    # Build optimizer and LR scheduler
+    optimizer = build_optimizer(model, config)
+    scheduler = build_scheduler(optimizer, config, epochs)
+    if scheduler is not None:
+        logger.info(f"LR scheduler: {scheduler.__class__.__name__}")
 
     # Handle checkpoint resumption if needed
     resume_epoch = handle_checkpoint_resumption(
-        config, model, optimizer, dataloader_generator, logger
+        config, model, optimizer, dataloader_generator, logger, scheduler=scheduler,
     )
 
     log_model_architecture(model, logger)
@@ -1159,7 +1299,7 @@ def run_training_experiment(config):
             device=device,
             optimizer=optimizer,
             criterion=criterion,
-            epochs=config['epochs'],
+            epochs=epochs,
             training_results_save_path=training_results_save_path,
             logger=logger,
             early_stopping_patience=config['early_stopping_patience'],
@@ -1176,6 +1316,7 @@ def run_training_experiment(config):
             rsa_similarity_metric=config.get('rsa_similarity_metric', 'spearman'),
             debug_logging=config.get('debug_logging', False),
             training_mode=training_mode,
+            scheduler=scheduler,
         )
     finally:
         wandb.finish()
