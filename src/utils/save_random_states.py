@@ -4,7 +4,8 @@ import random
 import os
 
 
-def save_random_states(optimizer, epoch, random_state_path, dataloader_generator, logger=None):
+def save_random_states(optimizer, epoch, random_state_path, dataloader_generator, 
+logger=None, scheduler=None):
     """
     Save all random states and optimizer state for 100% reproducibility, 
     and to be used for resuming training.
@@ -14,6 +15,7 @@ def save_random_states(optimizer, epoch, random_state_path, dataloader_generator
         epoch: Current epoch number
         random_state_path: Directory to save the checkpoint
         logger: Optional logger for logging messages
+        scheduler: Optional LR scheduler whose state to save
 
     Returns:
         None. Writes a checkpoint file containing RNG and optimizer state.
@@ -29,6 +31,9 @@ def save_random_states(optimizer, epoch, random_state_path, dataloader_generator
         'python_rng_state': random.getstate(),
         'dataloader_generator_state': dataloader_generator.get_state(),
     }
+
+    if scheduler is not None:
+        checkpoint['scheduler_state_dict'] = scheduler.state_dict()
     
     # Save CUDA random states for all GPUs if available
     if torch.cuda.is_available():

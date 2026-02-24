@@ -19,7 +19,12 @@ import numpy as np
 from datetime import datetime
 from torch.utils.data import DataLoader, random_split, Subset
 from torch.nn import DataParallel
-from torch.optim import AdamW
+from torch.optim import AdamW, SGD
+from torch.optim.lr_scheduler import (
+    CosineAnnealingLR,
+    LinearLR,
+    SequentialLR,
+)
 
 from src.training.test_loop import evaluate_model
 from src.utils.save_random_states import save_random_states
@@ -39,6 +44,101 @@ from src.perturbations.perturbation_utils import choose_perturbation_strategy
 
 
 # =============================================================================
+# Helpers
+# =============================================================================
+
+def build_optimizer(model, config):
+    """
+    Build an optimizer from configuration.
+
+    Supported optimizers (``opt`` key):
+    * ``'sgd'``   – SGD with momentum.
+    * ``'adamw'`` – AdamW.
+
+    Args:
+        model:  Model whose parameters to optimise.
+        config: Configuration dictionary.
+
+    Returns:
+        torch.optim.Optimizer
+    """
+    opt_name    = str(config.get('opt')).lower()
+    lr          = float(config['lr'])
+    weight_decay = float(config.get('weight_decay', 0.0))
+
+    if opt_name == 'sgd':
+        momentum = float(config.get('momentum', 0.9))
+        return SGD(
+            model.parameters(), 
+            lr=lr, 
+            momentum=momentum, 
+            weight_decay=weight_decay,
+        )
+    elif opt_name == 'adamw':
+        return AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+
+    else:
+        raise ValueError(
+            f"Optimizer '{opt_name}' not supported. Use 'sgd' or 'adamw'."
+        )
+
+
+def build_scheduler(optimizer, config, epochs: int):
+    """
+    Build a learning-rate scheduler from configuration.
+
+    Supported schedulers (``lr_scheduler`` key):
+    * ``'cosineannealinglrwithwarmup'`` – Linear warmup followed by cosine
+      annealing. Warmup length is controlled by ``lr_warmup_duration``
+      (e.g. ``'5ep'``).
+    * ``'cosineannealinglr'``           – Cosine annealing with no warmup.
+    * ``'none'`` / absent               – No scheduler (constant LR).
+
+    Args:
+        optimizer: Configured optimizer.
+        config:    Configuration dictionary.
+        epochs:    Total number of training epochs.
+
+    Returns:
+        torch.optim.lr_scheduler._LRScheduler | None
+    """
+    name = str(config.get('lr_scheduler', 'none')).lower().strip()
+    if not name or name == 'none':
+        return None
+
+    warmup_epochs = int(config.get('lr_warmup_duration'))
+
+
+    if name == 'cosineannealinglrwithwarmup':
+        cosine_epochs = max(1, epochs - warmup_epochs)
+        if warmup_epochs > 0:
+            warmup_sched = LinearLR(
+                optimizer,
+                start_factor=1e-6,   # near-zero start
+                end_factor=1.0,
+                total_iters=warmup_epochs,
+            )
+            cosine_sched = CosineAnnealingLR(
+                optimizer, T_max=cosine_epochs, eta_min=0
+            )
+            return SequentialLR(
+                optimizer,
+                schedulers=[warmup_sched, cosine_sched],
+                milestones=[warmup_epochs],
+            )
+        return CosineAnnealingLR(optimizer, T_max=epochs, eta_min=0)
+
+    if name == 'cosineannealinglr':
+        return CosineAnnealingLR(optimizer, T_max=epochs, eta_min=0)
+
+    raise ValueError(
+        f"LR scheduler '{name}' not supported. "
+        "Use 'cosineannealinglrwithwarmup', 'cosineannealinglr', or 'none'."
+    )
+
+
+
+# =============================================================================
 # Path Setup
 # =============================================================================
 
@@ -46,6 +146,8 @@ from src.perturbations.perturbation_utils import choose_perturbation_strategy
 def get_wandb_tags(config):
     """
     Generate tags for wandb run based on configuration.
+
+    Works for both training modes (scratch and finetune).
     
     Args:
         config: Configuration dictionary
@@ -53,31 +155,46 @@ def get_wandb_tags(config):
     Returns:
         list: List of tags
     """
+    training_mode = config.get['training_mode']
+
+    # Use clip_hba_backbone for finetune, architecture for scratch
+    backbone_tag = (
+        config.get('clip_hba_backbone')
+        if training_mode == 'finetune'
+        else config.get('architecture')
+    )
+
     tags = [
-        f"backbone_{config['clip_hba_backbone']}",
-        f"rank_{config['rank']}",
+        f"training_mode_{training_mode}",
+        f"backbone_{backbone_tag}",
         f"perturb_type_{config['perturb_type']}",
         f"dataset_type_{config['dataset_type']}",
         f"init_seed_{config['random_seed']}",
     ]
 
-    if config['behavioral_rsa']:
+    if training_mode == 'finetune':
+        tags.append(f"rank_{config.get('rank')}")
+
+    if config.get('behavioral_rsa'):
         tags.append("behavioral_rsa")
     
-    if config['perturb_type'] != 'none':
-        tags.append(f"perturb_epoch_{config['perturb_epoch']}")
-        tags.append(f"perturb_length_{config['perturb_length']}")
-        tags.append(f"perturb_seed_{config['perturb_seed']}")
+    perturb_type = str(config.get('perturb_type')).lower()
+    if perturb_type != 'none':
+        tags.append(f"perturb_epoch_{config.get('perturb_epoch')}")
+        tags.append(f"perturb_length_{config.get('perturb_length')}")
+        tags.append(f"perturb_seed_{config.get('perturb_seed')}")
     
-    if 'wandb_tags' in config and config['wandb_tags']:
-        tags.extend(config['wandb_tags'])
+    if config.get('wandb_tags'):
+        tags.extend(config.get('wandb_tags'))
     
     return tags
 
 
 def get_run_name(config):
     """
-    Build a deterministic run name shared by wandb and local save paths.
+    Build a deterministic run name shared by wandb and local save paths.'
+
+    Works for both training modes (scratch and finetune).
     """
     def _sanitize(name: str) -> str:
         # Make a filesystem-safe, lowercase token (replace slashes/spaces)
@@ -86,28 +203,36 @@ def get_run_name(config):
     if config.get('wandb_run_name'):
         return config['wandb_run_name']
     
-    backbone_token = _sanitize(config['clip_hba_backbone'])
+    training_mode = config.get('training_mode')
+
+    if training_mode == 'finetune':
+        backbone_token = _sanitize(config.get('clip_hba_backbone'))
+        rank_token = f"rank{config.get('rank')}"
+    else:
+        backbone_token = _sanitize(config.get('architecture'))
+        rank_token = "scratch"
+
     perturb_type = str(config.get('perturb_type', 'none'))
     normalized_ptype = perturb_type.lower()
 
     if normalized_ptype == 'none':
         return (
             f"{backbone_token}_"
-            f"rank{config['rank']}_"
+            f"{rank_token}_"
             f"perturb-type-none_"
-            f"init-seed{config['random_seed']}"
-            f"behavioral-rsa-{config['behavioral_rsa']}"
+            f"init-seed{config.get('random_seed')}"
+            f"behavioral-rsa-{config.get('behavioral_rsa')}"
         )
 
     return (
         f"{backbone_token}_"
-        f"rank{config['rank']}_"
+        f"{rank_token}_"
         f"perturb-type-{perturb_type}_"
-        f"epoch{config['perturb_epoch']}_"
-        f"length{config['perturb_length']}_"
-        f"perturb-seed{config['perturb_seed']}_"
-        f"init-seed{config['random_seed']}"
-        f"behavioral-rsa-{config['behavioral_rsa']}"
+        f"epoch{config.get('perturb_epoch')}_"
+        f"length{config.get('perturb_length')}_"
+        f"perturb-seed{config.get('perturb_seed')}_"
+        f"init-seed{config.get('random_seed')}"
+        f"behavioral-rsa-{config.get('behavioral_rsa')}"
     )
 
 
@@ -213,35 +338,67 @@ def setup_paths(config):
 def setup_dataset(config, logger):
     """
     Initialize and split dataset according to configuration.
+
+    For ``training_mode='scratch'`` with ImageNet the dataset already ships
+    with canonical train/val directories, so no random split is performed.
+    For ``training_mode='finetune'`` the existing random-split logic is used.
     
     Args:
         config: Configuration dictionary containing dataset parameters
         logger: Logger instance for tracking dataset operations
         
     Returns:
-        tuple: (train_dataset, test_dataset, split_info, global_target_stats)
+        tuple: (train_dataset, val_dataset, split_info, global_target_stats)
     """
-    # Initialize dataset
-    if config['dataset_type'] == 'things':
-        dataset = ThingsBehavioralDataset(
-            img_annotations_file=config['img_annotations_file'],
-            img_dir=config['img_dir'],
+    training_mode = config.get('training_mode')
+
+    if training_mode == 'scratch':
+        if config.get('dataset_type') != 'imagenet':
+            raise ValueError(
+                "training_mode='scratch' currently only supports dataset_type='imagenet'"
+            )
+
+        if config.get('perturb_type') == 'random_target':
+            raise ValueError(
+                "perturb_type='random_target' requires continuous embedding targets; "
+                "and is only compatible with training_mode='finetune'."
+            )
+
+        train_dataset = ImagenetDataset(img_dir=config.get('img_dir'), split='train')
+        val_dataset = ImagenetDataset(img_dir=config.get('img_dir'), split='val')
+        split_info = {'split_type': 'imagenet_predefined'}
+
+        logger.info(
+            f"ImageNet predefined splits: "
+            f"{len(train_dataset):,} train / {len(val_dataset):,} val images"
         )
-    
-    elif config['dataset_type'] == 'imagenet':
-        dataset = ImagenetDataset(
-            img_annotations_file=config['img_annotations_file'],
-            img_dir=config['img_dir'],
+
+        wandb.config.update({
+            'dataset_size': len(train_dataset) + len(val_dataset),
+            'train_size': len(train_dataset),
+            'val_size': len(val_dataset),
+            'train_portion': None,
+        })
+        return train_dataset, val_dataset, split_info, (None, None)
+
+    if config.get('dataset_type') == 'things':
+        dataset = ThingsBehavioralDataset(
+            img_annotations_file=config.get('img_annotations_file'),
+            img_dir=config.get('img_dir'),
+        )
+
+    elif config.get('dataset_type') == 'imagenet':
+        raise ValueError(
+            "training_mode='finetune' currently only supports dataset_type='things'"
         )
 
     else:
-        raise ValueError(f"Dataset type {config['dataset_type']} not supported")
-    
-    # Compute global dataset statistics if needed for random target perturbations
+        raise ValueError(f"Dataset type {config.get('dataset_type')} not supported")
+        
     global_target_mean = None
     global_target_std = None
     
-    if config['perturb_type'] == 'random_target':
+    if config.get('perturb_type') == 'random_target':
         embeddings = dataset.annotations.iloc[:, 1:].values.astype('float32')
         global_target_mean = torch.tensor(np.mean(embeddings), dtype=torch.float32)
         global_target_std = torch.tensor(np.std(embeddings), dtype=torch.float32)
@@ -250,7 +407,9 @@ def setup_dataset(config, logger):
     baseline_checkpoint_path = config.get('baseline_checkpoint_path')
     split_indices_path = None
     if baseline_checkpoint_path:
-        split_candidate = os.path.join(baseline_checkpoint_path, 'random_states', 'dataset_split_indices.pth')
+        split_candidate = os.path.join(
+            baseline_checkpoint_path, 'random_states', 'dataset_split_indices.pth'
+        )
         if os.path.isfile(split_candidate):
             split_indices_path = split_candidate
     
@@ -260,23 +419,23 @@ def setup_dataset(config, logger):
             raise FileNotFoundError(f"dataset_split_indices_path not found: {split_indices_path}")
         split_info = torch.load(split_indices_path)
         train_dataset = Subset(dataset, split_info['train_indices'])
-        test_dataset = Subset(dataset, split_info['test_indices'])
+        test_dataset  = Subset(dataset, split_info['test_indices'])
         logger.info(f"Loaded dataset split indices from {split_indices_path}")
     else:
         train_size = int(config['train_portion'] * len(dataset))
-        test_size = len(dataset) - train_size
+        test_size  = len(dataset) - train_size
         train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
         split_info = {
             'train_indices': list(train_dataset.indices),
-            'test_indices': list(test_dataset.indices),
-            'random_seed': config['random_seed'],
+            'test_indices':  list(test_dataset.indices),
+            'random_seed':   config['random_seed'],
             'train_portion': config['train_portion']
         }
 
     wandb.config.update({
-        'dataset_size': len(dataset),
-        'train_size': len(train_dataset),
-        'test_size': len(test_dataset),
+        'dataset_size':  len(dataset),
+        'train_size':    len(train_dataset),
+        'test_size':     len(test_dataset),
         'train_portion': config['train_portion']
     })
     
@@ -406,10 +565,54 @@ def compute_behavioral_rsa(
 # =============================================================================
 
 
-def load_checkpoint_and_states(model, optimizer, dataloader_generator, checkpoint_path, 
-                               random_state_path, logger):
+def save_model_checkpoint(model, checkpoint_dir: str, epoch: int, log_fn=None):
     """
-    Load model checkpoint and restore all random states for reproducibility.
+    Save a full model state_dict for from-scratch training.
+ 
+    Handles ``DataParallel`` wrappers transparently by saving the underlying
+    ``module`` state_dict so checkpoints are portable across GPU configs.
+ 
+    Args:
+        model:          Model (possibly DataParallel-wrapped) to checkpoint.
+        checkpoint_dir: Directory to write the file into.
+        epoch:          Current epoch index (used in the filename).
+        log_fn:         Callable for logging; defaults to ``print``.
+    """
+    log = log_fn or print
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    state_dict = model.module.state_dict() if hasattr(model, 'module') else model.state_dict()
+    checkpoint_file = os.path.join(checkpoint_dir, f"epoch{epoch}_model.pth")
+    torch.save(state_dict, checkpoint_file)
+    log(f"Model checkpoint saved: {checkpoint_file}")
+
+
+def save_model_checkpoing(model, checkpoint_dir: str, epoch: int, log_fn=None):
+    """
+    Save a full model state_dict for from-scratch training.
+ 
+    Handles ``DataParallel`` wrappers transparently by saving the underlying
+    ``module`` state_dict so checkpoints are portable across GPU configs.
+ 
+    Args:
+        model:          Model (possibly DataParallel-wrapped) to checkpoint.
+        checkpoint_dir: Directory to write the file into.
+        epoch:          Current epoch index (used in the filename).
+        log_fn:         Callable for logging; defaults to ``print``.
+    """
+    log = log_fn or print
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    state_dict = model.module.state_dict() if hasattr(model, 'module') else model.state_dict()
+    checkpoint_file = os.path.join(checkpoint_dir, f"epoch{epoch}_model.pth")
+    torch.save(state_dict, checkpoint_file)
+    log(f"Model checkpoint saved: {checkpoint_file}")
+
+
+def load_checkpoint_and_states(
+    architecture, model, optimizer, dataloader_generator, checkpoint_path,
+    random_state_path, logger=None, scheduler=None,
+    ):
+    """
+    Load model weights and restore all random states for reproducibility.
     
     Args:
         model: Model to load weights into
@@ -418,20 +621,31 @@ def load_checkpoint_and_states(model, optimizer, dataloader_generator, checkpoin
         checkpoint_path: Path to checkpoint directory
         random_state_path: Path to random state file
         logger: Logger instance
-        
+        training_mode: Training mode ('scratch' or 'finetune')
+        scheduler: Scheduler to restore state
     Returns:
-        int: Next epoch to resume from
+        int: Next epoch to resume training from
     """
-    # Load DoRA weights
-    loaded_dora_path = load_dora_checkpoint(
-        model,
-        checkpoint_root=checkpoint_path,
-        epoch=random_state_path.split('epoch')[-1].split('_')[0],
-        strict=False,
-    )
-    logger.info(f"Loaded DoRA parameters from: {loaded_dora_path}")
+    epoch_num = int(random_state_path.split('epoch')[-1].split('_')[0])
+
+    if architecture == 'CLIP-HBA':
+        # Load DoRA weights
+        loaded_dora_path = load_dora_checkpoint(
+            model,
+            checkpoint_root=checkpoint_path,
+            epoch=epoch_num,
+            strict=False,
+        )
+        logger.info(f"Loaded DoRA parameters from: {loaded_dora_path}")
+
+    else:
+        model_file = os.path.join(
+            checkpoint_path, 'model_checkpoints', f'epoch{epoch_num}_model.pth'
+        )
+        load_model_checkpoint(model, model_file, logger)
+        logger.info(f"Loaded model weights from: {model_file}")
     
-    # Load and restore random states
+    # Restore all RNG and optimizer states 
     if not os.path.isfile(random_state_path):
         raise FileNotFoundError(f"Missing random state file: {random_state_path}")
     
@@ -456,12 +670,17 @@ def load_checkpoint_and_states(model, optimizer, dataloader_generator, checkpoin
     # Restore optimizer state
     if 'optimizer_state_dict' in state_payload:
         optimizer.load_state_dict(state_payload['optimizer_state_dict'])
-        logger.info(f"Restored optimizer and RNG states from {random_state_path}")
+
+    if scheduler is not None and 'scheduler_state_dict' in state_payload:
+        scheduler.load_state_dict(state_payload['scheduler_state_dict'])
+
+    logger.info(f"Restored optimizer and RNG states from {random_state_path}")
     
-    return int(random_state_path.split('epoch')[-1].split('_')[0]) + 1
+    return epoch_num + 1
 
 
-def handle_checkpoint_resumption(config, model, optimizer, dataloader_generator, logger):
+def handle_checkpoint_resumption(config, model, optimizer, dataloader_generator, 
+logger, scheduler=None):
     """
     Handle checkpoint loading for either explicit resumption or baseline loading.
     
@@ -471,11 +690,13 @@ def handle_checkpoint_resumption(config, model, optimizer, dataloader_generator,
         optimizer: Optimizer instance
         dataloader_generator: DataLoader generator
         logger: Logger instance
-        
+        scheduler: Optional LR scheduler to restore.
+
     Returns:
         int: Epoch to start/resume from
     """
     resume_epoch = 0
+    architecture = config.get("architecture")
     resume_checkpoint_path = config.get("resume_checkpoint_path")
     resume_from_epoch = config.get("resume_from_epoch")
     
@@ -484,29 +705,32 @@ def handle_checkpoint_resumption(config, model, optimizer, dataloader_generator,
         random_state_file = os.path.join(
             resume_checkpoint_path,
             'random_states',
-            f'epoch{resume_from_epoch}_random_states.pth'
+            f'epoch{resume_from_epoch}_random_states.pth',
         )
         resume_epoch = load_checkpoint_and_states(
-            model, optimizer, dataloader_generator,
-            resume_checkpoint_path, random_state_file, logger
+            architecture, model, optimizer, dataloader_generator,
+            resume_checkpoint_path, random_state_file, logger,
+            scheduler=scheduler,
         )
     
     # Case 2: Load baseline checkpoint before applying perturbation
-    elif config['perturb_epoch'] > 0:
+    elif config.get('perturb_epoch') > 0:
         baseline_epoch = config['perturb_epoch'] - 1
         baseline_checkpoint_path = config.get('baseline_checkpoint_path')
         
         if not baseline_checkpoint_path:
-            raise ValueError("baseline_checkpoint_path must be provided when perturb_epoch > 0")
+            raise ValueError(
+                "baseline_checkpoint_path must be provided when perturb_epoch > 0."
+            )
         
         random_state_file = os.path.join(
             baseline_checkpoint_path,
             'random_states',
-            f'epoch{baseline_epoch}_random_states.pth'
+            f'epoch{baseline_epoch}_random_states.pth',
         )
         resume_epoch = load_checkpoint_and_states(
-            model, optimizer, dataloader_generator,
-            baseline_checkpoint_path, random_state_file, logger
+            architecture, model, optimizer, dataloader_generator, baseline_checkpoint_path,
+            random_state_file, logger, scheduler=scheduler,
         )
         logger.info(f"Loaded baseline checkpoint from epoch {baseline_epoch}")
     
@@ -671,6 +895,7 @@ def train_model(
     model_rdm_distance_metric="pearson",
     rsa_similarity_metric="spearman",
     debug_logging=False,
+    scheduler=None,
 ):
     """
     Main training loop with logging, checkpointing, and early stopping.
@@ -769,6 +994,9 @@ def train_model(
         if perturb_strategy.is_active_epoch(epoch):
             logger.info(f"*** Perturbation '{perturb_strategy.__class__.__name__}' was applied during epoch {epoch} ***")
 
+        if scheduler is not None:
+            sscheduler.step()
+
         wandb.log({
             'val_loss': avg_test_loss,
             'epoch': epoch,
@@ -800,16 +1028,19 @@ def train_model(
         # Save random states for reproducibility
         save_random_states(
             optimizer, epoch, random_state_save_path, 
-            dataloader_generator, logger=logger
+            dataloader_generator, logger=logger, scheduler=scheduler,
         )
         
         # Save model checkpoint
-        dora_params_dir = os.path.join(save_path, "dora_params")
-        save_dora_parameters(
-            model, dora_params_dir, epoch,
-            vision_layers, transformer_layers,
-            log_fn=log,
-        )
+        if training_mode == 'scratch':
+            checkpoint_dir = os.path.join(save_path, "model_checkpoints")
+            save_model_checkpoint(model, checkpoint_dir, epoch, log_fn=log)
+        else:
+            checkpoint_dir = os.path.join(save_path, "dora_params")
+            save_dora_parameters(
+                model, checkpoint_dir, epoch, 
+                vision_layers, transformer_layers, log_fn=log
+            )
         log(f"Checkpoint saved for epoch {epoch}")
 
         save_to_wandb = (epoch < 20) or (epoch % 5 == 0)
@@ -824,7 +1055,7 @@ def train_model(
                     'val_loss': avg_test_loss,
                 }
             )
-            artifact.add_dir(dora_params_dir)
+            artifact.add_dir(checkpoint_dir)
             artifact.add_file(training_results_save_path)
             wandb.log_artifact(artifact)
         
@@ -884,16 +1115,23 @@ def run_training_experiment(config):
     """
     Main entry point for running a training experiment.
     
-    Orchestrates the entire training pipeline including:
-    - Environment setup and seeding
-    - Dataset initialization and splitting
-    - Model creation and configuration
-    - Training loop execution
-    - Checkpoint and state management
+    Supports two training modes controlled by ``config['training_mode']``:
+ 
+    * ``'scratch'``  – Train a timm ViT or ResNet from scratch on ImageNet
+      (CrossEntropyLoss, full model checkpoints, no DoRA).
+    * ``'finetune'`` – Fine-tune a CLIP-HBA model with DoRA adaptation
+      (MSELoss, DoRA checkpoints, optional behavioral RSA).
+ 
+    Both modes support all perturbation types from
+    ``perturbation_utils.py`` (except ``random_target`` which requires
+    continuous embedding targets and is therefore only valid for
+    ``training_mode='finetune'``).
     
     Args:
-        config: Configuration dictionary containing all training parameters
+        config: Configuration dictionary containing all training parameters.
     """
+    training_mode = config.get("training_mode")
+
     # Set random seed for reproducibility
     seed_everything(config['random_seed'])
     
@@ -915,17 +1153,23 @@ def run_training_experiment(config):
     
     # Setup logging
     os.makedirs(config['save_path'], exist_ok=True)
-    log_file = os.path.join(config['save_path'], f'training_log_{config["perturb_type"]}.txt')
+    perturb_type = config.get('perturb_type')
+    if perturb_type:
+        log_file = os.path.join(config['save_path'], f'training_log_{perturb_type}.txt')
+    else:
+        log_file = os.path.join(config['save_path'], 'training_log.txt')
     logger = setup_logger(log_file)
     
-    logger.info("="*80)
+    logger.info("=" * 80)
     logger.info("Starting Training Run")
-    logger.info(f"Log file: {log_file}")
-    logger.info("="*80)
+    logger.info(f"Training mode : {training_mode}")
+    logger.info(f"Architecture  : {config.get('architecture', 'unknown')}")
+    logger.info(f"Log file      : {log_file}")
+    logger.info("=" * 80)
     
     # Persist config snapshots inside the run folder
     resolved_cfg_path = os.path.join(save_path, "resolved_config.yaml")
-    input_cfg_path = os.path.join(save_path, "training_config_snapshot.yaml")
+    input_cfg_path    = os.path.join(save_path, "training_config_snapshot.yaml")
     with open(resolved_cfg_path, "w", encoding="utf-8") as f:
         yaml.safe_dump(config, f)
     # Input snapshot is the same available config dict; retained for provenance
@@ -946,7 +1190,7 @@ def run_training_experiment(config):
     split_file = os.path.join(random_state_save_path, 'dataset_split_indices.pth')
     os.makedirs(random_state_save_path, exist_ok=True)
     torch.save(split_info, split_file)
-    logger.info(f"Dataset split indices saved: {split_file}")
+    logger.info(f"Dataset split info saved: {split_file}")
     
     # Create data loaders
     train_loader, test_loader, dataloader_generator = create_dataloaders(
@@ -958,34 +1202,45 @@ def run_training_experiment(config):
     
     # Setup model
     model = build_model(
-    architecture=config.get('architecture'), 
-    pretrained=config.get('pretrained'), 
-    clip_hba_backbone=config.get('clip_hba_backbone'), 
-    vision_layers=config.get('vision_layers'), 
-    transformer_layers=config.get('transformer_layers'), 
-    rank=config.get('rank'),
-    cuda=config.get('cuda'),
-    device=device,
-    wandb_watch_model=config.get('wandb_watch_model'), 
-    wandb_log_freq=config.get('wandb_log_freq')
+        architecture=config.get('architecture'),
+        pretrained=config.get('pretrained'),
+        clip_hba_backbone=config.get('clip_hba_backbone'),
+        vision_layers=config.get('vision_layers'),
+        transformer_layers=config.get('transformer_layers'),
+        rank=config.get('rank'),
+        cuda=config.get('cuda'),
+        device=device,
+        wandb_watch_model=config.get('wandb_watch_model'),
+        wandb_log_freq=config.get('wandb_log_freq'),
+        num_classes=config.get('num_classes', 1000),
     )
     model.to(device)
     
-    # Initialize optimizer
-    optimizer = AdamW(model.parameters(), lr=config['lr'])
+    # Resolve total epoch count (max_duration overrides epochs if present)
+    epochs = config.get('max_duration')
+    config['epochs'] = epochs  # normalise so downstream code sees an int
+
+    # Build optimizer and LR scheduler
+    optimizer = build_optimizer(model, config)
+    scheduler = build_scheduler(optimizer, config, epochs)
+    if scheduler is not None:
+        logger.info(f"LR scheduler: {scheduler.__class__.__name__}")
     
     # Handle checkpoint resumption if needed
     resume_epoch = handle_checkpoint_resumption(
-        config, model, optimizer, dataloader_generator, logger
+        config, model, optimizer, dataloader_generator, logger, scheduler=scheduler,
     )
 
     log_model_architecture(model, logger)
     
     # Initialize loss criterion
-    if config['criterion'] == 'MSELoss':
+    criterion_name = config.get('criterion')
+    if criterion_name == 'MSELoss':
         criterion = nn.MSELoss()
+    elif criterion_name == 'CrossEntropyLoss':
+        criterion = nn.CrossEntropyLoss()
     else:
-        raise ValueError(f"Criterion {config['criterion']} not supported")
+        raise ValueError(f"Criterion {criterion_name} not supported")
     
     # Choose perturbation strategy
     perturb_strategy = choose_perturbation_strategy(
@@ -1003,7 +1258,7 @@ def run_training_experiment(config):
     for key, value in config.items():
         logger.info(f"{key}: {value}")
     
-    logger.info("\nUpdating layers:")
+    logger.info("\nTraining layers:")
     for name, param in model.named_parameters():
         if param.requires_grad:
             logger.info(name)
@@ -1019,7 +1274,7 @@ def run_training_experiment(config):
             device=device,
             optimizer=optimizer,
             criterion=criterion,
-            epochs=config['epochs'],
+            epochs=epochs,
             training_results_save_path=training_results_save_path,
             logger=logger,
             early_stopping_patience=config['early_stopping_patience'],
@@ -1035,6 +1290,7 @@ def run_training_experiment(config):
             model_rdm_distance_metric=config.get('model_rdm_distance_metric', 'pearson'),
             rsa_similarity_metric=config.get('rsa_similarity_metric', 'spearman'),
             debug_logging=config.get('debug_logging', False),
+            scheduler=scheduler, 
         )
     finally:
         wandb.finish()

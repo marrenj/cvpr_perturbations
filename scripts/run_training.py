@@ -19,6 +19,7 @@ from src.utils.save_config import save_config
 TRAINING_INT_KEYS = [
     "epochs",
     "batch_size",
+    "num_classes",
     "rank",
     "vision_layers",
     "transformer_layers",
@@ -28,7 +29,7 @@ TRAINING_INT_KEYS = [
     "start_epoch",
     "end_epoch",
 ]
-TRAINING_FLOAT_ONLY = ["lr", "train_portion"]
+TRAINING_FLOAT_ONLY = ["lr", "train_portion", "weight_decay", "momentum"]
 
 
 def _write_resolved_config(resolved_cfg: dict, destination: Path) -> None:
@@ -111,10 +112,29 @@ def _resume_from_previous(config: dict, run_root: Path) -> dict:
 def _prepare_single_run(config: dict, config_path: Path) -> dict:
     """
     Validate a single training run (baseline or perturbation) and ensure paths are set.
+
+    Works for both training_mode='scratch' and training_mode='finetune'.
     """
     base_save_path = config.get("save_path")
     if not base_save_path:
         raise ValueError("Config must set 'save_path'.")
+
+    training_mode = config.get("training_mode")
+
+    # Validate mode-specific required fields
+    if training_mode == "scratch":
+        if not config.get("img_dir"):
+            raise ValueError("Config must set 'img_dir' for training_mode='scratch'.")
+        if config.get("perturb_type") == "random_target":
+            raise ValueError(
+                "perturb_type='random_target' requires continuous embedding targets; "
+                "use training_mode='finetune' for this perturbation type."
+            )
+    elif training_mode == "finetune":
+        if not config.get("img_annotations_file"):
+            raise ValueError(
+                "Config must set 'img_annotations_file' for training_mode='finetune'."
+            )
 
     perturb_type = str(config.get("perturb_type") or "none")
     random_seed = config.get("random_seed")

@@ -4,7 +4,8 @@
 *.jpeg
 *.npz
 *.csv
-*/__pycache__/
+**/__pycache__/
+*.pyc
 /Data/
 /Data/*
 /wandb/

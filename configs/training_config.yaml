@@ -1,50 +1,80 @@
+## =============================================================================
+## Training Configuration
+## =============================================================================
+##
+## Two training modes are supported via the `training_mode` key:
+##
+##   scratch   - Train a timm ViT or ResNet from scratch on ImageNet using
+##               CrossEntropyLoss.  Expects img_dir/train/ and img_dir/val/.
+##               All perturbation types except `random_target` are supported.
+##
+##   finetune  - Fine-tune a CLIP-HBA model with DoRA adaptation on THINGS
+##               targets using MSELoss.  All perturbation types
+##               including `random_target` are supported.
+##
+## Set `training_mode` below and fill in the relevant section.
+## =============================================================================
+
+## ---TRAINING MODE--- ##
+training_mode: scratch        # scratch | finetune
+
 ## ---PATHS--- ##
-  save_path: "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/perturbation_debug_test" # root path to save training artifacts (checkpoints, training results, random states)
-  baseline_checkpoint_path: "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/baseline_seed1/vit_l_14_rank32_perturb-type-none_init-seed1behavioral-rsa-True" # path to baseline training run checkpoints used for perturbation sweeps
-  img_annotations_file: "./data/spose_embedding66d_rescaled_1806train.csv" # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
-  img_dir: "/home/wallacelab/investigating-complexity/Images/THINGS" # path to the THINGS image directory
+save_path: "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test"
+img_dir: "/home/wallacelab/teba/multimodal_brain_inspired/imagenet_dataset" # path to the THINGS image directory
+# img_annotations_file: "./data/spose_embedding66d_rescaled_1806train.csv" # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
+# baseline_checkpoint_path: "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/baseline_seed1/vit_l_14_rank32_perturb-type-none_init-seed1behavioral-rsa-True" # path to baseline training run checkpoints used for perturbation sweeps. Required only when perturb_epoch > 0.
 
 ## ---LOGGING & WANDB CONFIGURATION--- ##
-  'wandb_project': # Optional: Name of the WANDB project to use for logging
-  'wandb_entity': # Optional: your username or team name
+wandb_project:                # Optional: Name of the WANDB project to use for logging
+wandb_entity:                 # Optional: your username or team name
+debug_logging: false          # whether to log debug information to the console
+logger: None                  # Logger to use for training. None for no logging.
 
-  debug_logging: true # whether to log debug information to the console
-
-## ---EXPERIMENT SETUP--- ##
-  experiment_type: baseline # Required: baseline | perturbation_run
 
 ## ---TRAINING PARAMETERS--- ##
-  dataset_type: things # Dataset to use for training. "things" for THINGS dataset.
-  epochs: 500 # number of epochs to train for
-  early_stopping_patience: 20 # number of epochs to wait before stopping training if the validation loss does not improve
-  batch_size: 64 # number of training samples to process in each batch
-  train_portion: 0.8 # portion of the training data to use for training
-  lr: 3e-4 # learning rate for the optimizer
-  criterion: MSELoss # loss function to use for training
-  random_seed: 1 # random seed to use for training
-  cuda: 1 # GPU to use for training; -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
-  logger: None # Logger to use for training. None for no logging.
+dataset_type: imagenet        # Dataset to use for training: things | imagenet
+max_duration: 100             # number of epochs to train for
+early_stopping_patience: 20   # number of epochs to wait before stopping training if the validation loss does not improve
+batch_size: 256               # number of training samples per batch
+train_portion: 0.8            # portion of the training data to use for training
+criterion: CrossEntropyLoss   # loss function to use for training
+random_seed: 1                # random seed to use for training
+cuda: -1                      # GPU to use for training; -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
+
+## ---OPTIMIZER & LR SCHEDULE--- ##
+opt: sgd                      # sgd | adamw
+lr: 0.1                       # Base learning rate
+momentum: 0.9                 # SGD momentum (SGD only; ignored for AdamW)
+weight_decay: 1e-4            # L2 regularisation
+lr_scheduler: cosineannealinglrwithwarmup
+                              # none | cosineannealinglr | cosineannealinglrwithwarmup
+lr_warmup_duration: 5         # Linear warmup duration, e.g. '5ep'
 
 ## ---PERTURBATION PARAMETERS--- ##
-  perturb_type: none # none | random_target | label_shuffle | image_noise | uniform_images
-  perturb_epoch: # epoch to start perturbation (0-indexed)
-  perturb_length: # number of epochs to perturb
-  perturb_seed: # random seed to use for perturbation
+perturb_type: none            # none | random_target | label_shuffle | image_noise | uniform_images
+perturb_epoch:                # epoch to start perturbation (0-indexed)
+perturb_length:               # number of epochs to perturb
+perturb_seed:                 # random seed to use for perturbation
 
 ## ---RSA PARAMETERS--- ##
-  behavioral_rsa: True # whether to conduct behavioral RSA within the training loop
-  rsa_annotations_file: "./data/spose_embedding66d_rescaled_1806train.csv" # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
-  model_rdm_distance_metric: pearson # distance metric to use for RSA
-  rsa_similarity_metric: spearman # similarity metric to use for RSA
+behavioral_rsa: True          # whether to conduct behavioral RSA within the training loop
+rsa_annotations_file: "./data/spose_embedding66d_rescaled_1806train.csv" 
+                              # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
+model_rdm_distance_metric: pearson 
+                              # distance metric to use for RSA
+rsa_similarity_metric: spearman 
+                              # similarity metric to use for RSA
 
-## ---MODEL PARAMETERS--- ##
-  training_dataset: things # dataset to use for training: things | imagenet
-  architecture: CLIP-HBA # architecture to use for the model: CLIP-HBA | ViT-B/16 | ViT-L/14 | RN50 | RN101 | CLIP-ViT-L/14
-  pretrained: false # load pretrained weights? (default false for CPU-only)
-  frozen_layers: 0 # how many initial layers to freeze, if any
+## ---MODEL PARAMETERS (SCRATCH)--- ##
+## Used when training_mode: scratch
+architecture: RN50            # architecture to use for the model: ViT-B/16 | ViT-L/14 | RN50 | RN101 | CLIP-ViT-L/14
+pretrained: false             # load pretrained weights? (default false for CPU-only)
+num_classes: 1000             # number of classes to use for the model
 
-  # CLIP-HBA specific parameters
-  clip_hba_backbone: ViT-L/14 # model backbone to use for CLIP-HBA
-  vision_layers: 2 # number of vision encoder layers to open up for CLIP-HBA training
-  transformer_layers: 1 # number of text encoder layers to use for CLIP-HBA training
-  rank: 32 # rank of the DoRA layers 
+## ---MODEL PARAMETERS (FINETUNE / CLIP-HBA)--- ##
+## Used when training_mode: finetune  (ignored for scratch)
+# architecture: CLIP-HBA
+# clip_hba_backbone: ViT-L/14     # CLIP backbone: ViT-B/16 | ViT-L/14 | RN50
+# vision_layers: 2                 # Vision encoder DoRA layers
+# transformer_layers: 1            # Text encoder DoRA layers
+# rank: 32                         # DoRA low-rank dimension

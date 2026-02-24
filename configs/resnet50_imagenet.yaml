@@ -1,0 +1,59 @@
+## =============================================================================
+## ResNet50 — ImageNet from-scratch training config
+## =============================================================================
+##
+## Entry point:
+##   python scripts/run_training.py --config configs/resnet50_imagenet.yaml
+##
+## Standard ResNet50 ImageNet recipe:
+##   SGD + Nesterov momentum, cosine annealing LR with 5-epoch linear warmup,
+##   100 epochs, batch size 256.
+## =============================================================================
+
+## ---TRAINING MODE--- ##
+training_mode: scratch
+
+## ---PATHS--- ##
+save_path: "/path/to/save/resnet50_imagenet"
+img_dir: "/path/to/imagenet"
+baseline_checkpoint_path:
+
+## ---LOGGING & W&B--- ##
+wandb_project:                # Optional: W&B project name (offline if blank)
+wandb_entity:                 # Optional: W&B username / team
+debug_logging: false
+logger: None 
+
+## ---TRAINING PARAMETERS--- ##
+dataset_type: imagenet
+max_duration: 100       
+early_stopping_patience: 20
+batch_size: 256
+criterion: CrossEntropyLoss
+random_seed: 1
+cuda: 0
+
+## ---OPTIMIZER & LR SCHEDULE--- ##
+opt: sgd
+lr: 0.1
+momentum: 0.9
+weight_decay: 1e-4
+lr_scheduler: cosineannealinglrwithwarmup
+lr_warmup_duration: 5
+
+## ---PERTURBATION PARAMETERS--- ##
+perturb_type: none
+perturb_epoch:
+perturb_length:
+perturb_seed:
+
+## ---MODEL--- ##
+architecture: RN50
+pretrained: false
+num_classes: 1000
+
+## ---RSA PARAMETERS--- ##
+behavioral_rsa: True 
+rsa_annotations_file: "./data/spose_embedding66d_rescaled_1806train.csv" # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
+model_rdm_distance_metric: pearson # distance metric to use for RSA
+rsa_similarity_metric: spearman # similarity metric to use for RSA

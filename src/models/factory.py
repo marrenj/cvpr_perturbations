@@ -12,7 +12,18 @@ from src.models.clip_hba.clip_hba_utils import (
 
 from src.data.spose_dimensions import classnames66
 
-def build_cliphba(backbone, vision_layers, transformer_layers, rank, cuda, device, wandb_watch_model, wandb_log_freq):
+# Maps the user-facing architecture names to timm model identifiers
+_TIMM_ARCH_MAP = {
+    "ViT-B/16": "vit_base_patch16_224",
+    "ViT-L/14": "vit_large_patch14_224",
+    "RN50":     "resnet50",
+    "RN101":    "resnet101",
+}
+
+def build_cliphba(
+    backbone, vision_layers, transformer_layers, rank, 
+    cuda, device, wandb_watch_model, wandb_log_freq
+    ):
     """
     Initialize model and move to device.
     
@@ -60,6 +71,7 @@ def build_cliphba(backbone, vision_layers, transformer_layers, rank, cuda, devic
 def build_model(
     architecture, 
     pretrained, 
+    num_classes,
     clip_hba_backbone, 
     vision_layers, 
     transformer_layers, 
@@ -72,19 +84,19 @@ def build_model(
     
     if architecture == 'ViT-B/16':
         # Create a Vision Transformer with specified parameters
-        model = timm.create_model('vit_base_patch16_224', pretrained=pretrained)
+        model = timm.create_model('vit_base_patch16_224', pretrained=pretrained, num_classes=num_classes)
         # Optionally resize or replace the head if num_classes differs
         # e.g., model.heads.head = torch.nn.Linear(model.heads.head.in_features, num_classes)
 
     elif architecture == 'ViT-L/14':
         # Create a Vision Transformer with specified parameters
-        model = timm.create_model('vit_large_patch14_224', pretrained=pretrained)
+        model = timm.create_model('vit_large_patch14_224', pretrained=pretrained, num_classes=num_classes)
         # Optionally resize or replace the head if num_classes differs
         # e.g., model.heads.head = torch.nn.Linear(model.heads.head.in_features, num_classes)
 
     elif architecture == 'RN50':
         # Create a ResNet with specified parameters
-        model = timm.create_model('resnet50', pretrained=pretrained)
+        model = timm.create_model('resnet50', pretrained=pretrained, num_classes=num_classes)
         # Optionally resize or replace the head if num_classes differs
         # e.g., model.heads.head = torch.nn.Linear(model.heads.head.in_features, num_classes)
 
