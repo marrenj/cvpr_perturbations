@@ -16,9 +16,10 @@
 #SBATCH --partition=interactive_gpu
 #SBATCH --qos=dgx_iacc
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=2
+#SBATCH --ntasks-per-node=1            # single Python process (DataParallel, not torchrun)
 #SBATCH --gres=gpu:nvidia_a100-sxm4-40gb:2
-#SBATCH --cpus-per-task=16              # 16 CPUs × 2 tasks = 32 total; 8 workers/GPU
+#SBATCH --cpus-per-task=10             # 8 DataLoader workers + 1 main + 1 buffer
+                                        # Keep in sync with num_workers in config
 #SBATCH --mem=256G
 #SBATCH --time=24:00:00
 #SBATCH --output=/data/p_dsi/<YOUR_VUNETID>/logs/resnet50_baseline_%j.out
