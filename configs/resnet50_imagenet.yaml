@@ -40,6 +40,8 @@ batch_size: 256
 criterion: CrossEntropyLoss
 random_seed: 1
 cuda: 0                       # -1 = all GPUs | 0 = GPU 0 | 1 = GPU 1
+num_workers: 8                # DataLoader worker processes — match to --cpus-per-task in SLURM
+pin_memory: true              # Pin CPU→GPU transfers for faster data loading
 
 
 ## ---OPTIMIZER & LR SCHEDULE--- ##

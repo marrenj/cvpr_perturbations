@@ -477,18 +477,27 @@ def create_dataloaders(train_dataset, test_dataset, config):
     dataloader_generator = torch.Generator()
     dataloader_generator.manual_seed(config['random_seed'])
     
+    num_workers = int(config.get('num_workers', 0))
+    pin_memory  = bool(config.get('pin_memory', torch.cuda.is_available()))
+
     train_loader = DataLoader(
-        train_dataset, 
-        batch_size=config['batch_size'], 
-        shuffle=True, 
-        generator=dataloader_generator
+        train_dataset,
+        batch_size=config['batch_size'],
+        shuffle=True,
+        generator=dataloader_generator,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        persistent_workers=(num_workers > 0),
     )
     test_loader = DataLoader(
-        test_dataset, 
+        test_dataset,
         batch_size=config['batch_size'],
-        shuffle=False
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        persistent_workers=(num_workers > 0),
     )
-    
+
     return train_loader, test_loader, dataloader_generator
 
 

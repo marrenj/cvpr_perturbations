@@ -20,6 +20,7 @@ TRAINING_INT_KEYS = [
     "epochs",
     "batch_size",
     "num_classes",
+    "num_workers",
     "rank",
     "vision_layers",
     "transformer_layers",
