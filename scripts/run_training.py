@@ -172,6 +172,30 @@ def _prepare_single_run(config: dict, config_path: Path) -> dict:
     return config
 
 
+def _apply_cli_overrides(config: dict, overrides: list) -> dict:
+    """
+    Apply ``--set key=value`` CLI overrides to the config dict.
+
+    Numeric keys listed in ``TRAINING_INT_KEYS`` and ``TRAINING_FLOAT_ONLY``
+    are coerced so that e.g. ``--set cuda=-1`` behaves identically to
+    setting the value in the YAML file.
+    """
+    for item in overrides:
+        if "=" not in item:
+            raise ValueError(
+                f"Invalid --set argument '{item}'. Expected format: key=value"
+            )
+        key, _, value = item.partition("=")
+        key = key.strip()
+        if key in TRAINING_INT_KEYS:
+            config[key] = int(value)
+        elif key in TRAINING_FLOAT_ONLY:
+            config[key] = float(value)
+        else:
+            config[key] = value
+    return config
+
+
 def main():
     """Entrypoint: load config specified via CLI and launch a single run."""
     args = parse_config_cli("Run training with an external config.")
@@ -181,6 +205,10 @@ def main():
         numeric_keys=TRAINING_INT_KEYS,
         float_only=TRAINING_FLOAT_ONLY,
     )
+
+    # Apply any --set key=value overrides from the CLI
+    if args.overrides:
+        config = _apply_cli_overrides(config, args.overrides)
 
     # Regardless of experiment_type, we run a single training job; perturbation
     # behavior is controlled by perturb_epoch/perturb_length.

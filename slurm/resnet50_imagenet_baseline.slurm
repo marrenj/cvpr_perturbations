@@ -8,85 +8,98 @@
 #
 # Monitor:
 #   squeue -u $USER
-#   tail -f logs/resnet50_baseline_<JOBID>.out
-#
-# Verify the partition name for DGX A100 nodes on your allocation:
-#   sinfo -s
+#   tail -f /data/p_dsi/<YOUR_VUNETID>/logs/resnet50_baseline_<JOBID>.out
 # =============================================================================
 
 #SBATCH --job-name=resnet50_imagenet_baseline
-
-# ---- Allocation ----------------------------------------------------------
-#SBATCH --account=<YOUR_ACCOUNT>        # Your PI's ACCRE group account
-#SBATCH --partition=turing              # DGX A100 partition — verify with sinfo
-
-# ---- Resources -----------------------------------------------------------
+#SBATCH --account=dsi_dgx_iacc
+#SBATCH --partition=interactive_gpu
+#SBATCH --qos=dgx_iacc
 #SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=10             # 8 DataLoader workers + 1 main + 1 buffer
-                                        # Keep in sync with num_workers in config
-#SBATCH --gres=gpu:A100:1              # 1x A100 80 GB
-#SBATCH --mem=128G                      # ImageNet images buffered by 8 workers
-
-# ---- Time ----------------------------------------------------------------
-# ResNet50 on ImageNet, 1x A100 (no AMP): ~8-10 min/epoch × 100 ep ≈ 14 h
-# 24 h gives headroom for I/O variance and early-stopping tail.
+#SBATCH --ntasks-per-node=2
+#SBATCH --gres=gpu:nvidia_a100-sxm4-40gb:2
+#SBATCH --cpus-per-task=16              # 16 CPUs × 2 tasks = 32 total; 8 workers/GPU
+#SBATCH --mem=256G
 #SBATCH --time=24:00:00
-
-# ---- Output --------------------------------------------------------------
-# The logs/ directory is gitignored; create it before submitting:
-#   mkdir -p logs
-#SBATCH --output=logs/resnet50_baseline_%j.out
-#SBATCH --error=logs/resnet50_baseline_%j.err
-
-# ---- Notifications -------------------------------------------------------
-#SBATCH --mail-type=BEGIN,END,FAIL
-#SBATCH --mail-user=<YOUR_EMAIL>
+#SBATCH --output=/data/p_dsi/<YOUR_VUNETID>/logs/resnet50_baseline_%j.out
+#SBATCH --error=/data/p_dsi/<YOUR_VUNETID>/logs/resnet50_baseline_%j.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=<YOUR_EMAIL>@vanderbilt.edu
 
 # =============================================================================
-# Environment
+# Paths — edit these before submitting
 # =============================================================================
 
-echo "========================================"
-echo "Job ID        : $SLURM_JOB_ID"
-echo "Node          : $SLURMD_NODENAME"
-echo "Partition     : $SLURM_JOB_PARTITION"
-echo "GPUs          : $SLURM_JOB_GPUS"
-echo "CPUs per task : $SLURM_CPUS_PER_TASK"
-echo "Start time    : $(date)"
-echo "========================================"
-
-# Activate conda environment
-source ~/.bashrc
-conda activate cvpr_perturbations
-
-# Make the project root importable regardless of working directory
-export PYTHONPATH="$SLURM_SUBMIT_DIR:$PYTHONPATH"
-
-# Run W&B in offline mode by default; remove or override to log to cloud
-export WANDB_MODE=offline
-
-# Navigate to project root (sbatch sets CWD to submission directory by default,
-# but being explicit avoids surprises)
-cd "$SLURM_SUBMIT_DIR"
+VUNETID="<YOUR_VUNETID>"
+PROJECT_DIR="/data/p_dsi/${VUNETID}/cvpr_perturbations"
+IMAGENET_SRC="/data/p_dsi/${VUNETID}/imagenet"          # source on shared NFS
+SAVE_PATH="/data/p_dsi/${VUNETID}/training_runs/resnet50_imagenet_baseline"
+CONTAINER="/data/p_dsi/singularity-containers/pytorch_25.01-py3.sif"
 
 # =============================================================================
-# Training
+# Job info
 # =============================================================================
 
-echo ""
-echo "Launching ResNet50 ImageNet baseline training..."
-echo "Config : configs/resnet50_imagenet.yaml"
-echo ""
+echo "=========================================="
+echo "ResNet50 ImageNet Baseline Training"
+echo "=========================================="
+echo "Job ID    : $SLURM_JOB_ID"
+echo "Node      : $(hostname)"
+echo "Partition : $SLURM_JOB_PARTITION"
+echo "GPUs      : $SLURM_JOB_GPUS"
+echo "Started   : $(date)"
+echo "=========================================="
 
-python scripts/run_training.py --config configs/resnet50_imagenet.yaml
+# =============================================================================
+# Copy ImageNet to local /tmp for fast I/O
+# (NFS throughput is the bottleneck for ImageNet; /tmp is local NVMe)
+# =============================================================================
+
+LOCAL_DATA=/tmp/imagenet_${SLURM_JOB_ID}
+mkdir -p "${LOCAL_DATA}"
+
+echo "Copying ImageNet to local storage: ${LOCAL_DATA} ..."
+rsync -a --info=progress2 "${IMAGENET_SRC}/" "${LOCAL_DATA}/"
+echo "✓ Data copy complete"
+echo "=========================================="
+
+# =============================================================================
+# Create output directories on shared storage
+# =============================================================================
+
+mkdir -p "${SAVE_PATH}"
+mkdir -p "/data/p_dsi/${VUNETID}/logs"
+
+# =============================================================================
+# Launch training inside the Singularity container
+#
+# --set overrides redirect img_dir → local /tmp copy and save_path → shared
+# storage, without editing the YAML config file.
+# Two A100s are used via DataParallel (cuda: -1).
+# =============================================================================
+
+singularity exec --nv \
+    --bind /data/p_dsi:/data/p_dsi \
+    --bind "${LOCAL_DATA}:${LOCAL_DATA}" \
+    "${CONTAINER}" \
+    python "${PROJECT_DIR}/scripts/run_training.py" \
+        --config "${PROJECT_DIR}/configs/resnet50_imagenet.yaml" \
+        --set img_dir="${LOCAL_DATA}" \
+        --set save_path="${SAVE_PATH}" \
+        --set cuda=-1
 
 EXIT_CODE=$?
 
-echo ""
-echo "========================================"
-echo "Training finished with exit code: $EXIT_CODE"
-echo "End time : $(date)"
-echo "========================================"
+# =============================================================================
+# Cleanup
+# =============================================================================
 
-exit $EXIT_CODE
+echo "=========================================="
+echo "Training finished with exit code: ${EXIT_CODE}"
+echo "Finished  : $(date)"
+echo "Cleaning up ${LOCAL_DATA} ..."
+rm -rf "${LOCAL_DATA}"
+echo "✓ Cleanup complete"
+echo "=========================================="
+
+exit "${EXIT_CODE}"
