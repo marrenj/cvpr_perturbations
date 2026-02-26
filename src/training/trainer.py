@@ -15,10 +15,12 @@ from tqdm import tqdm
 from numpy.random import set_state as np_set_state
 import torch
 import torch.nn as nn
+import torch.distributed as dist
 import numpy as np
 from datetime import datetime
-from torch.utils.data import DataLoader, random_split, Subset
+from torch.utils.data import DataLoader, random_split, Subset, DistributedSampler
 from torch.nn import DataParallel
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import AdamW, SGD
 from torch.optim.lr_scheduler import (
     CosineAnnealingLR,
@@ -46,6 +48,27 @@ from src.perturbations.perturbation_utils import choose_perturbation_strategy
 # =============================================================================
 # Helpers
 # =============================================================================
+
+
+def setup_distributed():
+    """
+    Initialise the NCCL process group for DDP.
+
+    Expects ``LOCAL_RANK`` to be set in the environment by ``torchrun``.
+    Returns ``(rank, local_rank, world_size)``.
+    """
+    dist.init_process_group(backend='nccl')
+    local_rank  = int(os.environ['LOCAL_RANK'])
+    rank        = dist.get_rank()
+    world_size  = dist.get_world_size()
+    torch.cuda.set_device(local_rank)
+    return rank, local_rank, world_size
+
+
+def cleanup_distributed():
+    """Tear down the NCCL process group after training."""
+    if dist.is_available() and dist.is_initialized():
+        dist.destroy_process_group()
 
 
 def parse_epoch_duration(value) -> int:
@@ -461,30 +484,34 @@ def setup_dataset(config, logger):
     return train_dataset, test_dataset, split_info, (global_target_mean, global_target_std)
 
 
-def create_dataloaders(train_dataset, test_dataset, config):
+def create_dataloaders(train_dataset, test_dataset, config, sampler=None):
     """
     Create DataLoader instances for training and testing.
-    
+
     Args:
         train_dataset: Training dataset
         test_dataset: Test/validation dataset
         config: Configuration dictionary with batch_size and random_seed
-        
+        sampler: Optional sampler (e.g. DistributedSampler for DDP). When
+            provided, shuffle is disabled and the generator is not used.
+
     Returns:
         tuple: (train_loader, test_loader, dataloader_generator)
     """
     # Create generator for reproducible DataLoader shuffling
     dataloader_generator = torch.Generator()
     dataloader_generator.manual_seed(config['random_seed'])
-    
+
     num_workers = int(config.get('num_workers', 0))
     pin_memory  = bool(config.get('pin_memory', torch.cuda.is_available()))
 
+    use_sampler = sampler is not None
     train_loader = DataLoader(
         train_dataset,
         batch_size=config['batch_size'],
-        shuffle=True,
-        generator=dataloader_generator,
+        shuffle=not use_sampler,
+        sampler=sampler,
+        generator=dataloader_generator if not use_sampler else None,
         num_workers=num_workers,
         pin_memory=pin_memory,
         persistent_workers=(num_workers > 0),
@@ -773,8 +800,9 @@ def handle_checkpoint_resumption(config, model, optimizer, dataloader_generator,
 # =============================================================================
 
 
-def train_one_epoch(model, train_loader, device, optimizer, criterion, 
-                   perturb_strategy, epoch_idx, logger, log_interval=10, debug_logging=False):
+def train_one_epoch(model, train_loader, device, optimizer, criterion,
+                   perturb_strategy, epoch_idx, logger, log_interval=10, debug_logging=False,
+                   rank=0):
     """
     Train model for a single epoch.
     
@@ -799,14 +827,16 @@ def train_one_epoch(model, train_loader, device, optimizer, criterion,
     # Log if perturbation is active this epoch
     if perturb_strategy.is_active_epoch(epoch_idx):
         logger.info(f"Applying {perturb_strategy.__class__.__name__} perturbation during epoch {epoch_idx}")
-        wandb.log({'perturbation_active': 1, 'epoch': epoch_idx})
-    else:
+        if rank == 0:
+            wandb.log({'perturbation_active': 1, 'epoch': epoch_idx})
+    elif rank == 0:
         wandb.log({'perturbation_active': 0, 'epoch': epoch_idx})
     
     progress_bar = tqdm(
-        enumerate(train_loader), 
-        total=len(train_loader), 
-        desc=f"Epoch {epoch_idx}"
+        enumerate(train_loader),
+        total=len(train_loader),
+        desc=f"Epoch {epoch_idx}",
+        disable=(rank != 0),
     )
     
     for batch_idx, (image_names, images, targets) in progress_bar:
@@ -864,7 +894,7 @@ def train_one_epoch(model, train_loader, device, optimizer, criterion,
         batch_losses.append(batch_loss)
         progress_bar.set_postfix({'loss': batch_loss})
 
-        if batch_idx % log_interval == 0:
+        if batch_idx % log_interval == 0 and rank == 0:
             wandb.log({
                 'batch_loss': batch_loss,
                 'batch': epoch_idx * len(train_loader) + batch_idx,
@@ -873,11 +903,12 @@ def train_one_epoch(model, train_loader, device, optimizer, criterion,
     
     avg_train_loss = total_loss / len(train_loader.dataset)
 
-    wandb.log({
-        'train_loss': avg_train_loss,
-        'train_loss_std': np.std(batch_losses),
-        'epoch': epoch_idx,
-    })
+    if rank == 0:
+        wandb.log({
+            'train_loss': avg_train_loss,
+            'train_loss_std': np.std(batch_losses),
+            'epoch': epoch_idx,
+        })
 
     return avg_train_loss
 
@@ -928,6 +959,8 @@ def train_model(
     debug_logging=False,
     training_mode='finetune',
     scheduler=None,
+    sampler=None,
+    rank=0,
 ):
     """
     Main training loop with logging, checkpointing, and early stopping.
@@ -956,90 +989,25 @@ def train_model(
         rsa_similarity_metric: Similarity metric for behavioral RSA
         debug_logging: Whether to log debug information to the console
     """
+    is_main = (rank == 0)
+    use_ddp = sampler is not None
+
     best_test_loss = float('inf')
     epochs_no_improve = 0
-    
+
     # Use logger if provided, otherwise use print
     log = logger.info if logger else print
-    
-    # Initial evaluation
-    log("*********************************")
-    log("Evaluating initial model")
+
+    # Initial evaluation — all ranks run it (model weights are in sync); only rank-0 logs
     best_test_loss = evaluate_model(model, test_loader, device, criterion)
-    log(f"Initial Validation Loss: {best_test_loss:.4f}")
-    # Optional behavioral RSA at initial evaluation
-    if behavioral_rsa:
-        try:
-            compute_behavioral_rsa(
-                model=model,
-                data_loader=test_loader,
-                device=device,
-                annotations_file=rsa_annotations_file,
-                distance_metric=model_rdm_distance_metric,
-                similarity_metric=rsa_similarity_metric,
-                logger=logger,
-                epoch_tag=-1,
-            )
-        except Exception as rsa_err:
-            if logger:
-                logger.warning(f"Initial behavioral RSA failed: {rsa_err}")
-            else:
-                print(f"Initial behavioral RSA failed: {rsa_err}")
-    log("*********************************\n")
 
-    wandb.log({
-        'initial_val_loss': best_test_loss,
-        'epoch': -1,
-    })
-    
-    # Create directories for outputs
-    os.makedirs(save_path, exist_ok=True)
-    os.makedirs(os.path.dirname(training_results_save_path), exist_ok=True)
-    
-    # Initialize CSV file (only if starting from scratch)
-    if not (start_epoch > 0 and os.path.exists(training_results_save_path)):
-        with open(training_results_save_path, 'w', newline='') as file:
-            writer = csv.writer(file)
-            header = ['epoch', 'train_loss', 'test_loss']
-            if behavioral_rsa:
-                header.extend(['rsa_behavioral_corr', 'rsa_behavioral_p'])
-            writer.writerow(header)
-
-    # Main training loop
-    for epoch in range(start_epoch, epochs):
-        # Train one epoch
-        avg_train_loss = train_one_epoch(
-            model, train_loader, device, optimizer, criterion,
-            perturb_strategy, epoch, logger, debug_logging=debug_logging,
-        )
-        
-        # Evaluate on validation set
-        avg_test_loss = evaluate_model(model, test_loader, device, criterion)
-        
-        rsa_corr = None
-        rsa_p = None
-
-        # Log results
-        print(f"Epoch {epoch}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_test_loss:.4f}")
-        log(f"Epoch {epoch}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_test_loss:.4f}")
-        
-        if perturb_strategy.is_active_epoch(epoch):
-            logger.info(f"*** Perturbation '{perturb_strategy.__class__.__name__}' was applied during epoch {epoch} ***")
-
-        # Step LR scheduler (after optimizer.step, before logging)
-        if scheduler is not None:
-            scheduler.step()
-
-        wandb.log({
-            'val_loss': avg_test_loss,
-            'epoch': epoch,
-            'learning_rate': optimizer.param_groups[0]['lr'],
-        })
-
-        # Optional behavioral RSA at end of epoch
+    if is_main:
+        log("*********************************")
+        log("Evaluating initial model")
+        log(f"Initial Validation Loss: {best_test_loss:.4f}")
         if behavioral_rsa:
             try:
-                rsa_corr, rsa_p = compute_behavioral_rsa(
+                compute_behavioral_rsa(
                     model=model,
                     data_loader=test_loader,
                     device=device,
@@ -1047,97 +1015,170 @@ def train_model(
                     distance_metric=model_rdm_distance_metric,
                     similarity_metric=rsa_similarity_metric,
                     logger=logger,
-                    epoch_tag=epoch,
+                    epoch_tag=-1,
                 )
             except Exception as rsa_err:
-                if logger:
-                    logger.warning(f"Behavioral RSA failed at epoch {epoch}: {rsa_err}")
-                else:
-                    print(f"Behavioral RSA failed at epoch {epoch}: {rsa_err}")
-        
-        # Save metrics to CSV
-        save_epoch_results(epoch, avg_train_loss, avg_test_loss, training_results_save_path, rsa_corr, rsa_p)
-        
-        # Save random states for reproducibility
-        save_random_states(
-            optimizer, epoch, random_state_save_path,
-            dataloader_generator, logger=logger, scheduler=scheduler,
+                logger.warning(f"Initial behavioral RSA failed: {rsa_err}") if logger else print(f"Initial behavioral RSA failed: {rsa_err}")
+        log("*********************************\n")
+        wandb.log({'initial_val_loss': best_test_loss, 'epoch': -1})
+
+        # Create directories and initialise CSV (rank-0 only)
+        os.makedirs(save_path, exist_ok=True)
+        os.makedirs(os.path.dirname(training_results_save_path), exist_ok=True)
+        if not (start_epoch > 0 and os.path.exists(training_results_save_path)):
+            with open(training_results_save_path, 'w', newline='') as file:
+                writer = csv.writer(file)
+                header = ['epoch', 'train_loss', 'test_loss']
+                if behavioral_rsa:
+                    header.extend(['rsa_behavioral_corr', 'rsa_behavioral_p'])
+                writer.writerow(header)
+
+    # Main training loop
+    for epoch in range(start_epoch, epochs):
+        # Ensure each epoch gets a different shuffle across DDP ranks
+        if sampler is not None:
+            sampler.set_epoch(epoch)
+
+        # Train one epoch (all ranks)
+        avg_train_loss = train_one_epoch(
+            model, train_loader, device, optimizer, criterion,
+            perturb_strategy, epoch, logger, debug_logging=debug_logging,
+            rank=rank,
         )
-        
-        # Save model checkpoint
-        if training_mode == 'scratch':
-            checkpoint_dir = os.path.join(save_path, "model_checkpoints")
-            save_model_checkpoint(model, checkpoint_dir, epoch, log_fn=log)
-        else:
-            checkpoint_dir = os.path.join(save_path, "dora_params")
-            save_dora_parameters(
-                model, checkpoint_dir, epoch,
-                vision_layers, transformer_layers,
-                log_fn=log,
+
+        # Evaluate on validation set (all ranks — weights in sync via DDP)
+        avg_test_loss = evaluate_model(model, test_loader, device, criterion)
+
+        # Step LR scheduler — every rank owns its optimizer copy, so all step
+        if scheduler is not None:
+            scheduler.step()
+
+        if is_main:
+            rsa_corr = None
+            rsa_p = None
+
+            print(f"Epoch {epoch}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_test_loss:.4f}")
+            log(f"Epoch {epoch}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_test_loss:.4f}")
+
+            if perturb_strategy.is_active_epoch(epoch):
+                logger.info(f"*** Perturbation '{perturb_strategy.__class__.__name__}' was applied during epoch {epoch} ***")
+
+            wandb.log({
+                'val_loss': avg_test_loss,
+                'epoch': epoch,
+                'learning_rate': optimizer.param_groups[0]['lr'],
+            })
+
+            # Optional behavioral RSA
+            if behavioral_rsa:
+                try:
+                    rsa_corr, rsa_p = compute_behavioral_rsa(
+                        model=model,
+                        data_loader=test_loader,
+                        device=device,
+                        annotations_file=rsa_annotations_file,
+                        distance_metric=model_rdm_distance_metric,
+                        similarity_metric=rsa_similarity_metric,
+                        logger=logger,
+                        epoch_tag=epoch,
+                    )
+                except Exception as rsa_err:
+                    logger.warning(f"Behavioral RSA failed at epoch {epoch}: {rsa_err}") if logger else print(f"Behavioral RSA failed at epoch {epoch}: {rsa_err}")
+
+            # Save metrics, states, and checkpoints (rank-0 only)
+            save_epoch_results(epoch, avg_train_loss, avg_test_loss, training_results_save_path, rsa_corr, rsa_p)
+
+            save_random_states(
+                optimizer, epoch, random_state_save_path,
+                dataloader_generator, logger=logger, scheduler=scheduler,
             )
-        log(f"Checkpoint saved for epoch {epoch}")
 
-        save_to_wandb = (epoch < 20) or (epoch % 5 == 0)
-        if save_to_wandb:
-            artifact = wandb.Artifact(
-                name=f"model-checkpoint-epoch-{epoch}",
-                type="model",
-                description=f"Model checkpoint at epoch {epoch}",
-                metadata={
-                    'epoch': epoch,
-                    'train_loss': avg_train_loss,
-                    'val_loss': avg_test_loss,
-                }
-            )
-            artifact.add_dir(checkpoint_dir)
-            artifact.add_file(training_results_save_path)
-            wandb.log_artifact(artifact)
-        
-        # Early stopping check
-        if avg_test_loss < best_test_loss:
-            best_test_loss = avg_test_loss
-            epochs_no_improve = 0
-            wandb.run.summary["best_val_loss"] = best_test_loss
-            wandb.run.summary["best_epoch"] = epoch
-        else:
-            epochs_no_improve += 1
+            if training_mode == 'scratch':
+                checkpoint_dir = os.path.join(save_path, "model_checkpoints")
+                save_model_checkpoint(model, checkpoint_dir, epoch, log_fn=log)
+            else:
+                checkpoint_dir = os.path.join(save_path, "dora_params")
+                save_dora_parameters(
+                    model, checkpoint_dir, epoch,
+                    vision_layers, transformer_layers,
+                    log_fn=log,
+                )
+            log(f"Checkpoint saved for epoch {epoch}")
 
-        wandb.log({
-            'epochs_no_improve': epochs_no_improve,
-            'best_val_loss': best_test_loss,
-            'epoch': epoch,
-        })
-        
-        if epochs_no_improve == early_stopping_patience:
-            log("\n\n*********************************")
-            log(f"Early stopping triggered at epoch {epoch}")
-            log("*********************************\n\n")
-            wandb.run.summary["stopped_early"] = True
-            wandb.run.summary["final_epoch"] = epoch
-            break
+            save_to_wandb = (epoch < 20) or (epoch % 5 == 0)
+            if save_to_wandb:
+                artifact = wandb.Artifact(
+                    name=f"model-checkpoint-epoch-{epoch}",
+                    type="model",
+                    description=f"Model checkpoint at epoch {epoch}",
+                    metadata={'epoch': epoch, 'train_loss': avg_train_loss, 'val_loss': avg_test_loss},
+                )
+                artifact.add_dir(checkpoint_dir)
+                artifact.add_file(training_results_save_path)
+                wandb.log_artifact(artifact)
 
-    if epochs_no_improve < early_stopping_patience:
-        wandb.run.summary["stopped_early"] = False
-        wandb.run.summary["final_epoch"] = epochs
+            # Early stopping bookkeeping
+            if avg_test_loss < best_test_loss:
+                best_test_loss = avg_test_loss
+                epochs_no_improve = 0
+                wandb.run.summary["best_val_loss"] = best_test_loss
+                wandb.run.summary["best_epoch"] = epoch
+            else:
+                epochs_no_improve += 1
 
-    # Log full training metrics CSV once at completion
-    try:
-        metrics_artifact = wandb.Artifact(
-            name="training-results-final",
-            type="metrics",
-            description="Full training results CSV",
-            metadata={
+            wandb.log({
+                'epochs_no_improve': epochs_no_improve,
                 'best_val_loss': best_test_loss,
-                'final_epoch': wandb.run.summary.get("final_epoch", epochs),
-            }
-        )
-        metrics_artifact.add_file(training_results_save_path)
-        wandb.log_artifact(metrics_artifact)
-    except Exception as art_err:
-        if logger:
-            logger.warning(f"Failed to log training results artifact: {art_err}")
+                'epoch': epoch,
+            })
+
+        # Broadcast early-stopping decision so all DDP ranks break together
+        if use_ddp:
+            stop_tensor = torch.tensor(
+                int(is_main and epochs_no_improve == early_stopping_patience),
+                device=device,
+            )
+            dist.broadcast(stop_tensor, src=0)
+            if stop_tensor.item():
+                if is_main:
+                    log("\n\n*********************************")
+                    log(f"Early stopping triggered at epoch {epoch}")
+                    log("*********************************\n\n")
+                    wandb.run.summary["stopped_early"] = True
+                    wandb.run.summary["final_epoch"] = epoch
+                break
         else:
-            print(f"Failed to log training results artifact: {art_err}")
+            if epochs_no_improve == early_stopping_patience:
+                log("\n\n*********************************")
+                log(f"Early stopping triggered at epoch {epoch}")
+                log("*********************************\n\n")
+                wandb.run.summary["stopped_early"] = True
+                wandb.run.summary["final_epoch"] = epoch
+                break
+
+    if is_main:
+        if epochs_no_improve < early_stopping_patience:
+            wandb.run.summary["stopped_early"] = False
+            wandb.run.summary["final_epoch"] = epochs
+
+        # Log full training metrics CSV once at completion
+        try:
+            metrics_artifact = wandb.Artifact(
+                name="training-results-final",
+                type="metrics",
+                description="Full training results CSV",
+                metadata={
+                    'best_val_loss': best_test_loss,
+                    'final_epoch': wandb.run.summary.get("final_epoch", epochs),
+                },
+            )
+            metrics_artifact.add_file(training_results_save_path)
+            wandb.log_artifact(metrics_artifact)
+        except Exception as art_err:
+            if logger:
+                logger.warning(f"Failed to log training results artifact: {art_err}")
+            else:
+                print(f"Failed to log training results artifact: {art_err}")
 
 
 # =============================================================================
@@ -1165,9 +1206,19 @@ def run_training_experiment(config):
         config: Configuration dictionary containing all training parameters.
     """
     training_mode = config.get('training_mode', 'finetune')
+    use_ddp = config.get('use_ddp', False)
 
-    # Set random seed for reproducibility
-    seed_everything(config['random_seed'])
+    # --- DDP initialisation (no-op for single-GPU runs) ---
+    rank = 0
+    local_rank = 0
+    world_size = 1
+    if use_ddp:
+        rank, local_rank, world_size = setup_distributed()
+
+    is_main = (rank == 0)
+
+    # Offset seed per rank so each worker sees different augmentation
+    seed_everything(config['random_seed'] + rank)
 
     # Build run name once so wandb and filesystem stay in sync
     run_name = get_run_name(config)
@@ -1185,7 +1236,7 @@ def run_training_experiment(config):
         save_path = run_name
     config['save_path'] = save_path
 
-    # Setup logging
+    # Setup logging (all ranks write; rank prefix distinguishes them)
     os.makedirs(config['save_path'], exist_ok=True)
     perturb_type = config.get('perturb_type', 'none')
     log_file = os.path.join(config['save_path'], f'training_log_{perturb_type}.txt')
@@ -1195,42 +1246,71 @@ def run_training_experiment(config):
     logger.info("Starting Training Run")
     logger.info(f"Training mode : {training_mode}")
     logger.info(f"Architecture  : {config.get('architecture', 'unknown')}")
+    if use_ddp:
+        logger.info(f"DDP           : rank={rank}/{world_size}, local_rank={local_rank}")
     logger.info(f"Log file      : {log_file}")
     logger.info("=" * 80)
 
-    # Persist config snapshots inside the run folder
-    resolved_cfg_path = os.path.join(save_path, "resolved_config.yaml")
-    input_cfg_path    = os.path.join(save_path, "training_config_snapshot.yaml")
-    with open(resolved_cfg_path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(config, f)
-    with open(input_cfg_path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(config, f)
+    # Persist config snapshots (rank-0 only)
+    if is_main:
+        resolved_cfg_path = os.path.join(save_path, "resolved_config.yaml")
+        input_cfg_path    = os.path.join(save_path, "training_config_snapshot.yaml")
+        with open(resolved_cfg_path, "w", encoding="utf-8") as f:
+            yaml.safe_dump(config, f)
+        with open(input_cfg_path, "w", encoding="utf-8") as f:
+            yaml.safe_dump(config, f)
 
-    # Setup paths
-    save_path, training_results_save_path, random_state_save_path = setup_paths(config)
+    # Setup paths — rank-0 only to avoid interactive overwrite prompts on workers
+    if is_main:
+        save_path, training_results_save_path, random_state_save_path = setup_paths(config)
+    else:
+        training_results_save_path = os.path.join(config['save_path'], 'training_res.csv')
+        random_state_save_path = os.path.join(config['save_path'], 'random_states')
 
-    # Initialize wandb before any wandb.config updates in dataset setup
-    wandb_run = init_wandb(config, resume_epoch=0)
+    # Barrier: workers wait until rank-0 has created all directories
+    if use_ddp:
+        dist.barrier()
 
-    # Setup dataset
+    # Initialize wandb
+    # Non-main ranks use disabled mode so all wandb.* calls become silent no-ops
+    if not is_main:
+        wandb.init(mode="disabled")
+    else:
+        init_wandb(config, resume_epoch=0)
+
+    # Setup dataset (all ranks need the full dataset objects)
     train_dataset, test_dataset, split_info, target_stats = setup_dataset(config, logger)
     global_target_mean, global_target_std = target_stats
 
-    # Save dataset split information
-    split_file = os.path.join(random_state_save_path, 'dataset_split_indices.pth')
-    os.makedirs(random_state_save_path, exist_ok=True)
-    torch.save(split_info, split_file)
-    logger.info(f"Dataset split info saved: {split_file}")
+    # Save dataset split information (rank-0 only)
+    if is_main:
+        split_file = os.path.join(random_state_save_path, 'dataset_split_indices.pth')
+        os.makedirs(random_state_save_path, exist_ok=True)
+        torch.save(split_info, split_file)
+        logger.info(f"Dataset split info saved: {split_file}")
+
+    # Create DistributedSampler for DDP; each rank gets a non-overlapping shard
+    train_sampler = None
+    if use_ddp:
+        train_sampler = DistributedSampler(
+            train_dataset, num_replicas=world_size, rank=rank, shuffle=True,
+        )
 
     # Create data loaders
     train_loader, test_loader, dataloader_generator = create_dataloaders(
-        train_dataset, test_dataset, config
+        train_dataset, test_dataset, config, sampler=train_sampler,
     )
 
     # Setup device
-    device = get_device(config['cuda'], logger)
+    if use_ddp:
+        device = torch.device(f'cuda:{local_rank}')
+        logger.info(f"[Rank {rank}] Using device: cuda:{local_rank}")
+    else:
+        device = get_device(config['cuda'], logger)
 
-    # Setup model
+    # Setup model — in DDP mode pass local_rank as cuda_arg so build_timm_model
+    # does NOT wrap in DataParallel (DDP wrapping happens right after)
+    cuda_arg = local_rank if use_ddp else config.get('cuda')
     model = build_model(
         architecture=config.get('architecture'),
         pretrained=config.get('pretrained'),
@@ -1238,13 +1318,18 @@ def run_training_experiment(config):
         vision_layers=config.get('vision_layers'),
         transformer_layers=config.get('transformer_layers'),
         rank=config.get('rank'),
-        cuda=config.get('cuda'),
+        cuda=cuda_arg,
         device=device,
         wandb_watch_model=config.get('wandb_watch_model'),
         wandb_log_freq=config.get('wandb_log_freq'),
         num_classes=config.get('num_classes', 1000),
     )
     model.to(device)
+
+    # Wrap with DistributedDataParallel
+    if use_ddp:
+        model = DDP(model, device_ids=[local_rank], output_device=local_rank)
+        logger.info(f"[Rank {rank}] Model wrapped with DistributedDataParallel")
 
     # Resolve total epoch count (max_duration overrides epochs if present)
     epochs = (
@@ -1254,10 +1339,10 @@ def run_training_experiment(config):
     )
     config['epochs'] = epochs  # normalise so downstream code sees an int
 
-    # Build optimizer and LR scheduler
+    # Build optimizer and LR scheduler (each rank owns its own copy)
     optimizer = build_optimizer(model, config)
     scheduler = build_scheduler(optimizer, config, epochs)
-    if scheduler is not None:
+    if is_main and scheduler is not None:
         logger.info(f"LR scheduler: {scheduler.__class__.__name__}")
 
     # Handle checkpoint resumption if needed
@@ -1265,7 +1350,8 @@ def run_training_experiment(config):
         config, model, optimizer, dataloader_generator, logger, scheduler=scheduler,
     )
 
-    log_model_architecture(model, logger)
+    if is_main:
+        log_model_architecture(model, logger)
 
     # Initialize loss criterion
     criterion_name = config.get('criterion', 'CrossEntropyLoss' if training_mode == 'scratch' else 'MSELoss')
@@ -1275,7 +1361,7 @@ def run_training_experiment(config):
         criterion = nn.CrossEntropyLoss()
     else:
         raise ValueError(f"Criterion '{criterion_name}' not supported. Use 'MSELoss' or 'CrossEntropyLoss'.")
-    
+
     # Choose perturbation strategy
     perturb_strategy = choose_perturbation_strategy(
         config.get('perturb_type', 'none'),
@@ -1286,18 +1372,18 @@ def run_training_experiment(config):
         target_std=global_target_std,
     )
 
-    # Log training configuration
-    logger.info("\nModel Configuration:")
-    logger.info("-------------------")
-    for key, value in config.items():
-        logger.info(f"{key}: {value}")
+    if is_main:
+        logger.info("\nModel Configuration:")
+        logger.info("-------------------")
+        for key, value in config.items():
+            logger.info(f"{key}: {value}")
 
-    logger.info("\nTrainable layers:")
-    for name, param in model.named_parameters():
-        if param.requires_grad:
-            logger.info(name)
+        logger.info("\nTrainable layers:")
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                logger.info(name)
 
-    logger.info(f"\nNumber of trainable parameters: {count_trainable_parameters(model)}\n")
+        logger.info(f"\nNumber of trainable parameters: {count_trainable_parameters(model)}\n")
 
     # Run training
     try:
@@ -1326,6 +1412,10 @@ def run_training_experiment(config):
             debug_logging=config.get('debug_logging', False),
             training_mode=training_mode,
             scheduler=scheduler,
+            sampler=train_sampler,
+            rank=rank,
         )
     finally:
-        wandb.finish()
+        if is_main:
+            wandb.finish()
+        cleanup_distributed()

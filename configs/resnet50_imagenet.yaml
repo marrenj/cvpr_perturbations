@@ -13,6 +13,7 @@
 
 ## ---TRAINING MODE--- ##
 training_mode: scratch
+use_ddp: true                 # DistributedDataParallel via torchrun --nproc_per_node=2
 
 
 ## ---PATHS--- ##
@@ -39,7 +40,7 @@ early_stopping_patience: 20
 batch_size: 256
 criterion: CrossEntropyLoss
 random_seed: 1
-cuda: 0                       # -1 = all GPUs | 0 = GPU 0 | 1 = GPU 1
+cuda: 0                       # ignored when use_ddp: true (torchrun sets LOCAL_RANK)
 num_workers: 8                # DataLoader worker processes — match to --cpus-per-task in SLURM
 pin_memory: true              # Pin CPU→GPU transfers for faster data loading
 
