@@ -41,8 +41,9 @@ def compute_model_rdm(embeddings, dataset_name, annotations_file, distance_metri
 
     if (
         dataset_name == "things"
-        and "concept" in pd.read_csv(annotations_file, nrows=1).columns
         and categories is not None
+        and annotations_file is not None
+        and "concept" in pd.read_csv(annotations_file, nrows=1).columns
     ):
         # average the embeddings by concept using provided category labels
         df = pd.DataFrame(embeddings)

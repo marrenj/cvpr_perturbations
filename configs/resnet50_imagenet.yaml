@@ -14,9 +14,10 @@
 training_mode: scratch
 
 ## ---PATHS--- ##
-save_path: "/path/to/save/resnet50_imagenet"
-img_dir: "/path/to/imagenet"
-baseline_checkpoint_path:
+save_path: "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test"
+img_dir: "/home/wallacelab/teba/multimodal_brain_inspired/imagenet_dataset"   # RAM copy — cp -r .../imagenet_dataset /dev/shm/ before training
+# img_dir: "/home/wallacelab/teba/multimodal_brain_inspired/imagenet_dataset"  # network fallback
+# baseline_checkpoint_path:
 
 ## ---LOGGING & W&B--- ##
 wandb_project:                # Optional: W&B project name (offline if blank)
@@ -27,11 +28,13 @@ logger: None
 ## ---TRAINING PARAMETERS--- ##
 dataset_type: imagenet
 max_duration: 100       
-early_stopping_patience: 20
+early_stopping_patience: 100
 batch_size: 256
 criterion: CrossEntropyLoss
 random_seed: 1
-cuda: 0
+cuda: -1
+num_workers: 8               # parallel image-loading workers (4 per GPU is a good default)
+prefetch_factor: 4            # batches each worker pre-loads ahead; higher hides I/O latency
 
 ## ---OPTIMIZER & LR SCHEDULE--- ##
 opt: sgd
@@ -54,6 +57,8 @@ num_classes: 1000
 
 ## ---RSA PARAMETERS--- ##
 behavioral_rsa: True 
-rsa_annotations_file: "./data/spose_embedding66d_rescaled_1806train.csv" # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
+rsa_annotations_file: "./data/spose_embedding66d_rescaled_48val_reordered.csv" # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
+rsa_things_img_dir: "/home/wallacelab/investigating-complexity/Images/THINGS"
+behavioral_rdm48_file: "./data/RDM48_triplet.mat"
 model_rdm_distance_metric: pearson # distance metric to use for RSA
 rsa_similarity_metric: spearman # similarity metric to use for RSA

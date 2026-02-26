@@ -21,8 +21,8 @@ def evaluate_model(model, data_loader, device, criterion):
     # Wrap data_loader with tqdm for a progress bar
     with torch.no_grad(), tqdm(enumerate(data_loader), total=len(data_loader), desc="Evaluating") as progress_bar:
         for _, (_, images, targets) in progress_bar:
-            images = images.to(device)
-            targets = targets.to(device)
+            images  = images.to(device, non_blocking=True)
+            targets = targets.to(device, non_blocking=True)
 
             predictions = model(images)
 

@@ -83,35 +83,33 @@ def build_model(
     ):
     
     if architecture == 'ViT-B/16':
-        # Create a Vision Transformer with specified parameters
         model = timm.create_model('vit_base_patch16_224', pretrained=pretrained, num_classes=num_classes)
-        # Optionally resize or replace the head if num_classes differs
-        # e.g., model.heads.head = torch.nn.Linear(model.heads.head.in_features, num_classes)
 
     elif architecture == 'ViT-L/14':
-        # Create a Vision Transformer with specified parameters
         model = timm.create_model('vit_large_patch14_224', pretrained=pretrained, num_classes=num_classes)
-        # Optionally resize or replace the head if num_classes differs
-        # e.g., model.heads.head = torch.nn.Linear(model.heads.head.in_features, num_classes)
 
     elif architecture == 'RN50':
-        # Create a ResNet with specified parameters
         model = timm.create_model('resnet50', pretrained=pretrained, num_classes=num_classes)
-        # Optionally resize or replace the head if num_classes differs
-        # e.g., model.heads.head = torch.nn.Linear(model.heads.head.in_features, num_classes)
 
     elif architecture == 'CLIP-HBA':
         model = build_cliphba(
-            clip_hba_backbone, 
-            vision_layers, 
-            transformer_layers, 
-            rank, 
-            cuda, 
-            device, 
-            wandb_watch_model, 
+            clip_hba_backbone,
+            vision_layers,
+            transformer_layers,
+            rank,
+            cuda,
+            device,
+            wandb_watch_model,
             wandb_log_freq
         )
         return model
 
     else:
         raise ValueError(f"Unknown architecture type: {architecture}")
+
+    # Wrap with DataParallel when cuda=-1 (use all available GPUs)
+    if cuda == -1 and torch.cuda.is_available() and torch.cuda.device_count() > 1:
+        print(f"Using {torch.cuda.device_count()} GPUs with DataParallel")
+        model = DataParallel(model)
+
+    return model

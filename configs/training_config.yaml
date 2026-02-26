@@ -58,10 +58,12 @@ perturb_seed:                 # random seed to use for perturbation
 
 ## ---RSA PARAMETERS--- ##
 behavioral_rsa: True          # whether to conduct behavioral RSA within the training loop
-rsa_annotations_file: "./data/spose_embedding66d_rescaled_1806train.csv" 
+rsa_annotations_file: "./data/spose_embedding66d_rescaled_48val_reordered.csv" 
                               # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
+behavioral_rdm48_file: "./data/RDM48_triplet.mat"
+rsa_things_img_dir: "/home/wallacelab/investigating-complexity/Images/THINGS"
 model_rdm_distance_metric: pearson 
-                              # distance metric to use for RSA
+                              # distance metric to use to create the model RDM
 rsa_similarity_metric: spearman 
                               # similarity metric to use for RSA
 

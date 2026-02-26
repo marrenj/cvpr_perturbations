@@ -22,6 +22,9 @@ from pathlib import Path
 import pandas as pd
 from PIL import Image
 
+IMAGENET_MEAN = [0.485, 0.456, 0.406]
+IMAGENET_STD  = [0.229, 0.224, 0.225]
+
 
 class ImagenetDataset(Dataset):
     """
@@ -69,21 +72,21 @@ class ImagenetDataset(Dataset):
             f"{len(self._folder.classes)} classes"
         )
 
-        def __len__(self) -> int:
-            return len(self._folder)
+    def __len__(self) -> int:
+        return len(self._folder)
 
-        def __getitem__(self, index: int):
-            path, label  = self._folder.samples[index]
-            image_name = Path(path).name
-            image = Image.open(path).convert("RGB")
-            image = self.transform(image)
+    def __getitem__(self, index: int):
+        path, label  = self._folder.samples[index]
+        image_name = Path(path).name
+        image = Image.open(path).convert("RGB")
+        image = self.transform(image)
 
-            return image_name, image, label
+        return image_name, image, label
 
-        @property
-        def num_classes(self) -> int:
-            return len(self._folder.classes)
+    @property
+    def num_classes(self) -> int:
+        return len(self._folder.classes)
 
-        @property
-        def class_to_idx(self) -> dict:
-            return self._folder.class_to_idx
+    @property
+    def class_to_idx(self) -> dict:
+        return self._folder.class_to_idx

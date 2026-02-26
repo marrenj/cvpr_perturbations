@@ -155,7 +155,7 @@ def get_wandb_tags(config):
     Returns:
         list: List of tags
     """
-    training_mode = config.get['training_mode']
+    training_mode = config.get('training_mode')
 
     # Use clip_hba_backbone for finetune, architecture for scratch
     backbone_tag = (
@@ -348,7 +348,7 @@ def setup_dataset(config, logger):
         logger: Logger instance for tracking dataset operations
         
     Returns:
-        tuple: (train_dataset, val_dataset, split_info, global_target_stats)
+        tuple: (train_dataset, val_dataset, split_info, global_target_stats, inference_dataset)
     """
     training_mode = config.get('training_mode')
 
@@ -379,7 +379,20 @@ def setup_dataset(config, logger):
             'val_size': len(val_dataset),
             'train_portion': None,
         })
-        return train_dataset, val_dataset, split_info, (None, None)
+
+        # Build a THINGS inference dataset for behavioral RSA if paths are provided
+        rsa_annotations_file = config.get('rsa_annotations_file')
+        rsa_img_dir = config.get('rsa_things_img_dir')
+        if config.get('behavioral_rsa') and rsa_annotations_file and rsa_img_dir:
+            inference_dataset = ThingsBehavioralDataset(
+                img_annotations_file=rsa_annotations_file,
+                img_dir=rsa_img_dir,
+            )
+            logger.info(f"Inference dataset (THINGS): {len(inference_dataset):,} images")
+        else:
+            inference_dataset = None
+
+        return train_dataset, val_dataset, split_info, (None, None), inference_dataset
 
     if config.get('dataset_type') == 'things':
         dataset = ThingsBehavioralDataset(
@@ -394,6 +407,12 @@ def setup_dataset(config, logger):
 
     else:
         raise ValueError(f"Dataset type {config.get('dataset_type')} not supported")
+
+    if config.get('behavioral_rsa'):
+        inference_dataset = ThingsBehavioralDataset(
+            img_annotations_file=config.get('rsa_annotations_file'),
+            img_dir=config.get('rsa_things_img_dir'),
+        )
         
     global_target_mean = None
     global_target_std = None
@@ -419,15 +438,15 @@ def setup_dataset(config, logger):
             raise FileNotFoundError(f"dataset_split_indices_path not found: {split_indices_path}")
         split_info = torch.load(split_indices_path)
         train_dataset = Subset(dataset, split_info['train_indices'])
-        test_dataset  = Subset(dataset, split_info['test_indices'])
+        val_dataset  = Subset(dataset, split_info['val_indices'])
         logger.info(f"Loaded dataset split indices from {split_indices_path}")
     else:
         train_size = int(config['train_portion'] * len(dataset))
-        test_size  = len(dataset) - train_size
-        train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+        val_size  = len(dataset) - train_size
+        train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
         split_info = {
             'train_indices': list(train_dataset.indices),
-            'test_indices':  list(test_dataset.indices),
+            'val_indices':  list(val_dataset.indices),
             'random_seed':   config['random_seed'],
             'train_portion': config['train_portion']
         }
@@ -435,42 +454,82 @@ def setup_dataset(config, logger):
     wandb.config.update({
         'dataset_size':  len(dataset),
         'train_size':    len(train_dataset),
-        'test_size':     len(test_dataset),
+        'val_size':      len(val_dataset),
         'train_portion': config['train_portion']
     })
     
-    return train_dataset, test_dataset, split_info, (global_target_mean, global_target_std)
+    return train_dataset, val_dataset, split_info, (global_target_mean, global_target_std), inference_dataset
 
 
-def create_dataloaders(train_dataset, test_dataset, config):
+def create_dataloaders(train_dataset, val_dataset, inference_dataset, config):
     """
-    Create DataLoader instances for training and testing.
+    Create DataLoader instances for training and validation.
     
     Args:
         train_dataset: Training dataset
-        test_dataset: Test/validation dataset
+        val_dataset: Validation dataset
         config: Configuration dictionary with batch_size and random_seed
         
     Returns:
-        tuple: (train_loader, test_loader, dataloader_generator)
+        tuple: (train_loader, val_loader, inference_loader, dataloader_generator)
     """
+    cuda_available = torch.cuda.is_available()
+
+    # num_workers: parallel image loading workers per DataLoader.
+    # 4 per GPU is a good starting point; override via config if needed.
+    num_gpus = torch.cuda.device_count() if cuda_available else 1
+    num_workers = config.get('num_workers', 4 * max(num_gpus, 1))
+
+    # pin_memory: pages host tensors into non-pageable memory so the
+    # CUDA DMA engine can transfer them without a CPU copy.
+    pin_memory = cuda_available
+
+    # persistent_workers: keeps worker processes alive between epochs,
+    # avoiding the fork/init overhead at the start of every epoch.
+    persistent_workers = num_workers > 0
+
+    # prefetch_factor: how many batches each worker pre-loads ahead of
+    # the training loop consuming them.
+    prefetch_factor = config.get('prefetch_factor', 2) if num_workers > 0 else None
+
     # Create generator for reproducible DataLoader shuffling
     dataloader_generator = torch.Generator()
     dataloader_generator.manual_seed(config['random_seed'])
-    
+
     train_loader = DataLoader(
-        train_dataset, 
-        batch_size=config['batch_size'], 
-        shuffle=True, 
-        generator=dataloader_generator
-    )
-    test_loader = DataLoader(
-        test_dataset, 
+        train_dataset,
         batch_size=config['batch_size'],
-        shuffle=False
+        shuffle=True,
+        generator=dataloader_generator,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        persistent_workers=persistent_workers,
+        prefetch_factor=prefetch_factor,
     )
-    
-    return train_loader, test_loader, dataloader_generator
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=config['batch_size'],
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        persistent_workers=persistent_workers,
+        prefetch_factor=prefetch_factor,
+    )
+
+    if inference_dataset is not None:
+        inference_loader = DataLoader(
+            inference_dataset,
+            batch_size=config['batch_size'],
+            shuffle=False,
+            num_workers=min(num_workers, 4),
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
+            prefetch_factor=prefetch_factor,
+        )
+    else:
+        inference_loader = None
+
+    return train_loader, val_loader, inference_loader, dataloader_generator
 
 
 # =============================================================================
@@ -522,15 +581,38 @@ def compute_behavioral_rsa(
     """
     Compute behavioral RSA between model embeddings and target embeddings
     on the provided data_loader.
+
+    For classification models (e.g. ResNet50 trained from scratch), we extract
+    penultimate-layer features via ``forward_features`` when available (all
+    timm models support this), falling back to the full forward pass otherwise.
+    For DataParallel-wrapped models the underlying module is used.
     """
     log = logger.info if logger else print
+
+    # Unwrap DataParallel to access timm's forward_features
+    base_model = model.module if hasattr(model, 'module') else model
+    use_features = hasattr(base_model, 'forward_features')
+    if use_features:
+        log("Behavioral RSA: using penultimate-layer features (forward_features)")
+
     model.eval()
     preds = []
     targets = []
     with torch.no_grad():
         for _, (_, images, target) in enumerate(data_loader):
-            images = images.to(device)
-            preds.append(model(images).cpu())
+            images = images.to(device, non_blocking=True)
+            if use_features:
+                feats = base_model.forward_features(images)
+                # Collapse any spatial / token dims down to a 1-D vector per image:
+                #   [B, C, H, W]  → global avg pool → [B, C]   (CNN)
+                #   [B, tokens, D] → mean over tokens → [B, D]  (ViT)
+                if feats.dim() == 4:
+                    feats = feats.mean(dim=(2, 3))
+                elif feats.dim() == 3:
+                    feats = feats.mean(dim=1)
+                preds.append(feats.cpu())
+            else:
+                preds.append(model(images).cpu())
             targets.append(target.cpu())
 
     preds = torch.cat(preds, dim=0)
@@ -779,9 +861,10 @@ def train_one_epoch(model, train_loader, device, optimizer, criterion,
     )
     
     for batch_idx, (image_names, images, targets) in progress_bar:
-        # Move data to device
-        images = images.to(device)
-        targets = targets.to(device)
+        # non_blocking=True overlaps H→D transfer with GPU compute when
+        # pin_memory=True is set on the DataLoader.
+        images  = images.to(device, non_blocking=True)
+        targets = targets.to(device, non_blocking=True)
 
         if debug_logging is True and batch_idx == 0:
             print("\n=== DEBUG: BEFORE PERTURBATION ===")
@@ -851,19 +934,19 @@ def train_one_epoch(model, train_loader, device, optimizer, criterion,
     return avg_train_loss
 
 
-def save_epoch_results(epoch, train_loss, test_loss, training_results_save_path, rsa_corr=None, rsa_p=None):
+def save_epoch_results(epoch, train_loss, val_loss, training_results_save_path, rsa_corr=None, rsa_p=None):
     """
     Save training metrics to CSV file.
     
     Args:
         epoch: Current epoch number
         train_loss: Training loss
-        test_loss: Validation loss
+        val_loss: Validation loss
         training_results_save_path: Path to CSV file
         rsa_corr: Optional behavioral RSA correlation
         rsa_p: Optional p-value for behavioral RSA correlation
     """
-    data_row = [epoch, train_loss, test_loss]
+    data_row = [epoch, train_loss, val_loss]
     if rsa_corr is not None and rsa_p is not None:
         data_row.extend([rsa_corr, rsa_p])
     
@@ -875,7 +958,8 @@ def save_epoch_results(epoch, train_loss, test_loss, training_results_save_path,
 def train_model(
     model,
     train_loader,
-    test_loader,
+    val_loader,
+    inference_loader,
     device,
     optimizer,
     criterion,
@@ -896,6 +980,7 @@ def train_model(
     rsa_similarity_metric="spearman",
     debug_logging=False,
     scheduler=None,
+    training_mode='finetune',
 ):
     """
     Main training loop with logging, checkpointing, and early stopping.
@@ -903,7 +988,8 @@ def train_model(
     Args:
         model: Model to train
         train_loader: Training data loader
-        test_loader: Validation data loader
+        val_loader: Validation data loader
+        inference_loader: Inference data loader
         device: Device for training
         optimizer: Optimizer instance
         criterion: Loss function
@@ -924,7 +1010,7 @@ def train_model(
         rsa_similarity_metric: Similarity metric for behavioral RSA
         debug_logging: Whether to log debug information to the console
     """
-    best_test_loss = float('inf')
+    best_val_loss = float('inf')
     epochs_no_improve = 0
     
     # Use logger if provided, otherwise use print
@@ -933,14 +1019,14 @@ def train_model(
     # Initial evaluation
     log("*********************************")
     log("Evaluating initial model")
-    best_test_loss = evaluate_model(model, test_loader, device, criterion)
-    log(f"Initial Validation Loss: {best_test_loss:.4f}")
+    best_val_loss = evaluate_model(model, val_loader, device, criterion)
+    log(f"Initial Validation Loss: {best_val_loss:.4f}")
     # Optional behavioral RSA at initial evaluation
     if behavioral_rsa:
         try:
             compute_behavioral_rsa(
                 model=model,
-                data_loader=test_loader,
+                data_loader=inference_loader,
                 device=device,
                 annotations_file=rsa_annotations_file,
                 distance_metric=model_rdm_distance_metric,
@@ -956,7 +1042,7 @@ def train_model(
     log("*********************************\n")
 
     wandb.log({
-        'initial_val_loss': best_test_loss,
+        'initial_val_loss': best_val_loss,
         'epoch': -1,
     })
     
@@ -968,7 +1054,7 @@ def train_model(
     if not (start_epoch > 0 and os.path.exists(training_results_save_path)):
         with open(training_results_save_path, 'w', newline='') as file:
             writer = csv.writer(file)
-            header = ['epoch', 'train_loss', 'test_loss']
+            header = ['epoch', 'train_loss', 'val_loss']
             if behavioral_rsa:
                 header.extend(['rsa_behavioral_corr', 'rsa_behavioral_p'])
             writer.writerow(header)
@@ -982,14 +1068,14 @@ def train_model(
         )
         
         # Evaluate on validation set
-        avg_test_loss = evaluate_model(model, test_loader, device, criterion)
+        avg_val_loss = evaluate_model(model, val_loader, device, criterion)
         
         rsa_corr = None
         rsa_p = None
 
         # Log results
-        print(f"Epoch {epoch}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_test_loss:.4f}")
-        log(f"Epoch {epoch}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_test_loss:.4f}")
+        print(f"Epoch {epoch}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}")
+        log(f"Epoch {epoch}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}")
         
         if perturb_strategy.is_active_epoch(epoch):
             logger.info(f"*** Perturbation '{perturb_strategy.__class__.__name__}' was applied during epoch {epoch} ***")
@@ -998,7 +1084,7 @@ def train_model(
             sscheduler.step()
 
         wandb.log({
-            'val_loss': avg_test_loss,
+            'val_loss': avg_val_loss,
             'epoch': epoch,
             'learning_rate': optimizer.param_groups[0]['lr'],
         })
@@ -1008,7 +1094,7 @@ def train_model(
             try:
                 rsa_corr, rsa_p = compute_behavioral_rsa(
                     model=model,
-                    data_loader=test_loader,
+                    data_loader=inference_loader,
                     device=device,
                     annotations_file=rsa_annotations_file,
                     distance_metric=model_rdm_distance_metric,
@@ -1023,7 +1109,7 @@ def train_model(
                     print(f"Behavioral RSA failed at epoch {epoch}: {rsa_err}")
         
         # Save metrics to CSV
-        save_epoch_results(epoch, avg_train_loss, avg_test_loss, training_results_save_path, rsa_corr, rsa_p)
+        save_epoch_results(epoch, avg_train_loss, avg_val_loss, training_results_save_path, rsa_corr, rsa_p)
         
         # Save random states for reproducibility
         save_random_states(
@@ -1052,7 +1138,7 @@ def train_model(
                 metadata={
                     'epoch': epoch,
                     'train_loss': avg_train_loss,
-                    'val_loss': avg_test_loss,
+                    'val_loss': avg_val_loss,
                 }
             )
             artifact.add_dir(checkpoint_dir)
@@ -1060,17 +1146,17 @@ def train_model(
             wandb.log_artifact(artifact)
         
         # Early stopping check
-        if avg_test_loss < best_test_loss:
-            best_test_loss = avg_test_loss
+        if avg_val_loss < best_val_loss:
+            best_val_loss = avg_val_loss
             epochs_no_improve = 0
-            wandb.run.summary["best_val_loss"] = best_test_loss
+            wandb.run.summary["best_val_loss"] = best_val_loss
             wandb.run.summary["best_epoch"] = epoch
         else:
             epochs_no_improve += 1
 
         wandb.log({
             'epochs_no_improve': epochs_no_improve,
-            'best_val_loss': best_test_loss,
+            'best_val_loss': best_val_loss,
             'epoch': epoch,
         })
         
@@ -1093,7 +1179,7 @@ def train_model(
             type="metrics",
             description="Full training results CSV",
             metadata={
-                'best_val_loss': best_test_loss,
+                'best_val_loss': best_val_loss,
                 'final_epoch': wandb.run.summary.get("final_epoch", epochs),
             }
         )
@@ -1183,7 +1269,7 @@ def run_training_experiment(config):
     wandb_run = init_wandb(config, resume_epoch=0)
     
     # Setup dataset
-    train_dataset, test_dataset, split_info, target_stats = setup_dataset(config, logger)
+    train_dataset, val_dataset, split_info, target_stats, inference_dataset = setup_dataset(config, logger)
     global_target_mean, global_target_std = target_stats
     
     # Save dataset split information
@@ -1193,8 +1279,8 @@ def run_training_experiment(config):
     logger.info(f"Dataset split info saved: {split_file}")
     
     # Create data loaders
-    train_loader, test_loader, dataloader_generator = create_dataloaders(
-        train_dataset, test_dataset, config
+    train_loader, val_loader, inference_loader, dataloader_generator = create_dataloaders(
+        train_dataset, val_dataset, inference_dataset, config
     )
     
     # Setup device
@@ -1270,7 +1356,8 @@ def run_training_experiment(config):
         train_model(
             model=model,
             train_loader=train_loader,
-            test_loader=test_loader,
+            val_loader=val_loader,
+            inference_loader=inference_loader,
             device=device,
             optimizer=optimizer,
             criterion=criterion,
@@ -1281,8 +1368,8 @@ def run_training_experiment(config):
             save_path=save_path,
             random_state_save_path=random_state_save_path,
             dataloader_generator=dataloader_generator,
-            vision_layers=config['vision_layers'],
-            transformer_layers=config['transformer_layers'],
+            vision_layers=config.get('vision_layers'),
+            transformer_layers=config.get('transformer_layers'),
             perturb_strategy=perturb_strategy,
             start_epoch=resume_epoch,
             behavioral_rsa=config.get('behavioral_rsa', False),
@@ -1290,7 +1377,10 @@ def run_training_experiment(config):
             model_rdm_distance_metric=config.get('model_rdm_distance_metric', 'pearson'),
             rsa_similarity_metric=config.get('rsa_similarity_metric', 'spearman'),
             debug_logging=config.get('debug_logging', False),
-            scheduler=scheduler, 
+            scheduler=scheduler,
+            training_mode=training_mode,
         )
     finally:
         wandb.finish()
+        if hasattr(logger, 'restore_streams'):
+            logger.restore_streams()
