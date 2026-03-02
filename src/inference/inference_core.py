@@ -24,6 +24,80 @@ from src.inference.evaluate_nights import evaluate_nights
 from src.inference.extract_embeddings import extract_embeddings
 
 
+def center_gram(gram, unbiased=False):
+    """Double-center a symmetric Gram matrix for CKA computation.
+    Equivalent to centering the (possibly infinite-dimensional) features
+    induced by the kernel before computing the Gram matrix.
+    Args:
+        gram (np.ndarray): A num_examples x num_examples symmetric matrix.
+        unbiased (bool): Whether to apply the unbiased HSIC correction
+            (recommended when N is small, e.g. N=48).
+    Returns:
+        np.ndarray: Centered Gram matrix of the same shape.
+    """
+    if not np.allclose(gram, gram.T):
+        raise ValueError("Input must be a symmetric matrix.")
+    gram = gram.copy()
+    if unbiased:
+        n = gram.shape[0]
+        np.fill_diagonal(gram, 0)
+        means = np.sum(gram, 0, dtype=np.float64) / (n - 2)
+        means -= np.sum(means) / (2 * (n - 1))
+        gram -= means[:, None]
+        gram -= means[None, :]
+        np.fill_diagonal(gram, 0)
+    else:
+        means = np.mean(gram, 0, dtype=np.float64)
+        means -= np.mean(means) / 2
+        gram -= means[:, None]
+        gram -= means[None, :]
+    return gram
+
+
+
+def compute_cka(X, Y, unbiased=False):
+    """Compute linear Centered Kernel Alignment (CKA) between two activation matrices.
+    Uses the linear kernel (K = X X^T) and the HSIC-based formulation from
+    Kornblith et al., "Similarity of Neural Network Representations Revisited"
+    (ICML 2019, https://arxiv.org/abs/1905.00414).
+    CKA = HSIC(K, L) / sqrt(HSIC(K, K) * HSIC(L, L))
+    where HSIC is estimated via the Frobenius inner product of the centered
+    Gram matrices:  HSIC(K, L) = <K_c, L_c>_F
+    Args:
+        X (np.ndarray | torch.Tensor): [N, D1] activation matrix (e.g. model embeddings).
+        Y (np.ndarray | torch.Tensor): [N, D2] activation matrix (e.g. SPoSE targets).
+        unbiased (bool): Use the unbiased HSIC estimator. Recommended for
+            small N (e.g. N=48). CKA may still carry a small bias.
+    Returns:
+        float: CKA score in [0, 1], where 1 means the two representations
+            are identical up to orthogonal transformation and isotropic scaling.
+    """
+    if isinstance(X, torch.Tensor):
+        X = X.detach().cpu().numpy()
+    if isinstance(Y, torch.Tensor):
+        Y = Y.detach().cpu().numpy()
+
+    X = np.asarray(X, dtype=np.float64)
+    Y = np.asarray(Y, dtype=np.float64)
+
+    if X.shape[0] != Y.shape[0]:
+        raise ValueError(
+            f"X and Y must have the same number of examples, "
+            f"got {X.shape[0]} and {Y.shape[0]}."
+        )
+
+    gram_x = X @ X.T  # [N, N] linear kernel
+    gram_y = Y @ Y.T  # [N, N] linear kernel
+
+    gram_x = center_gram(gram_x, unbiased=unbiased)
+    gram_y = center_gram(gram_y, unbiased=unbiased)
+
+    scaled_hsic = gram_x.ravel().dot(gram_y.ravel())
+    normalization_x = np.linalg.norm(gram_x)
+    normalization_y = np.linalg.norm(gram_y)
+    return float(scaled_hsic / (normalization_x * normalization_y))
+
+
 def compute_model_rdm(embeddings, dataset_name, annotations_file, distance_metric, categories=None):
     """
     Compute a representational dissimilarity matrix from embeddings.
@@ -442,6 +516,58 @@ def run_inference(config):
         )
         score = float(results.get("accuracy", 0.0))
         logger.info("Triplet score for '%s' dataset: %.4f", config['dataset'], score)
+        
+    elif evaluation_type == "cka":
+        # Extract CLIP-HBA last-layer activations for the 48 inference images
+        embedding_outputs = extract_embeddings(
+            model=model,
+            dataset_name=config['dataset'],
+            img_dir=config['img_dir'],
+            annotations_file=config['annotations_file'],
+            batch_size=config['batch_size'],
+            num_workers=config['num_workers'],
+            max_images_per_category=config['max_images_per_category'],
+            device=device,
+            logger=logger,
+        )
+        model_activations = embedding_outputs["embeddings"]  # [N, 66] tensor
+
+        # Load the SPoSE target embeddings from the same annotation CSV.
+        # The CSV has index_col=0, column 0 = image_name, columns 1-66 = embedding dims,
+        # in the same row order as the dataset, so alignment with model_activations is exact.
+        annotations_df = pd.read_csv(config['inference_annotations_file'], index_col=0)
+        spose_embeddings = annotations_df.iloc[:, 1:].values.astype(np.float64)  # [N, 66]
+
+        n_images = model_activations.shape[0]
+        if n_images != spose_embeddings.shape[0]:
+            raise ValueError(
+                f"Mismatch between number of model activations ({n_images}) "
+                f"and SPoSE embeddings ({spose_embeddings.shape[0]})."
+            )
+
+        unbiased = config.get('cka_unbiased', False)
+        cka_score = compute_cka(model_activations, spose_embeddings, unbiased=unbiased)
+        score = cka_score
+
+        results = {
+            "epoch": epoch,
+            "evaluation_type": "cka",
+            "dataset": config['dataset'],
+            "cka_score": cka_score,
+            "unbiased": unbiased,
+            "n_images": n_images,
+        }
+        logger.info(
+            "CKA score (epoch %s, n=%d, unbiased=%s): %.4f",
+            epoch, n_images, unbiased, cka_score,
+        )
+        results_json_path = (
+            Path(config['inference_save_dir'])
+            / f"inference_results_{config['dataset']}_cka_epoch{epoch}.json"
+        )
+        with open(results_json_path, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=4)
+        logger.info("Saved CKA results (JSON) to %s", results_json_path)
 
     else:
         raise ValueError(
