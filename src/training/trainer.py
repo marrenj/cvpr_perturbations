@@ -437,8 +437,9 @@ def setup_dataset(config, logger):
         if not os.path.isfile(split_indices_path):
             raise FileNotFoundError(f"dataset_split_indices_path not found: {split_indices_path}")
         split_info = torch.load(split_indices_path)
+        val_key = 'val_indices' if 'val_indices' in split_info else 'test_indices'
         train_dataset = Subset(dataset, split_info['train_indices'])
-        val_dataset  = Subset(dataset, split_info['val_indices'])
+        val_dataset  = Subset(dataset, split_info[val_key])
         logger.info(f"Loaded dataset split indices from {split_indices_path}")
     else:
         train_size = int(config['train_portion'] * len(dataset))

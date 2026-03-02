@@ -16,13 +16,13 @@
 ## =============================================================================
 
 ## ---TRAINING MODE--- ##
-training_mode: scratch        # scratch | finetune
+training_mode: finetune        # scratch | finetune
 
 ## ---PATHS--- ##
 save_path: "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test"
-img_dir: "/home/wallacelab/teba/multimodal_brain_inspired/imagenet_dataset" # path to the THINGS image directory
-# img_annotations_file: "./data/spose_embedding66d_rescaled_1806train.csv" # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
-# baseline_checkpoint_path: "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/baseline_seed1/vit_l_14_rank32_perturb-type-none_init-seed1behavioral-rsa-True" # path to baseline training run checkpoints used for perturbation sweeps. Required only when perturb_epoch > 0.
+img_dir: "/home/wallacelab/investigating-complexity/Images/THINGS" # path to the training image directory
+img_annotations_file: "./data/spose_embedding66d_rescaled_1806train.csv" # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
+baseline_checkpoint_path: "/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/baseline_seed1/vit_l_14_rank32_perturb-type-none_init-seed1behavioral-rsa-True" # path to baseline training run checkpoints used for perturbation sweeps. Required only when perturb_epoch > 0.
 
 ## ---LOGGING & WANDB CONFIGURATION--- ##
 wandb_project:                # Optional: Name of the WANDB project to use for logging
@@ -32,23 +32,23 @@ logger: None                  # Logger to use for training. None for no logging.
 
 
 ## ---TRAINING PARAMETERS--- ##
-dataset_type: imagenet        # Dataset to use for training: things | imagenet
-max_duration: 100             # number of epochs to train for
+dataset_type: things        # Dataset to use for training: things | imagenet
+max_duration: 500             # number of epochs to train for
 early_stopping_patience: 20   # number of epochs to wait before stopping training if the validation loss does not improve
-batch_size: 256               # number of training samples per batch
+batch_size: 64               # number of training samples per batch
 train_portion: 0.8            # portion of the training data to use for training
-criterion: CrossEntropyLoss   # loss function to use for training
+criterion: MSELoss   # loss function to use for training
 random_seed: 1                # random seed to use for training
-cuda: -1                      # GPU to use for training; -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
+cuda: 1                      # GPU to use for training; -1 for all GPUs, 0 for GPU 0, 1 for GPU 1, 2 for CPU
 
 ## ---OPTIMIZER & LR SCHEDULE--- ##
-opt: sgd                      # sgd | adamw
-lr: 0.1                       # Base learning rate
-momentum: 0.9                 # SGD momentum (SGD only; ignored for AdamW)
-weight_decay: 1e-4            # L2 regularisation
-lr_scheduler: cosineannealinglrwithwarmup
+opt: AdamW                      # sgd | adamw
+lr: 1e-4                       # Base learning rate
+# momentum: 0.9                 # SGD momentum (SGD only; ignored for AdamW)
+# weight_decay: 1e-4            # L2 regularisation
+# lr_scheduler: none
                               # none | cosineannealinglr | cosineannealinglrwithwarmup
-lr_warmup_duration: 5         # Linear warmup duration, e.g. '5ep'
+# lr_warmup_duration:          # Linear warmup duration, e.g. '5ep'
 
 ## ---PERTURBATION PARAMETERS--- ##
 perturb_type: none            # none | random_target | label_shuffle | image_noise | uniform_images
@@ -69,14 +69,14 @@ rsa_similarity_metric: spearman
 
 ## ---MODEL PARAMETERS (SCRATCH)--- ##
 ## Used when training_mode: scratch
-architecture: RN50            # architecture to use for the model: ViT-B/16 | ViT-L/14 | RN50 | RN101 | CLIP-ViT-L/14
-pretrained: false             # load pretrained weights? (default false for CPU-only)
-num_classes: 1000             # number of classes to use for the model
+# architecture: RN50            # architecture to use for the model: ViT-B/16 | ViT-L/14 | RN50 | RN101 | CLIP-ViT-L/14
+# pretrained: false             # load pretrained weights? (default false for CPU-only)
+# num_classes: 1000             # number of classes to use for the model
 
 ## ---MODEL PARAMETERS (FINETUNE / CLIP-HBA)--- ##
 ## Used when training_mode: finetune  (ignored for scratch)
-# architecture: CLIP-HBA
-# clip_hba_backbone: ViT-L/14     # CLIP backbone: ViT-B/16 | ViT-L/14 | RN50
-# vision_layers: 2                 # Vision encoder DoRA layers
-# transformer_layers: 1            # Text encoder DoRA layers
-# rank: 32                         # DoRA low-rank dimension
+architecture: CLIP-HBA
+clip_hba_backbone: ViT-L/14     # CLIP backbone: ViT-B/16 | ViT-L/14 | RN50
+vision_layers: 2                 # Vision encoder DoRA layers
+transformer_layers: 1            # Text encoder DoRA layers
+rank: 32                         # DoRA low-rank dimension
