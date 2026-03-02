@@ -12,15 +12,35 @@ from src.utils.parse_config_cli import parse_config_cli
 from src.utils.save_config import save_config
 
 
-INFERENCE_NUMERIC_KEYS = [
+INFERENCE_INT_KEYS = [
     "epochs",
     "batch_size",
+    "num_classes",
     "rank",
     "vision_layers",
     "transformer_layers",
     "random_seed",
     "cuda",
+    "num_workers",
+    "max_images_per_category",
 ]
+INFERENCE_FLOAT_KEYS: list = []
+
+
+def _apply_cli_overrides(config: dict, overrides: list) -> dict:
+    """Apply ``--set key=value`` CLI overrides, coercing numerics."""
+    for item in overrides:
+        if "=" not in item:
+            raise ValueError(f"Invalid --set argument '{item}'. Expected format: key=value")
+        key, _, value = item.partition("=")
+        key = key.strip()
+        if key in INFERENCE_INT_KEYS:
+            config[key] = int(value)
+        elif key in INFERENCE_FLOAT_KEYS:
+            config[key] = float(value)
+        else:
+            config[key] = value
+    return config
 
 
 def main():
@@ -32,8 +52,12 @@ def main():
     config_dir = config_path.parent.resolve()
     config = load_yaml_config(
         config_path,
-        numeric_keys=INFERENCE_NUMERIC_KEYS,
+        numeric_keys=INFERENCE_INT_KEYS,
     )
+
+    # Apply any --set key=value overrides from the CLI
+    if args.overrides:
+        config = _apply_cli_overrides(config, args.overrides)
 
     # Resolve all file/dir paths relative to the config location to make execution path-agnostic.
     def _resolve_path(p: str | Path | None) -> str:

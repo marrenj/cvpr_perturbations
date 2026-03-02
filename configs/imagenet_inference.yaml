@@ -1,0 +1,73 @@
+## =============================================================================
+## ImageNet inference config — from-scratch trained ViT / ResNet models
+## =============================================================================
+##
+## Entry point:
+##   python scripts/run_inference.py --config configs/imagenet_inference.yaml
+##
+## Supported evaluation types:
+##
+##   imagenet_val  — top-1 / top-5 accuracy on the ImageNet validation set.
+##                   img_dir must point to the root with train/ and val/ sub-folders.
+##
+##   behavioral    — RSA alignment on THINGS against human behavioral data.
+##                   img_dir must point to the THINGS image directory.
+##                   annotations_file, reference_rdm_paths etc. must be filled in.
+##
+## Runtime overrides (no YAML edits needed):
+##   python scripts/run_inference.py \
+##       --config configs/imagenet_inference.yaml \
+##       --set model_weights_path=/path/to/epoch99_model.pth \
+##       --set img_dir=/tmp/imagenet_12345 \
+##       --set evaluation_type=imagenet_val
+## =============================================================================
+
+
+## ---TRAINING MODE--- ##
+training_mode: scratch
+
+
+## ---MODEL--- ##
+architecture: RN50            # RN50 | RN101 | ViT-B/16 | ViT-L/14
+num_classes: 1000
+
+
+## ---PATHS--- ##
+
+# Path to a specific checkpoint file (epoch99_model.pth) OR a run directory
+# that contains model_checkpoints/.  Leave epoch: blank to auto-pick the latest.
+model_weights_path: "/path/to/training_runs/resnet50_imagenet_baseline/baseline_seed1"
+
+# Output directory for inference results and log
+inference_save_dir: "/path/to/inference_results/resnet50_imagenet_val"
+
+# For imagenet_val: root directory with train/ and val/ sub-folders
+# For behavioral (THINGS): root directory for THINGS images
+img_dir: "/path/to/imagenet"
+
+
+## ---INFERENCE PARAMETERS--- ##
+
+# Epoch to evaluate; leave blank to auto-select the latest checkpoint
+epoch:
+
+# imagenet_val | behavioral | neural
+evaluation_type: imagenet_val
+
+# Label used in result filenames — set to 'things' for behavioral RSA
+dataset: imagenet
+
+cuda: 0
+batch_size: 256
+num_workers: 8
+
+
+## ---RSA OPTIONS (evaluation_type: behavioral or neural only)--- ##
+## These fields are ignored when evaluation_type is imagenet_val.
+
+annotations_file:             # path to THINGS annotations CSV
+max_images_per_category: 12
+model_rdm_distance_metric: pearson
+rsa_similarity_metric: spearman
+reference_rdm_paths:          # e.g. {behavioral_rdm: /path/to/RDM48_triplet.mat}
+reference_rdm_distance_metric: pearson

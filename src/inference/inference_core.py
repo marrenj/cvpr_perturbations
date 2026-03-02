@@ -1,6 +1,9 @@
 from src.models.clip_hba.clip_hba_utils import load_dora_checkpoint, initialize_cliphba_model
+from src.models.factory import build_model
+from src.training.trainer import load_model_checkpoint
 from src.data.spose_dimensions import classnames66
 import torch
+import torch.nn.functional as F
 import os
 import numpy as np
 import scipy.io
@@ -11,6 +14,8 @@ from pathlib import Path
 from typing import Optional
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.stats import spearmanr, pearsonr
+from tqdm import tqdm
+from torch.utils.data import DataLoader
 
 from src.utils.logging import setup_logger
 
@@ -159,11 +164,15 @@ def compute_rdm_similarity(model_rdm_upper_tri_vector, reference_rdm_upper_tri_v
 
 
 def run_inference(config):
+    import json
 
     ## INITIALIZE LOGGER
     os.makedirs(config['inference_save_dir'], exist_ok=True)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    log_file = os.path.join(config['inference_save_dir'], f'inference_log_{config["dataset"]}_{config["evaluation_type"]}.txt')
+    log_file = os.path.join(
+        config['inference_save_dir'],
+        f'inference_log_{config.get("dataset", "unknown")}_{config["evaluation_type"]}.txt',
+    )
     logger = setup_logger(log_file)
     logger.info("Run timestamp: %s", timestamp)
 
@@ -172,74 +181,126 @@ def run_inference(config):
     with open(snapshot_path, "w", encoding="utf-8") as f:
         yaml.safe_dump(config, f)
     logger.info("Saved config snapshot to %s", snapshot_path)
-    
-    ## INITIALIZE CLIPHBA MODEL
-    model = initialize_cliphba_model(
-        backbone_name=config['backbone'],
-        classnames=classnames66,
-        vision_layers=config['vision_layers'],
-        transformer_layers=config['transformer_layers'],
-        rank=config['rank'],
-        dora_dropout=0.1,
-        logger=logger
-    )
 
-    model.eval() # inference mode
-    
+    training_mode = config.get('training_mode', 'finetune')
+    logger.info("Training mode : %s", training_mode)
+
     ## SET DEVICE
-    if config['cuda'] == -1:
+    cuda_cfg = config['cuda']
+    if cuda_cfg == -1:
         device = torch.device("cuda")
-    elif config['cuda'] == 0:
+    elif cuda_cfg == 0:
         device = torch.device("cuda:0")
-    elif config['cuda'] == 1:
+    elif cuda_cfg == 1:
         device = torch.device("cuda:1")
     else:
         raise ValueError("Unsupported cuda setting. Expected -1, 0, or 1.")
 
-    ## LOAD MODEL WEIGHTS FROM CHECKPOINT
-    weights_path = Path(config['model_weights_path'])
-    loaded_direct = False
-    if weights_path.is_file():
-        state_dict = torch.load(weights_path, map_location=device)
-        model.load_state_dict(state_dict, strict=False)
-        epoch = weights_path.stem.replace('epoch', '').replace('_dora_params', '')
-        loaded_direct = True
-    else:
-        dora_dir = weights_path if weights_path.name == "dora_params" else weights_path / "dora_params"
-        checkpoint_root = dora_dir.parent
-        checkpoint_files = sorted(dora_dir.glob("epoch*_dora_params.pth"))
-        if not checkpoint_files:
-            raise FileNotFoundError(f"No DoRA checkpoints found under {dora_dir}")
+    ## INITIALIZE MODEL & LOAD WEIGHTS
+    if training_mode == 'scratch':
+        # Build the same timm ViT/ResNet used during training
+        model = build_model(
+            architecture=config.get('architecture'),
+            pretrained=False,
+            clip_hba_backbone=None,
+            vision_layers=None,
+            transformer_layers=None,
+            rank=None,
+            cuda=cuda_cfg,
+            device=device,
+            wandb_watch_model=False,
+            wandb_log_freq=None,
+            num_classes=config.get('num_classes', 1000),
+        )
 
-        requested_epoch = config["epoch"]
-        if requested_epoch is not None:
-            epoch = str(requested_epoch)
-            candidate = dora_dir / f"epoch{epoch}_dora_params.pth"
-            if not candidate.exists():
-                raise FileNotFoundError(f"Requested epoch checkpoint not found: {candidate}")
+        # Resolve checkpoint path and derive epoch label
+        weights_path = Path(config['model_weights_path'])
+        if weights_path.is_file():
+            epoch = weights_path.stem.replace('epoch', '').replace('_model', '')
+            load_model_checkpoint(model, str(weights_path), logger)
         else:
-            latest_ckpt = checkpoint_files[-1]
-            epoch = latest_ckpt.stem.replace('epoch', '').replace('_dora_params', '')
+            # Directory mode: look inside model_checkpoints/ for epoch*_model.pth files
+            ckpt_dir = (
+                weights_path
+                if weights_path.name == 'model_checkpoints'
+                else weights_path / 'model_checkpoints'
+            )
+            ckpt_files = sorted(ckpt_dir.glob('epoch*_model.pth'))
+            if not ckpt_files:
+                raise FileNotFoundError(f"No model checkpoints found under {ckpt_dir}")
+            requested_epoch = config.get('epoch')
+            if requested_epoch is not None:
+                epoch = str(requested_epoch)
+                candidate = ckpt_dir / f'epoch{epoch}_model.pth'
+                if not candidate.exists():
+                    raise FileNotFoundError(f"Requested epoch checkpoint not found: {candidate}")
+                load_model_checkpoint(model, str(candidate), logger)
+            else:
+                latest = ckpt_files[-1]
+                epoch = latest.stem.replace('epoch', '').replace('_model', '')
+                load_model_checkpoint(model, str(latest), logger)
+
+        model.to(device)
+
+    else:
+        # Fine-tuning: CLIP-HBA with DoRA adapters
+        model = initialize_cliphba_model(
+            backbone_name=config['backbone'],
+            classnames=classnames66,
+            vision_layers=config['vision_layers'],
+            transformer_layers=config['transformer_layers'],
+            rank=config['rank'],
+            dora_dropout=0.1,
+            logger=logger,
+        )
+
+        weights_path = Path(config['model_weights_path'])
+        loaded_direct = False
+        if weights_path.is_file():
+            state_dict = torch.load(weights_path, map_location=device)
+            model.load_state_dict(state_dict, strict=False)
+            epoch = weights_path.stem.replace('epoch', '').replace('_dora_params', '')
+            loaded_direct = True
+        else:
+            dora_dir = (
+                weights_path
+                if weights_path.name == "dora_params"
+                else weights_path / "dora_params"
+            )
+            checkpoint_root = dora_dir.parent
+            checkpoint_files = sorted(dora_dir.glob("epoch*_dora_params.pth"))
+            if not checkpoint_files:
+                raise FileNotFoundError(f"No DoRA checkpoints found under {dora_dir}")
+            requested_epoch = config.get("epoch")
+            if requested_epoch is not None:
+                epoch = str(requested_epoch)
+                candidate = dora_dir / f"epoch{epoch}_dora_params.pth"
+                if not candidate.exists():
+                    raise FileNotFoundError(f"Requested epoch checkpoint not found: {candidate}")
+            else:
+                latest_ckpt = checkpoint_files[-1]
+                epoch = latest_ckpt.stem.replace('epoch', '').replace('_dora_params', '')
+
+        model = model.to(device)
+        if not loaded_direct:
+            load_dora_checkpoint(model, checkpoint_root=checkpoint_root, epoch=epoch, map_location=device)
+
+    model.eval()
 
     ## SET EVALUATION TYPE
     if "evaluation_type" not in config:
-        logger.error("Evaluation type is not set. Please set evaluation_type in the config file.")
+        logger.error("evaluation_type is not set in the config file.")
         raise ValueError("evaluation_type must be set in the config file.")
     evaluation_type = config["evaluation_type"]
 
     logger.info("\n=== Processing epoch %s ===", epoch)
 
-    if not loaded_direct:
-        load_dora_checkpoint(model, checkpoint_root=checkpoint_root, epoch=epoch, map_location=device)
-
-    model = model.to(device)
-
-    ## DISPATCH TO DATASET-SPECIFIC LOGIC
+    ## DISPATCH TO EVALUATION LOGIC
     results = None
     score = None
 
     if evaluation_type in ("neural", "behavioral"):
-        # extract embeddings from the model
+        # RSA-based evaluation — works for both scratch and finetune models
         embedding_outputs = extract_embeddings(
             model=model,
             dataset_name=config['dataset'],
@@ -252,40 +313,34 @@ def run_inference(config):
             logger=logger,
         )
 
-        # create an RDM from the model's embeddings
         model_rdm = compute_model_rdm(
             embedding_outputs["embeddings"],
             dataset_name=config['dataset'],
             annotations_file=config['annotations_file'],
             categories=embedding_outputs["categories"],
-            distance_metric=config["model_rdm_distance_metric"]
+            distance_metric=config["model_rdm_distance_metric"],
         )
 
-        # get the upper triangular vector of the model RDM
         model_rdm_upper_tri_indices = np.triu_indices_from(model_rdm, k=1)
         model_rdm_upper_tri_vector = model_rdm[model_rdm_upper_tri_indices]
 
-        # load reference RDM(s) - there may be multiple reference RDMs because we have
         reference_rdms_upper_tri_vectors = prepare_reference_rdms(config)
         reference_rdm_distance_metric = config["reference_rdm_distance_metric"]
-        
-        # compute RSA scores for each reference RDM
         rsa_similarity_metric = config["rsa_similarity_metric"]
 
         rsa_results = {}
         for reference_rdm_name, reference_rdm_upper_tri_vector in reference_rdms_upper_tri_vectors.items():
             if reference_rdm_upper_tri_vector.shape != model_rdm_upper_tri_vector.shape:
                 raise ValueError(
-                    f"Reference RDM for ROI '{reference_rdm_name}' has shape {reference_rdm_upper_tri_vector.shape} "
-                    f"but model RDM has shape {model_rdm_upper_tri_vector.shape}"
+                    f"Reference RDM for ROI '{reference_rdm_name}' has shape "
+                    f"{reference_rdm_upper_tri_vector.shape} but model RDM has shape "
+                    f"{model_rdm_upper_tri_vector.shape}"
                 )
-
             rho, p_value = compute_rdm_similarity(
                 model_rdm_upper_tri_vector,
                 reference_rdm_upper_tri_vector,
                 similarity_metric=rsa_similarity_metric,
             )
-
             rsa_results[reference_rdm_name] = {
                 "epoch": epoch,
                 "evaluation_type": evaluation_type,
@@ -297,29 +352,76 @@ def run_inference(config):
                 "model_rdm_distance_metric": config["model_rdm_distance_metric"],
                 "reference_rdm_distance_metric": reference_rdm_distance_metric,
             }
+            logger.info(
+                "RSA (%s) score for target RDM '%s': %.4f (p=%.4g) using distance metric '%s'",
+                rsa_similarity_metric, reference_rdm_name, rho, p_value,
+                config["model_rdm_distance_metric"],
+            )
 
-            if logger:
-                logger.info(
-                    "RSA (%s) score for target RDM '%s': %.4f (p=%.4g) using distance metric '%s'",
-                    rsa_similarity_metric,
-                    reference_rdm_name,
-                    rho,
-                    p_value,
-                    config["model_rdm_distance_metric"],
-                )
-
-        # Persist RSA results 
         results = rsa_results
-        score = None
-
-        # Write results to a JSON file 
-        results_json_path = Path(config['inference_save_dir']) / f"inference_results_{config['dataset']}_{evaluation_type}_epoch{epoch}.json"
-        import json
+        results_json_path = (
+            Path(config['inference_save_dir'])
+            / f"inference_results_{config['dataset']}_{evaluation_type}_epoch{epoch}.json"
+        )
         with open(results_json_path, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=4)
         logger.info("Saved inference results (JSON) to %s", results_json_path)
 
-    elif evaluation_type == "triplet" and config['dataset'] == 'nights':
+    elif evaluation_type == "imagenet_val":
+        # ImageNet top-1 / top-5 classification accuracy (scratch models only)
+        if training_mode != 'scratch':
+            raise ValueError(
+                "evaluation_type='imagenet_val' requires training_mode='scratch'. "
+                "Use 'behavioral' or 'neural' for finetune models."
+            )
+        from src.data.imagenet_dataset import ImagenetDataset
+
+        val_dataset = ImagenetDataset(img_dir=config['img_dir'], split='val')
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=config['batch_size'],
+            shuffle=False,
+            num_workers=config.get('num_workers', 4),
+            pin_memory=(device.type == 'cuda'),
+        )
+        logger.info("Running ImageNet val evaluation on %d images ...", len(val_dataset))
+
+        top1_correct = 0
+        top5_correct = 0
+        total = 0
+        with torch.no_grad():
+            for _image_names, images, labels in tqdm(val_loader, desc="ImageNet val"):
+                images = images.to(device, non_blocking=True)
+                labels = labels.to(device, non_blocking=True)
+                logits = model(images)
+                top1_correct += (logits.argmax(dim=1) == labels).sum().item()
+                top5_preds = logits.topk(5, dim=1).indices
+                top5_correct += (top5_preds == labels.unsqueeze(1)).any(dim=1).sum().item()
+                total += labels.size(0)
+
+        top1_acc = top1_correct / total
+        top5_acc = top5_correct / total
+        score = top1_acc
+        results = {
+            "epoch": epoch,
+            "evaluation_type": "imagenet_val",
+            "top1_accuracy": top1_acc,
+            "top5_accuracy": top5_acc,
+            "total_samples": total,
+        }
+        logger.info(
+            "ImageNet val — Epoch %s: Top-1 %.4f | Top-5 %.4f (%d samples)",
+            epoch, top1_acc, top5_acc, total,
+        )
+        results_json_path = (
+            Path(config['inference_save_dir'])
+            / f"inference_results_imagenet_val_epoch{epoch}.json"
+        )
+        with open(results_json_path, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=4)
+        logger.info("Saved inference results (JSON) to %s", results_json_path)
+
+    elif evaluation_type == "triplet" and config.get('dataset') == 'nights':
         results, _ = evaluate_nights(
             model=model,
             nights_dir=config['img_dir'],
@@ -330,30 +432,18 @@ def run_inference(config):
             cached_batches=None,
         )
         score = float(results.get("accuracy", 0.0))
-
-        triplet_evaluation_results = {
-            "evaluation_type": evaluation_type,
-            "dataset": config['dataset'],
-            "score": score,
-        }
-
-        if logger:
-            logger.info(
-            "Triplet score for '%s' dataset: %.4f",
-            config['dataset'],
-            score,
-            )
+        logger.info("Triplet score for '%s' dataset: %.4f", config['dataset'], score)
 
     else:
         raise ValueError(
-            f"Unsupported combination of dataset '{config['dataset']}' "
+            f"Unsupported combination of dataset '{config.get('dataset', '')}' "
             f"and evaluation_type '{evaluation_type}'."
         )
 
     if score is None:
-        logger.info("Triplet score for epoch %s (%s): None", epoch, evaluation_type)
+        logger.info("Score for epoch %s (%s): None", epoch, evaluation_type)
     else:
-        logger.info("Triplet score for epoch %s (%s): %.4f", epoch, evaluation_type, score)
+        logger.info("Score for epoch %s (%s): %.4f", epoch, evaluation_type, score)
 
     return {
         "epoch": epoch,
