@@ -5,12 +5,12 @@
 #SBATCH --account=dsi_dgx_iacc
 #SBATCH --partition=interactive_gpu
 #SBATCH --qos=dgx_iacc
-#SBATCH --gres=gpu:nvidia_a100-sxm4-40gb:2
+#SBATCH --gres=gpu:nvidia_a100-sxm4-40gb:1
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=2
-#SBATCH --cpus-per-task=24
-#SBATCH --mem=256G
-#SBATCH --time=30:00:00
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=40G
+#SBATCH --time=10:00:00
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=marren.jenkins.1@vanderbilt.edu
 # =============================================================================
@@ -83,31 +83,6 @@ fi
 
 echo "=========================================="
 
-# =============================================================================
-# Create output directories on shared storage
-# =============================================================================
-
-mkdir -p "${SAVE_PATH}"
-mkdir -p "./logs"
-
-# =============================================================================
-# Launch training inside the Singularity container
-#
-# --set overrides redirect img_dir → local /tmp copy and save_path → shared
-# storage, without editing the YAML config file.
-# Two A100s are used via DataParallel (cuda: -1).
-# =============================================================================
-
-singularity exec --nv \
-    --bind ./:/panfs/accrepfs.vampire/home/jenkm22/perturbations \
-    --bind "${LOCAL_DATA}:${LOCAL_DATA}" \
-    "${CONTAINER}" \
-    python ./scripts/run_training.py \
-        --config ./configs/resnet50_imagenet.yaml \
-        --set img_dir="${LOCAL_DATA}" \
-        --set save_path="${SAVE_PATH}" \
-        --set cuda=-1
-
 EXIT_CODE=$?
 
 # =============================================================================
@@ -115,10 +90,8 @@ EXIT_CODE=$?
 # =============================================================================
 
 echo "=========================================="
-echo "Training finished with exit code: ${EXIT_CODE}"
+echo "ImageNet transfer finished with exit code: ${EXIT_CODE}"
 echo "Finished  : $(date)"
-echo "Cleaning up ${LOCAL_DATA} ..."
-rm -rf "${LOCAL_DATA}"
 echo "✓ Cleanup complete"
 echo "=========================================="
 

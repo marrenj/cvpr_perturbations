@@ -57,16 +57,20 @@ def main():
         numeric_keys=INFERENCE_INT_KEYS,
     )
 
-    # Apply any --set key=value overrides from the CLI
-    if args.overrides:
-        config = _apply_cli_overrides(config, args.overrides)
+    # Apply any --set key=value overrides from the CLI (if supported by the parser)
+    overrides = getattr(args, "overrides", None)
+    if overrides:
+        config = _apply_cli_overrides(config, overrides)
 
-    # Resolve all file/dir paths relative to the config location to make execution path-agnostic.
+    # Resolve relative paths against cwd (the repo root where the script is invoked),
+    # not the config file's directory, so they work correctly when the config is a
+    # temporary file written to /tmp by inference_runner.sh.
+    cwd = Path.cwd()
     def _resolve_path(p: str | Path | None) -> str:
         if p is None:
             return None
         pth = Path(p)
-        return str(pth if pth.is_absolute() else (config_dir / pth))
+        return str(pth if pth.is_absolute() else (cwd / pth))
 
     for key in ("inference_save_dir", "model_weights_path", "img_dir", "annotations_file"):
         if key in config and config[key]:

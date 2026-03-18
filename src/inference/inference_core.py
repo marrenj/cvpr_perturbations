@@ -176,7 +176,7 @@ def prepare_reference_rdms(config: dict) -> dict:
                             "Please provide a single array in the .npz file."
                         )
             elif suffix == ".mat":
-                mat = scipy.io.loadmat(reference_rdm_path)
+                mat = scipy.io.loadmat(str(reference_rdm_path))
                 candidate_keys = [k for k in mat.keys() if not k.startswith("__")]
                 if len(candidate_keys) == 1:
                     rdm = mat[candidate_keys[0]]
@@ -257,6 +257,12 @@ def run_inference(config):
         yaml.safe_dump(config, f)
     logger.info("Saved config snapshot to %s", snapshot_path)
     
+    # Determine training mode for inference.
+    # For CLIP-HBA + DoRA checkpoints we treat this as 'finetune';
+    # for from-scratch Imagenet models, configs should set training_mode: scratch.
+    training_mode = config.get("training_mode", "finetune")
+    cuda_cfg = config.get("cuda", 0)
+
     ## SET DEVICE
     if config['cuda'] == -1:
         device = torch.device("cuda")
@@ -375,6 +381,13 @@ def run_inference(config):
     score = None
 
     if evaluation_type in ("neural", "behavioral"):
+        logger.info("--- FILES ---")
+        logger.info("  img_dir:          %s", config['img_dir'])
+        logger.info("  annotations_file: %s", config['annotations_file'])
+        logger.info("  model_weights:    %s", config['model_weights_path'])
+        for rdm_name, rdm_path in config.get("reference_rdm_paths", {}).items():
+            logger.info("  reference_rdm[%s]: %s", rdm_name, rdm_path)
+
         # extract embeddings from the model
         embedding_outputs = extract_embeddings(
             model=model,
@@ -388,25 +401,46 @@ def run_inference(config):
             logger=logger,
         )
 
+        embeddings = embedding_outputs["embeddings"]
+        categories = embedding_outputs["categories"]
+        logger.info("--- EMBEDDINGS ---")
+        logger.info("  Raw embedding matrix shape: %s", tuple(np.array(embeddings).shape if not hasattr(embeddings, 'shape') else embeddings.shape))
+        logger.info("  Unique categories extracted: %d", len(set(categories)) if categories is not None else 0)
+
         # create an RDM from the model's embeddings
         model_rdm = compute_model_rdm(
-            embedding_outputs["embeddings"],
+            embeddings,
             dataset_name=config['dataset'],
             annotations_file=config['annotations_file'],
-            categories=embedding_outputs["categories"],
+            categories=categories,
             distance_metric=config["model_rdm_distance_metric"],
         )
+
+        logger.info("--- MODEL RDM ---")
+        logger.info("  Shape: %s  distance_metric: %s", model_rdm.shape, config["model_rdm_distance_metric"])
+        logger.info("  Min: %.6f  Max: %.6f  Mean: %.6f", float(model_rdm.min()), float(model_rdm.max()), float(model_rdm.mean()))
 
         # get the upper triangular vector of the model RDM
         model_rdm_upper_tri_indices = np.triu_indices_from(model_rdm, k=1)
         model_rdm_upper_tri_vector = model_rdm[model_rdm_upper_tri_indices]
+        logger.info("  Upper-tri vector length: %d", len(model_rdm_upper_tri_vector))
 
-        # load reference RDM(s) - there may be multiple reference RDMs because we have
+        # load reference RDM(s)
         reference_rdms_upper_tri_vectors = prepare_reference_rdms(config)
         reference_rdm_distance_metric = config["reference_rdm_distance_metric"]
-        
+
+        logger.info("--- REFERENCE RDMs ---")
+        for rdm_name, rdm_vec in reference_rdms_upper_tri_vectors.items():
+            logger.info(
+                "  [%s] upper-tri length: %d  Min: %.6f  Max: %.6f  Mean: %.6f",
+                rdm_name, len(rdm_vec), float(rdm_vec.min()), float(rdm_vec.max()), float(rdm_vec.mean()),
+            )
+
         # compute RSA scores for each reference RDM
         rsa_similarity_metric = config["rsa_similarity_metric"]
+
+        logger.info("--- RSA ---")
+        logger.info("  similarity_metric: %s", rsa_similarity_metric)
 
         rsa_results = {}
         for reference_rdm_name, reference_rdm_upper_tri_vector in reference_rdms_upper_tri_vectors.items():
@@ -435,12 +469,14 @@ def run_inference(config):
                 "reference_rdm_distance_metric": reference_rdm_distance_metric,
             }
             logger.info(
-                "RSA (%s) score for target RDM '%s': %.4f (p=%.4g) using distance metric '%s'",
-                rsa_similarity_metric, reference_rdm_name, rho, p_value,
-                config["model_rdm_distance_metric"],
+                "  [%s] rho=%.4f  p=%.4g",
+                reference_rdm_name, rho, p_value,
             )
 
         results = rsa_results
+        # Use the first reference RDM's rho as the headline scalar score.
+        score = float(next(iter(rsa_results.values()))["score"]) if rsa_results else None
+
         results_json_path = (
             Path(config['inference_save_dir'])
             / f"inference_results_{config['dataset']}_{evaluation_type}_epoch{epoch}.json"

@@ -66,6 +66,36 @@ def _find_previous_run_with_same_start(run_root: Path, start_epoch: int, current
     return best_dir, best_length
 
 
+def _find_checkpoint_dir(base_dir: Path, epoch: int):
+    """
+    Return the directory that actually contains
+    ``dora_params/epoch{epoch}_dora_params.pth`` and the matching
+    ``random_states/epoch{epoch}_random_states.pth``.
+
+    Handles two layouts:
+      - flat:   base_dir/dora_params/...   (Design A)
+      - nested: base_dir/{run_name}/dora_params/...  (Design B, run_name
+                appended by trainer.py)
+    Returns the checkpoint directory and training_res path, or (None, None).
+    """
+    def _valid(d: Path) -> bool:
+        return (
+            (d / "dora_params" / f"epoch{epoch}_dora_params.pth").exists()
+            and (d / "random_states" / f"epoch{epoch}_random_states.pth").exists()
+        )
+
+    if _valid(base_dir):
+        return base_dir, base_dir / "training_res.csv"
+
+    # One level deeper: base_dir/{run_name}/
+    if base_dir.is_dir():
+        for sub in sorted(base_dir.iterdir()):
+            if sub.is_dir() and _valid(sub):
+                return sub, sub / "training_res.csv"
+
+    return None, None
+
+
 def _resume_from_previous(config: dict, run_root: Path) -> dict:
     """
     If a previous run with the same start epoch exists in the save_path
@@ -85,24 +115,14 @@ def _resume_from_previous(config: dict, run_root: Path) -> dict:
         return config
 
     resume_from_epoch = perturb_epoch + prev_length - 1
-    dora_file = (
-        prev_dir 
-        / "dora_params"
-        / f"epoch{resume_from_epoch}_dora_params.pth"
-    )
-    random_state_file = (
-        prev_dir 
-        / "random_states" 
-        / f"epoch{resume_from_epoch}_random_states.pth"
-    )
+    checkpoint_dir, prev_training_res = _find_checkpoint_dir(prev_dir, resume_from_epoch)
 
-    if random_state_file.exists() and dora_file.exists():
-        config["resume_checkpoint_path"] = str(prev_dir)
+    if checkpoint_dir is not None:
+        config["resume_checkpoint_path"] = str(checkpoint_dir)
         config["resume_from_epoch"] = resume_from_epoch
 
-        prev_training_res = prev_dir / "training_res.csv"
         dest_training_res = run_root / "training_res.csv"
-        if prev_training_res.exists():
+        if prev_training_res is not None and prev_training_res.exists():
             dest_training_res.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(prev_training_res, dest_training_res)
             config["previous_training_res_path"] = str(prev_training_res)

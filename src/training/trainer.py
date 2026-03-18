@@ -29,10 +29,6 @@ from torch.optim.lr_scheduler import (
 from src.training.test_loop import evaluate_model
 from src.utils.save_random_states import save_random_states
 from src.models.clip_hba.clip_hba_utils import save_dora_parameters
-from src.inference.inference_core import (
-    compute_model_rdm,
-    compute_rdm_similarity,
-)
 from src.models.factory import build_model
 from src.utils.seed import seed_everything
 from src.utils.logging import setup_logger
@@ -619,6 +615,12 @@ def compute_behavioral_rsa(
     preds = torch.cat(preds, dim=0)
     targets = torch.cat(targets, dim=0)
 
+    # Import RSA utilities lazily to avoid circular imports with inference_core.
+    from src.inference.inference_core import (
+        compute_model_rdm,
+        compute_rdm_similarity,
+    )
+
     model_rdm = compute_model_rdm(
         preds, dataset_name="things", annotations_file=annotations_file,
         categories=None, distance_metric=distance_metric
@@ -649,27 +651,6 @@ def compute_behavioral_rsa(
 
 
 def save_model_checkpoint(model, checkpoint_dir: str, epoch: int, log_fn=None):
-    """
-    Save a full model state_dict for from-scratch training.
- 
-    Handles ``DataParallel`` wrappers transparently by saving the underlying
-    ``module`` state_dict so checkpoints are portable across GPU configs.
- 
-    Args:
-        model:          Model (possibly DataParallel-wrapped) to checkpoint.
-        checkpoint_dir: Directory to write the file into.
-        epoch:          Current epoch index (used in the filename).
-        log_fn:         Callable for logging; defaults to ``print``.
-    """
-    log = log_fn or print
-    os.makedirs(checkpoint_dir, exist_ok=True)
-    state_dict = model.module.state_dict() if hasattr(model, 'module') else model.state_dict()
-    checkpoint_file = os.path.join(checkpoint_dir, f"epoch{epoch}_model.pth")
-    torch.save(state_dict, checkpoint_file)
-    log(f"Model checkpoint saved: {checkpoint_file}")
-
-
-def save_model_checkpoing(model, checkpoint_dir: str, epoch: int, log_fn=None):
     """
     Save a full model state_dict for from-scratch training.
  
@@ -760,6 +741,20 @@ def load_checkpoint_and_states(
     logger.info(f"Restored optimizer and RNG states from {random_state_path}")
     
     return epoch_num + 1
+
+
+def load_model_checkpoint(model, checkpoint_file: str, logger=None):
+    """
+    Load a full model state_dict from a checkpoint path.
+
+    This is used both during training resumption and standalone inference.
+    """
+    log = logger.info if logger else print
+    if not os.path.isfile(checkpoint_file):
+        raise FileNotFoundError(f"Model checkpoint not found: {checkpoint_file}")
+    state_dict = torch.load(checkpoint_file, map_location="cpu", weights_only=False)
+    model.load_state_dict(state_dict)
+    log(f"Loaded model weights from: {checkpoint_file}")
 
 
 def handle_checkpoint_resumption(config, model, optimizer, dataloader_generator, 
