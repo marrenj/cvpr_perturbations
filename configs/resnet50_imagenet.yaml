@@ -58,7 +58,7 @@ num_classes: 1000
 ## ---RSA PARAMETERS--- ##
 behavioral_rsa: True 
 rsa_annotations_file: "./data/spose_embedding66d_rescaled_48val_reordered.csv" # path to the csv file containing the image names and the corresponding target embeddings for the THINGS training data
-rsa_things_img_dir: "/home/wallacelab/investigating-complexity/Images/THINGS"
+rsa_things_img_dir: "/home/jenkm22/THINGS"
 behavioral_rdm48_file: "./data/RDM48_triplet.mat"
 model_rdm_distance_metric: pearson # distance metric to use for RSA
 rsa_similarity_metric: spearman # similarity metric to use for RSA
