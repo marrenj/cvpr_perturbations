@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 import sys
 import shutil
 import yaml
@@ -173,6 +174,9 @@ def _prepare_single_run(config: dict, config_path: Path) -> dict:
 
 def main():
     """Entrypoint: load config specified via CLI and launch a single run."""
+    # Ensure relative paths in configs (e.g. ./data/...) resolve from the repo root
+    # regardless of the CWD when the script is invoked (e.g. via SLURM).
+    os.chdir(PROJECT_ROOT)
     args = parse_config_cli("Run training with an external config.")
     config_path = Path(args.config)
     config = load_yaml_config(
