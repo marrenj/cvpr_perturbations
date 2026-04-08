@@ -46,8 +46,8 @@ echo "=========================================="
 # Paths — edit these before submitting
 # =============================================================================
 
-PROJECT_DIR="./cvpr_perturbations"
-IMAGENET_SRC="./imagenet"          # source on shared NFS
+PROJECT_DIR="${SLURM_SUBMIT_DIR}"
+IMAGENET_SRC="/home/jenkm22/imagenet"          # source on shared NFS
 SAVE_PATH="./training_runs/resnet50_imagenet_baseline"
 CONTAINER="./pytorch_25.01-py3.sif"
 
@@ -66,24 +66,6 @@ echo "Started   : $(date)"
 echo "=========================================="
 
 # =============================================================================
-# Copy ImageNet to local /tmp for fast I/O
-# (NFS throughput is the bottleneck for ImageNet; /tmp is local NVMe)
-# =============================================================================
-
-LOCAL_DATA=/tmp/imagenet_${SLURM_JOB_ID}
-
-
-if [ ! -d "${LOCAL_DATA}" ]; then
-    echo "Copying ImageNet to local storage: ${LOCAL_DATA}..."
-    mkdir -p "${LOCAL_DATA}"
-    rsync -a --info=progress2 "./Data/imagenet/" "${LOCAL_DATA}/"
-else
-    echo "Using cached ImageNet data at ${LOCAL_DATA}"
-fi
-
-echo "=========================================="
-
-# =============================================================================
 # Create output directories on shared storage
 # =============================================================================
 
@@ -91,35 +73,12 @@ mkdir -p "${SAVE_PATH}"
 mkdir -p "./logs"
 
 # =============================================================================
-# Launch training inside the Singularity container
-#
-# --set overrides redirect img_dir → local /tmp copy and save_path → shared
-# storage, without editing the YAML config file.
 # Two A100s are used via DataParallel (cuda: -1).
 # =============================================================================
 
-singularity exec --nv \
-    --bind ./:/panfs/accrepfs.vampire/home/jenkm22/perturbations \
-    --bind "${LOCAL_DATA}:${LOCAL_DATA}" \
-    "${CONTAINER}" \
-    python ./scripts/run_training.py \
-        --config ./configs/resnet50_imagenet.yaml \
-        --set img_dir="${LOCAL_DATA}" \
-        --set save_path="${SAVE_PATH}" \
-        --set cuda=-1
+python ./scripts/run_training.py \
+    --config ./configs/resnet50_imagenet.yaml 
 
 EXIT_CODE=$?
-
-# =============================================================================
-# Cleanup
-# =============================================================================
-
-echo "=========================================="
-echo "Training finished with exit code: ${EXIT_CODE}"
-echo "Finished  : $(date)"
-echo "Cleaning up ${LOCAL_DATA} ..."
-rm -rf "${LOCAL_DATA}"
-echo "✓ Cleanup complete"
-echo "=========================================="
 
 exit "${EXIT_CODE}"

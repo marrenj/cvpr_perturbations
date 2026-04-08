@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import sys
+import os
 import shutil
 import yaml
 
@@ -193,6 +194,7 @@ def _prepare_single_run(config: dict, config_path: Path) -> dict:
 
 def main():
     """Entrypoint: load config specified via CLI and launch a single run."""
+    os.chdir(PROJECT_ROOT)
     args = parse_config_cli("Run training with an external config.")
     config_path = Path(args.config)
     config = load_yaml_config(
