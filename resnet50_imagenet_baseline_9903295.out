@@ -1,0 +1,33 @@
+==========================================
+Job ID       : 9903295
+Node         : dgx01
+GPUs         : 0,1
+Start time   : Wed Apr  8 04:51:08 PM CDT 2026
+Working dir  : /panfs/accrepfs.vampire/home/jenkm22/cvpr_perturbations
+==========================================
+==========================================
+ResNet50 ImageNet Baseline Training
+==========================================
+Job ID    : 9903295
+Node      : dgx01.hw.accre.vu
+Partition : interactive_gpu
+GPUs      : 6,7
+Started   : Wed Apr  8 04:51:08 PM CDT 2026
+==========================================
+2026-04-08 16:51:42 - INFO - ================================================================================
+2026-04-08 16:51:42 - INFO - Starting Process
+2026-04-08 16:51:42 - INFO - Log file: training_runs/resnet50_imagenet_baseline_with_rsa/baseline_seed1/rn50_scratch_perturb-type-none_init-seed1behavioral-rsa-True/training_log_none.txt
+2026-04-08 16:51:42 - INFO - ================================================================================
+2026-04-08 16:51:42 - INFO - ================================================================================
+2026-04-08 16:51:42 - INFO - Starting Training Run
+2026-04-08 16:51:42 - INFO - Training mode : scratch
+2026-04-08 16:51:42 - INFO - Architecture  : RN50
+2026-04-08 16:51:42 - INFO - Log file      : training_runs/resnet50_imagenet_baseline_with_rsa/baseline_seed1/rn50_scratch_perturb-type-none_init-seed1behavioral-rsa-True/training_log_none.txt
+2026-04-08 16:51:42 - INFO - ================================================================================
+ImageNet train: 513,123 images, 403 classes
+ImageNet val: 50,000 images, 1000 classes
+2026-04-08 16:52:01 - INFO - ImageNet predefined splits: 513,123 train / 50,000 val images
+[1;34mwandb[0m: 
+[1;34mwandb[0m: You can sync this run to the cloud by running:
+[1;34mwandb[0m: [1mwandb sync /panfs/accrepfs.vampire/home/jenkm22/cvpr_perturbations/wandb/offline-run-20260408_165142-n1uyecgf[0m
+[1;34mwandb[0m: Find logs at: [1;35mwandb/offline-run-20260408_165142-n1uyecgf/logs[0m

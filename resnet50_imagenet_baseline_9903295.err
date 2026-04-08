@@ -1,0 +1,33 @@
+wandb: Tracking run with wandb version 0.24.0
+wandb: W&B syncing is set to `offline` in this directory. Run `wandb online` or set WANDB_MODE=online to enable cloud syncing.
+wandb: Run data is saved locally in /panfs/accrepfs.vampire/home/jenkm22/cvpr_perturbations/wandb/offline-run-20260408_165142-n1uyecgf
+Traceback (most recent call last):
+  File "/panfs/accrepfs.vampire/home/jenkm22/cvpr_perturbations/scripts/run_training.py", line 213, in <module>
+    main()
+  File "/panfs/accrepfs.vampire/home/jenkm22/cvpr_perturbations/scripts/run_training.py", line 209, in main
+    run_training_experiment(prepared_config)
+  File "/panfs/accrepfs.vampire/home/jenkm22/cvpr_perturbations/src/training/trainer.py", line 1268, in run_training_experiment
+    train_dataset, val_dataset, split_info, target_stats, inference_dataset = setup_dataset(config, logger)
+                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/panfs/accrepfs.vampire/home/jenkm22/cvpr_perturbations/src/training/trainer.py", line 383, in setup_dataset
+    inference_dataset = ThingsBehavioralDataset(
+                        ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/panfs/accrepfs.vampire/home/jenkm22/cvpr_perturbations/src/data/things_dataset.py", line 21, in __init__
+    self.annotations = pd.read_csv(img_annotations_file, index_col=0)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jenkm22/envs/clip_hba/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 873, in read_csv
+    return _read(filepath_or_buffer, kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jenkm22/envs/clip_hba/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 300, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jenkm22/envs/clip_hba/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1645, in __init__
+    self._engine = self._make_engine(f, self.engine)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jenkm22/envs/clip_hba/lib/python3.11/site-packages/pandas/io/parsers/readers.py", line 1904, in _make_engine
+    self.handles = get_handle(
+                   ^^^^^^^^^^^
+  File "/home/jenkm22/envs/clip_hba/lib/python3.11/site-packages/pandas/io/common.py", line 926, in get_handle
+    handle = open(
+             ^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: './Data/spose_embedding66d_rescaled_48val_reordered.csv'

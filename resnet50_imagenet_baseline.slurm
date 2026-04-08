@@ -1,9 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=resnet50_imagenet_baseline
-# Logs must live in a path Slurm can create without a prior mkdir. These files
-# are written under SLURM_SUBMIT_DIR (the cwd when you ran sbatch):
-#SBATCH --output=resnet50_imagenet_baseline_%j.out
-#SBATCH --error=resnet50_imagenet_baseline_%j.err
+#SBATCH --output=./logs/resnet50_imagenet_baseline_%j.out
+#SBATCH --error=./logs/resnet50_imagenet_baseline_%j.err
 #SBATCH --account=dsi_dgx_iacc
 #SBATCH --partition=interactive_gpu
 #SBATCH --qos=dgx_iacc
@@ -19,9 +17,6 @@
 # ResNet50 ImageNet baseline training — Vanderbilt ACCRE DGX A100
 # =============================================================================
 #
-# Log files (same directory you were in when you ran sbatch = SLURM_SUBMIT_DIR):
-#   resnet50_imagenet_baseline_<JOBID>.out
-#   resnet50_imagenet_baseline_<JOBID>.err
 # Confirm location: sacct -j <JOBID> --format=WorkDir -P | tail -1
 #
 # Submit (must cd to repo root first so SLURM_SUBMIT_DIR is the checkout):
