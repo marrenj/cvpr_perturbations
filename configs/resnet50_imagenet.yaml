@@ -35,6 +35,9 @@ random_seed: 1
 cuda: -1
 num_workers: 8               # parallel image-loading workers (4 per GPU is a good default)
 prefetch_factor: 4            # batches each worker pre-loads ahead; higher hides I/O latency
+resume_from_epoch: 70
+resume_checkpoint_path: "/home/jenkm22/perturbations/training_runs/resnet50_imagenet_baseline_with_rsa/baseline_seed1"
+save_dir: "/home/jenkm22/perturbations/training_runs/resnet50_imagenet_baseline_with_rsa"
 
 ## ---OPTIMIZER & LR SCHEDULE--- ##
 opt: sgd

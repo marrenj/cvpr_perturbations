@@ -32,7 +32,7 @@ set -euo pipefail
 module load python/3.11.5
 source ~/envs/clip_hba/bin/activate
  
-cd /panfs/accrepfs.vampire/home/jenkm22/perturbations
+# cd /panfs/accrepfs.vampire/home/jenkm22/cvpr_perturbations
  
 echo "=========================================="
 echo "Job ID       : $SLURM_JOB_ID"
