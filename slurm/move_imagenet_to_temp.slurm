@@ -37,7 +37,7 @@ cd /panfs/accrepfs.vampire/home/jenkm22/perturbations
 echo "=========================================="
 echo "Job ID       : $SLURM_JOB_ID"
 echo "Node         : $SLURMD_NODENAME"
-echo "GPUs         : $CUDA_VISIBLE_DEVICES"
+echo "GPUs         : ${CUDA_VISIBLE_DEVICES:-none}"
 echo "Start time   : $(date)"
 echo "Working dir  : $(pwd)"
 echo "=========================================="
