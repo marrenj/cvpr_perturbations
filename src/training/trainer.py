@@ -689,9 +689,74 @@ def save_model_checkpoint(model, checkpoint_dir: str, epoch: int, log_fn=None):
     log(f"Model checkpoint saved: {checkpoint_file}")
 
 
+def _log_resume_debug(
+    logger,
+    optimizer,
+    scheduler,
+    state_payload,
+    dataloader_generator,
+    epoch_loaded: int,
+    resume_next_epoch: int,
+) -> None:
+    """Compact, non-invasive logs for verifying resume (no RNG consumption)."""
+    if logger is None:
+        return
+    logger.info(
+        "[debug_resume] loaded checkpoint epoch=%s; training will start at epoch=%s",
+        epoch_loaded,
+        resume_next_epoch,
+    )
+    logger.info(
+        "[debug_resume] random_states file keys: %s",
+        sorted(state_payload.keys()),
+    )
+    for i, group in enumerate(optimizer.param_groups):
+        extra = {k: v for k, v in group.items() if k != "params"}
+        logger.info(
+            "[debug_resume] optimizer param_groups[%d] lr=%s other=%s",
+            i,
+            group.get("lr"),
+            extra,
+        )
+    opt_sd = optimizer.state_dict()
+    logger.info(
+        "[debug_resume] optimizer state: %d param entries in state dict",
+        len(opt_sd.get("state", {})),
+    )
+    if scheduler is not None:
+        sd = scheduler.state_dict()
+        logger.info(
+            "[debug_resume] scheduler %s state_dict keys: %s",
+            type(scheduler).__name__,
+            list(sd.keys()),
+        )
+        if "last_epoch" in sd:
+            logger.info("[debug_resume] scheduler last_epoch=%s", sd["last_epoch"])
+        if "base_lrs" in sd:
+            logger.info("[debug_resume] scheduler base_lrs=%s", sd["base_lrs"])
+        get_last_lr = getattr(scheduler, "get_last_lr", None)
+        if callable(get_last_lr):
+            try:
+                logger.info("[debug_resume] scheduler.get_last_lr()=%s", get_last_lr())
+            except Exception as exc:
+                logger.info("[debug_resume] scheduler.get_last_lr() failed: %s", exc)
+    dl_restored = (
+        dataloader_generator is not None
+        and "dataloader_generator_state" in state_payload
+    )
+    logger.info("[debug_resume] dataloader generator state restored: %s", dl_restored)
+    trs = state_payload.get("torch_rng_state")
+    if trs is not None:
+        logger.info(
+            "[debug_resume] torch_rng_state type=%s numel/len=%s",
+            type(trs).__name__,
+            getattr(trs, "numel", lambda: len(trs))(),
+        )
+
+
 def load_checkpoint_and_states(
     architecture, model, optimizer, dataloader_generator, checkpoint_path,
-    random_state_path, logger=None, scheduler=None,
+    random_state_path, logger=None, scheduler=None, debug_resume: bool = False,
     ):
     """
     Load model weights and restore all random states for reproducibility.
@@ -705,6 +770,7 @@ def load_checkpoint_and_states(
         logger: Logger instance
         training_mode: Training mode ('scratch' or 'finetune')
         scheduler: Scheduler to restore state
+        debug_resume: If True, emit extra resume verification logs (from config ``debug_resume``).
     Returns:
         int: Next epoch to resume training from
     """
@@ -757,13 +823,29 @@ def load_checkpoint_and_states(
         scheduler.load_state_dict(state_payload['scheduler_state_dict'])
 
     logger.info(f"Restored optimizer and RNG states from {random_state_path}")
-    
-    return epoch_num + 1
+
+    next_epoch = epoch_num + 1
+    if debug_resume:
+        _log_resume_debug(
+            logger,
+            optimizer,
+            scheduler,
+            state_payload,
+            dataloader_generator,
+            epoch_loaded=epoch_num,
+            resume_next_epoch=next_epoch,
+        )
+
+    return next_epoch
 
 
 def load_model_checkpoint(model, checkpoint_file: str, logger=None):
     """
     Load a full model state_dict from a checkpoint path.
+
+    Matches ``save_model_checkpoint``: multi-GPU checkpoints store inner-module
+    keys (no ``module.`` prefix). ``DataParallel`` loads must use
+    ``model.module`` in that case.
 
     This is used both during training resumption and standalone inference.
     """
@@ -771,7 +853,26 @@ def load_model_checkpoint(model, checkpoint_file: str, logger=None):
     if not os.path.isfile(checkpoint_file):
         raise FileNotFoundError(f"Model checkpoint not found: {checkpoint_file}")
     state_dict = torch.load(checkpoint_file, map_location="cpu", weights_only=False)
-    model.load_state_dict(state_dict)
+
+    wrapped = hasattr(model, "module")
+    keys = list(state_dict.keys())
+    ckpt_has_module_prefix = bool(keys) and keys[0].startswith("module.")
+
+    if wrapped:
+        if ckpt_has_module_prefix:
+            model.load_state_dict(state_dict)
+        else:
+            model.module.load_state_dict(state_dict)
+    else:
+        if ckpt_has_module_prefix:
+            stripped = {
+                k[len("module."):] if k.startswith("module.") else k: v
+                for k, v in state_dict.items()
+            }
+            model.load_state_dict(stripped)
+        else:
+            model.load_state_dict(state_dict)
+
     log(f"Loaded model weights from: {checkpoint_file}")
 
 
@@ -807,6 +908,7 @@ logger, scheduler=None):
             architecture, model, optimizer, dataloader_generator,
             resume_checkpoint_path, random_state_file, logger,
             scheduler=scheduler,
+            debug_resume=bool(config.get("debug_resume", False)),
         )
     
     # Case 2: Load baseline checkpoint before applying perturbation
@@ -827,6 +929,7 @@ logger, scheduler=None):
         resume_epoch = load_checkpoint_and_states(
             architecture, model, optimizer, dataloader_generator, baseline_checkpoint_path,
             random_state_file, logger, scheduler=scheduler,
+            debug_resume=bool(config.get("debug_resume", False)),
         )
         logger.info(f"Loaded baseline checkpoint from epoch {baseline_epoch}")
     
@@ -1095,7 +1198,7 @@ def train_model(
             logger.info(f"*** Perturbation '{perturb_strategy.__class__.__name__}' was applied during epoch {epoch} ***")
 
         if scheduler is not None:
-            sscheduler.step()
+            scheduler.step()
 
         wandb.log({
             'val_loss': avg_val_loss,
