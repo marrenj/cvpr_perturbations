@@ -7,6 +7,7 @@ and checkpoint resumption for reproducible experiments.
 """
 
 import os
+import sys
 import random
 import csv
 import yaml
@@ -294,6 +295,19 @@ def log_model_architecture(model, logger):
     logger.info(f"Trainable parameters: {trainable_params:,} ({100 * trainable_params / total_params:.2f}%)")
 
 
+def _resuming_into_save_path(config) -> bool:
+    """True when explicit checkpoint resume targets the same directory as save_path."""
+    resume_path = config.get("resume_checkpoint_path")
+    if not resume_path or config.get("resume_from_epoch") is None:
+        return False
+    save_path = config.get("save_path")
+    if not save_path:
+        return False
+    return os.path.realpath(os.path.normpath(str(resume_path))) == os.path.realpath(
+        os.path.normpath(str(save_path))
+    )
+
+
 def setup_paths(config):
     """
     Create and return all necessary directory paths for training outputs.
@@ -309,6 +323,8 @@ def setup_paths(config):
     random_state_save_path = os.path.join(config['save_path'], 'random_states')
     checkpoints_save_path = os.path.join(config['save_path'], 'model_checkpoints')
 
+    skip_overwrite_prompt = (not sys.stdin.isatty()) or _resuming_into_save_path(config)
+
     # Check if files/directories already exist and ask for overwrite permission
     for path, description in [
         (training_results_save_path, 'training results file'),
@@ -316,6 +332,8 @@ def setup_paths(config):
         (checkpoints_save_path, 'model checkpoints save directory'),
     ]:
         if os.path.exists(path):
+            if skip_overwrite_prompt:
+                continue
             while True:
                 response = input(f"{description.capitalize()} '{path}' already exists, are you sure you want to rewrite it? (Yes/No): ")
                 if response.lower() in ["yes", "y"]:
