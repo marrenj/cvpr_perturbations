@@ -1,7 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=resnet50_imagenet_baseline
-#SBATCH --output=./logs/resnet50_imagenet_baseline_%j.out
-#SBATCH --error=./logs/resnet50_imagenet_baseline_%j.err
+# Logs must live in a path Slurm can create without a prior mkdir. These files
+# are written under SLURM_SUBMIT_DIR (the cwd when you ran sbatch):
+#SBATCH --output=resnet50_imagenet_baseline_%j.out
+#SBATCH --error=resnet50_imagenet_baseline_%j.err
 #SBATCH --account=dsi_dgx_iacc
 #SBATCH --partition=interactive_gpu
 #SBATCH --qos=dgx_iacc
@@ -17,23 +19,34 @@
 # ResNet50 ImageNet baseline training — Vanderbilt ACCRE DGX A100
 # =============================================================================
 #
-# Submit:
+# Log files (same directory you were in when you ran sbatch = SLURM_SUBMIT_DIR):
+#   resnet50_imagenet_baseline_<JOBID>.out
+#   resnet50_imagenet_baseline_<JOBID>.err
+# Confirm location: sacct -j <JOBID> --format=WorkDir -P | tail -1
+#
+# Submit (must cd to repo root first so SLURM_SUBMIT_DIR is the checkout):
+#   cd /path/to/cvpr_perturbations
 #   sbatch slurm/resnet50_imagenet_baseline.slurm
 #
 # Monitor:
 #   squeue -u $USER
-#   tail -f ./logs/resnet50_baseline_<JOBID>.out
+#   tail -f resnet50_imagenet_baseline_<JOBID>.out
 # =============================================================================
 
 set -euo pipefail
- 
+
+cd "${SLURM_SUBMIT_DIR}"
+if [[ ! -f "${SLURM_SUBMIT_DIR}/scripts/run_training.py" ]]; then
+  echo "ERROR: scripts/run_training.py not found under SLURM_SUBMIT_DIR=${SLURM_SUBMIT_DIR}"
+  echo "cd to the repo root, then: sbatch slurm/resnet50_imagenet_baseline.slurm"
+  exit 1
+fi
+
 # --- Environment setup ------------------------------------------------------
 # conda activate clip-hba
 module load python/3.11.5
 source ~/envs/clip_hba/bin/activate
- 
-# cd /panfs/accrepfs.vampire/home/jenkm22/cvpr_perturbations
- 
+
 echo "=========================================="
 echo "Job ID       : $SLURM_JOB_ID"
 echo "Node         : $SLURMD_NODENAME"
@@ -46,10 +59,8 @@ echo "=========================================="
 # Paths — edit these before submitting
 # =============================================================================
 
-PROJECT_DIR="${SLURM_SUBMIT_DIR}"
 IMAGENET_SRC="/home/jenkm22/imagenet"          # source on shared NFS
-SAVE_PATH="./training_runs/resnet50_imagenet_baseline"
-CONTAINER="./pytorch_25.01-py3.sif"
+SAVE_PATH="${SLURM_SUBMIT_DIR}/training_runs/resnet50_imagenet_baseline"
 
 # =============================================================================
 # Job info
@@ -70,14 +81,13 @@ echo "=========================================="
 # =============================================================================
 
 mkdir -p "${SAVE_PATH}"
-mkdir -p "./logs"
 
 # =============================================================================
 # Two A100s are used via DataParallel (cuda: -1).
 # =============================================================================
 
-python ./scripts/run_training.py \
-    --config ./configs/resnet50_imagenet.yaml 
+python "${SLURM_SUBMIT_DIR}/scripts/run_training.py" \
+    --config "${SLURM_SUBMIT_DIR}/configs/resnet50_imagenet.yaml"
 
 EXIT_CODE=$?
 
