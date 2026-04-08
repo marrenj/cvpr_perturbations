@@ -66,15 +66,28 @@ echo "Started   : $(date)"
 echo "=========================================="
 
 # =============================================================================
-# Copy ImageNet to local /tmp for fast I/O
+# ImageNet in /tmp — shared across array tasks; skip copy if already present
+#
+# Uses a stable path per VUNETID so tasks reuse one tree. Not removed at task
+# end (ACCRE /tmp cleanup may still delete it; next task will re-copy if gone).
+# Concurrent tasks serialize copy with flock so two jobs do not rsync together.
 # =============================================================================
 
-LOCAL_DATA=/tmp/imagenet_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}
-mkdir -p "${LOCAL_DATA}"
+LOCAL_DATA="/tmp/imagenet_${VUNETID}"
+COPY_LOCK="/tmp/imagenet_${VUNETID}.copy.lock"
 
-echo "Copying ImageNet to local storage: ${LOCAL_DATA} ..."
-rsync -a --info=progress2 "${IMAGENET_SRC}/" "${LOCAL_DATA}/"
-echo "✓ Data copy complete"
+echo "Local ImageNet cache: ${LOCAL_DATA}"
+(
+  flock -x 200
+  if [[ -d "${LOCAL_DATA}/train" && -d "${LOCAL_DATA}/val" ]]; then
+    echo "ImageNet already present under ${LOCAL_DATA}, skipping copy"
+  else
+    mkdir -p "${LOCAL_DATA}"
+    echo "Copying ImageNet to local storage: ${LOCAL_DATA} ..."
+    rsync -a --info=progress2 "${IMAGENET_SRC}/" "${LOCAL_DATA}/"
+    echo "✓ Data copy complete"
+  fi
+) 200>"${COPY_LOCK}"
 echo "=========================================="
 
 # =============================================================================
@@ -102,15 +115,12 @@ singularity exec --nv \
 EXIT_CODE=$?
 
 # =============================================================================
-# Cleanup
+# Task end (ImageNet left in ${LOCAL_DATA} for reuse by other tasks / jobs)
 # =============================================================================
 
 echo "=========================================="
 echo "Task ${SLURM_ARRAY_TASK_ID} finished with exit code: ${EXIT_CODE}"
 echo "Finished  : $(date)"
-echo "Cleaning up ${LOCAL_DATA} ..."
-rm -rf "${LOCAL_DATA}"
-echo "✓ Cleanup complete"
 echo "=========================================="
 
 exit "${EXIT_CODE}"

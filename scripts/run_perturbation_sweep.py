@@ -25,16 +25,16 @@ from src.utils.load_yaml_config import load_yaml_config
 PERTURB_TYPES = ["label_shuffle", "image_noise", "uniform_images"]
 
 SWEEP_EPOCHS = (
-    list(range(10))           # 0–9  (every epoch)
-    + list(range(10, 19, 2))  # 10, 12, 14, 16, 18  (every 2)
-    + list(range(20, 96, 5))  # 20, 25, …, 95  (every 5)
+    list(range(0, 9, 2))           # 0, 2, 4, 6, 8  (every 2)
+    + list(range(9, 39, 5))  # 9, 14, 19, 24, 29, 34  (every 5)
+    + list(range(39, 100, 10))  # 39, 49, 59, 69, 79, 89, 99  (every 10)
 )
 
 # Outer loop: perturbation type; inner loop: epoch.
 # Index i → ALL_TASKS[i] = (perturb_type, perturb_epoch)
 ALL_TASKS: list[tuple[str, int]] = [
     (pt, ep) for pt in PERTURB_TYPES for ep in SWEEP_EPOCHS
-]  # 3 × 31 = 93 entries
+]  # 3 × 18 = 54 entries
 
 
 def _list_tasks() -> None:
@@ -49,7 +49,7 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Run a single task from the ResNet50 ImageNet perturbation sweep. "
-            "Use --list-tasks to see all 93 (perturb_type, perturb_epoch) combinations."
+            "Use --list-tasks to see all combinations (perturb_type, perturb_epoch)."
         )
     )
     parser.add_argument(
@@ -62,7 +62,7 @@ def _parse_args() -> argparse.Namespace:
         "--task-id",
         type=int,
         default=None,
-        help="0-indexed task ID (0–92). Required unless --list-tasks is set.",
+        help="0-indexed task ID. Required unless --list-tasks is set.",
     )
     parser.add_argument(
         "--save-path",
