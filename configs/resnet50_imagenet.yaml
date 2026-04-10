@@ -23,7 +23,8 @@ img_dir: "/home/jenkm22/imagenet"   # RAM copy — cp -r .../imagenet_dataset /d
 wandb_project:                # Optional: W&B project name (offline if blank)
 wandb_entity:                 # Optional: W&B username / team
 debug_logging: false
-logger: None 
+logger: None
+debug_resume: true
 
 ## ---TRAINING PARAMETERS--- ##
 dataset_type: imagenet

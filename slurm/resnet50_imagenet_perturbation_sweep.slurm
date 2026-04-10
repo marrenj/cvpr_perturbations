@@ -24,7 +24,7 @@
 # =============================================================================
 
 #SBATCH --job-name=resnet50_perturbation_sweep
-#SBATCH --account=
+#SBATCH --account=dsi_dgx_iacc
 #SBATCH --partition=interactive_gpu
 #SBATCH --qos=dgx_iacc
 #SBATCH --nodes=1
@@ -34,8 +34,8 @@
 #SBATCH --mem=256G
 #SBATCH --time=24:00:00
 #SBATCH --array=0-92%10                 # 93 tasks; max 10 running concurrently
-#SBATCH --output=/data/<YOUR_VUNETID>/logs/perturbation_sweep_%A_%a.out
-#SBATCH --error=/data/<YOUR_VUNETID>/logs/perturbation_sweep_%A_%a.err
+#SBATCH --output=/home/jenkm22/logs/perturbation_sweep_%A_%a.out
+#SBATCH --error=/home/jenkm22/logs/perturbation_sweep_%A_%a.err
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=marren.jenkins.1@vanderbilt.edu
 
@@ -43,11 +43,11 @@
 # Paths — edit these before submitting
 # =============================================================================
 
-VUNETID="<YOUR_VUNETID>"
-PROJECT_DIR="/data/p_dsi/${VUNETID}/cvpr_perturbations"
-IMAGENET_SRC="/data/p_dsi/${VUNETID}/imagenet"
-SAVE_PATH="/data/p_dsi/${VUNETID}/training_runs/resnet50_imagenet_perturbation_sweep"
-BASELINE_CHECKPOINT_PATH="/data/p_dsi/${VUNETID}/training_runs/resnet50_imagenet_baseline/baseline_seed1"
+VUNETID="jenkm22"
+PROJECT_DIR="/home/${VUNETID}/cvpr_perturbations"
+IMAGENET_SRC="/home/${VUNETID}/imagenet"
+SAVE_PATH="/home/${VUNETID}/cvpr_perturbations/training_runs/resnet50_imagenet_perturbation_sweep"
+BASELINE_CHECKPOINT_PATH="/home/${VUNETID}/perturbations/training_runs/resnet50_imagenet_baseline/baseline_seed1/rn50_scratch_perturb-type-none_init-seed1behavioral-rsa-True"
 CONTAINER="/data/p_dsi/singularity-containers/pytorch_25.01-py3.sif"
 
 # =============================================================================
