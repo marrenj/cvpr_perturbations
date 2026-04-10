@@ -13,3 +13,4 @@
 /logs/
 /logs/*
 *.sh*.pyc
+megmem_interpretability.ipynb
