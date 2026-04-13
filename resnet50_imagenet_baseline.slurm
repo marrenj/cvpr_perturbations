@@ -72,6 +72,15 @@ echo "Started   : $(date)"
 echo "=========================================="
 
 # =============================================================================
+# Extract ImageNet tars to node-local scratch (not counted against quota)
+# =============================================================================
+
+echo "Extracting ImageNet to /tmp/ directory..."
+mkdir -p /tmp/imagenet
+tar -xf /nobackup/userspace/jenkm22/imagenet/imagenet_train.tar -C /tmp/imagenet/
+tar -xf /nobackup/userspace/jenkm22/imagenet/imagenet_val.tar   -C /tmp/imagenet/
+
+# =============================================================================
 # Create output directories on shared storage
 # =============================================================================
 
@@ -82,7 +91,8 @@ mkdir -p "${SAVE_PATH}"
 # =============================================================================
 
 python "${SLURM_SUBMIT_DIR}/scripts/run_training.py" \
-    --config "${SLURM_SUBMIT_DIR}/configs/resnet50_imagenet.yaml"
+    --config "${SLURM_SUBMIT_DIR}/configs/resnet50_imagenet.yaml" \
+    --override img_dir=/tmp/imagenet
 
 EXIT_CODE=$?
 
