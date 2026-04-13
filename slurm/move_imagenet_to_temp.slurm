@@ -47,7 +47,7 @@ echo "=========================================="
 # =============================================================================
 
 PROJECT_DIR="./cvpr_perturbations"
-IMAGENET_SRC="./imagenet"          # source on shared NFS
+TAR_SRC="/nobackup/userspace/jenkm22/imagenet"  # contains train.tar and val.tar
 SAVE_PATH="./training_runs/resnet50_imagenet_baseline"
 CONTAINER="./pytorch_25.01-py3.sif"
 
@@ -72,11 +72,32 @@ echo "=========================================="
 
 LOCAL_DATA=/tmp/imagenet_${SLURM_JOB_ID}
 
+if [ ! -d "${LOCAL_DATA}/train" ]; then
+    echo "Extracting ImageNet to local storage: ${LOCAL_DATA}..."
+    mkdir -p "${LOCAL_DATA}/train" "${LOCAL_DATA}/val"
 
-if [ ! -d "${LOCAL_DATA}" ]; then
-    echo "Copying ImageNet to local storage: ${LOCAL_DATA}..."
-    mkdir -p "${LOCAL_DATA}"
-    rsync -a --info=progress2 "./Data/imagenet/" "${LOCAL_DATA}/"
+    # Count entries first (reads only tar headers — fast)
+    echo "Counting archive contents..."
+    TRAIN_TOTAL=$(tar -tf "${TAR_SRC}/train.tar" | wc -l)
+    VAL_TOTAL=$(tar -tf "${TAR_SRC}/val.tar" | wc -l)
+    echo "  train.tar : ${TRAIN_TOTAL} files"
+    echo "  val.tar   : ${VAL_TOTAL} files"
+
+    # Extract train split — sample every 50 000 files for progress
+    echo ""
+    echo "Extracting train.tar..."
+    tar -xvf "${TAR_SRC}/train.tar" -C "${LOCAL_DATA}/train/" 2>&1 | \
+        awk -v total="${TRAIN_TOTAL}" \
+            'NR % 50000 == 0 { printf "  [train] %d / %d files (%.1f%%)\n", NR, total, NR*100.0/total; fflush() }'
+    echo "  [train] Done — ${TRAIN_TOTAL} files extracted."
+
+    # Extract val split — sample every 5 000 files for progress
+    echo ""
+    echo "Extracting val.tar..."
+    tar -xvf "${TAR_SRC}/val.tar" -C "${LOCAL_DATA}/val/" 2>&1 | \
+        awk -v total="${VAL_TOTAL}" \
+            'NR % 5000 == 0 { printf "  [val]   %d / %d files (%.1f%%)\n", NR, total, NR*100.0/total; fflush() }'
+    echo "  [val] Done — ${VAL_TOTAL} files extracted."
 else
     echo "Using cached ImageNet data at ${LOCAL_DATA}"
 fi
