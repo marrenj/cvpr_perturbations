@@ -122,7 +122,13 @@ echo "=========================================="
 TMP_CONFIG="/tmp/resnet50_config_${SLURM_JOB_ID}.yaml"
 sed "s|img_dir:.*|img_dir: \"${LOCAL_DATA}\"|" \
     "${SLURM_SUBMIT_DIR}/configs/resnet50_imagenet.yaml" > "${TMP_CONFIG}"
-echo "Config img_dir set to: ${LOCAL_DATA}"
+
+echo "--- Diagnostics ---"
+echo "LOCAL_DATA         : ${LOCAL_DATA}"
+echo "img_dir in config  : $(grep 'img_dir' "${TMP_CONFIG}")"
+echo "Classes in train/  : $(ls "${LOCAL_DATA}/train/" 2>/dev/null | wc -l) (expect 1000)"
+echo "Classes in val/    : $(ls "${LOCAL_DATA}/val/"   2>/dev/null | wc -l) (expect 1000)"
+echo "-------------------"
 
 # =============================================================================
 # Two A100s are used via DataParallel (cuda: -1).
