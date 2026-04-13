@@ -24,11 +24,11 @@ wandb_project:                # Optional: W&B project name (offline if blank)
 wandb_entity:                 # Optional: W&B username / team
 debug_logging: false
 logger: None
-debug_resume: true
+debug_resume: false
 
 ## ---TRAINING PARAMETERS--- ##
 dataset_type: imagenet
-max_duration: 100       
+max_duration: 100
 early_stopping_patience: 100
 batch_size: 256
 criterion: CrossEntropyLoss
@@ -36,8 +36,6 @@ random_seed: 1
 cuda: -1
 num_workers: 8               # parallel image-loading workers (4 per GPU is a good default)
 prefetch_factor: 4            # batches each worker pre-loads ahead; higher hides I/O latency
-resume_from_epoch: 70
-resume_checkpoint_path: "/home/jenkm22/perturbations/training_runs/resnet50_imagenet_baseline_with_rsa/baseline_seed1/rn50_scratch_perturb-type-none_init-seed1behavioral-rsa-True"
 
 ## ---OPTIMIZER & LR SCHEDULE--- ##
 opt: sgd

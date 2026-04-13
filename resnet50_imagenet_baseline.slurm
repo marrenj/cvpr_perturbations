@@ -54,7 +54,6 @@ echo "=========================================="
 # Paths — edit these before submitting
 # =============================================================================
 
-IMAGENET_SRC="/home/jenkm22/imagenet"          # source on shared NFS
 SAVE_PATH="${SLURM_SUBMIT_DIR}/training_runs/resnet50_imagenet_baseline"
 
 # =============================================================================
