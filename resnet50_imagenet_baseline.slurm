@@ -77,8 +77,20 @@ echo "=========================================="
 
 echo "Extracting ImageNet to /tmp/ directory..."
 mkdir -p /tmp/imagenet
-tar -xf /nobackup/userspace/jenkm22/imagenet/imagenet_train.tar -C /tmp/imagenet/
-tar -xf /nobackup/userspace/jenkm22/imagenet/imagenet_val.tar   -C /tmp/imagenet/
+
+if [[ ! -d /tmp/imagenet/train ]]; then
+  echo "Extracting imagenet_train.tar..."
+  tar -xf /nobackup/userspace/jenkm22/imagenet/imagenet_train.tar -C /tmp/imagenet/
+else
+  echo "Skipping train extraction — /tmp/imagenet/train already exists."
+fi
+
+if [[ ! -d /tmp/imagenet/val ]]; then
+  echo "Extracting imagenet_val.tar..."
+  tar -xf /nobackup/userspace/jenkm22/imagenet/imagenet_val.tar   -C /tmp/imagenet/
+else
+  echo "Skipping val extraction — /tmp/imagenet/val already exists."
+fi
 
 # =============================================================================
 # Create output directories on shared storage
