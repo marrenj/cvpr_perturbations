@@ -54,7 +54,7 @@ echo "=========================================="
 # Paths — edit these before submitting
 # =============================================================================
 
-IMAGENET_SRC="/home/jenkm22/imagenet"          # source on shared NFS
+TAR_SRC="/nobackup/userspace/jenkm22/imagenet"  # contains train.tar and val.tar
 SAVE_PATH="${SLURM_SUBMIT_DIR}/training_runs/resnet50_imagenet_baseline"
 
 # =============================================================================
@@ -78,11 +78,57 @@ echo "=========================================="
 mkdir -p "${SAVE_PATH}"
 
 # =============================================================================
+# Extract ImageNet to node-local /tmp for fast I/O
+# (not counted against quota; cleaned up automatically when the job ends)
+# =============================================================================
+
+LOCAL_DATA="/tmp/imagenet_${SLURM_JOB_ID}"
+
+if [ ! -d "${LOCAL_DATA}/train" ]; then
+    echo "Extracting ImageNet to local storage: ${LOCAL_DATA}..."
+    mkdir -p "${LOCAL_DATA}/train" "${LOCAL_DATA}/val"
+
+    # Count entries first (reads only tar headers — fast)
+    echo "Counting archive contents..."
+    TRAIN_TOTAL=$(tar -tf "${TAR_SRC}/train.tar" | wc -l)
+    VAL_TOTAL=$(tar -tf "${TAR_SRC}/val.tar" | wc -l)
+    echo "  train.tar : ${TRAIN_TOTAL} files"
+    echo "  val.tar   : ${VAL_TOTAL} files"
+
+    # Extract train split — sample every 50 000 files for progress
+    echo ""
+    echo "Extracting train.tar..."
+    tar -xvf "${TAR_SRC}/train.tar" -C "${LOCAL_DATA}/train/" 2>&1 | \
+        awk -v total="${TRAIN_TOTAL}" \
+            'NR % 50000 == 0 { printf "  [train] %d / %d files (%.1f%%)\n", NR, total, NR*100.0/total; fflush() }'
+    echo "  [train] Done — ${TRAIN_TOTAL} files extracted."
+
+    # Extract val split — sample every 5 000 files for progress
+    echo ""
+    echo "Extracting val.tar..."
+    tar -xvf "${TAR_SRC}/val.tar" -C "${LOCAL_DATA}/val/" 2>&1 | \
+        awk -v total="${VAL_TOTAL}" \
+            'NR % 5000 == 0 { printf "  [val]   %d / %d files (%.1f%%)\n", NR, total, NR*100.0/total; fflush() }'
+    echo "  [val] Done — ${VAL_TOTAL} files extracted."
+else
+    echo "Using cached ImageNet data at ${LOCAL_DATA}"
+fi
+
+echo "=========================================="
+
+# Stamp the job-specific LOCAL_DATA path into a temporary config so the
+# training script sees the extracted directory rather than the tar source.
+TMP_CONFIG="/tmp/resnet50_config_${SLURM_JOB_ID}.yaml"
+sed "s|img_dir:.*|img_dir: \"${LOCAL_DATA}\"|" \
+    "${SLURM_SUBMIT_DIR}/configs/resnet50_imagenet.yaml" > "${TMP_CONFIG}"
+echo "Config img_dir set to: ${LOCAL_DATA}"
+
+# =============================================================================
 # Two A100s are used via DataParallel (cuda: -1).
 # =============================================================================
 
 python "${SLURM_SUBMIT_DIR}/scripts/run_training.py" \
-    --config "${SLURM_SUBMIT_DIR}/configs/resnet50_imagenet.yaml"
+    --config "${TMP_CONFIG}"
 
 EXIT_CODE=$?
 
