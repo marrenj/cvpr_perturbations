@@ -92,7 +92,6 @@ mkdir -p "${SAVE_PATH}"
 
 python "${SLURM_SUBMIT_DIR}/scripts/run_training.py" \
     --config "${SLURM_SUBMIT_DIR}/configs/resnet50_imagenet.yaml" \
-    --override img_dir=/tmp/imagenet
 
 EXIT_CODE=$?
 

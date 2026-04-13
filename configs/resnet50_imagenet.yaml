@@ -15,7 +15,7 @@ training_mode: scratch
 
 ## ---PATHS--- ##
 save_path: "/home/jenkm22/perturbations/training_runs/resnet50_imagenet_baseline_with_rsa"
-img_dir: "/home/jenkm22/imagenet"   # RAM copy — cp -r .../imagenet_dataset /dev/shm/ before training
+img_dir: "/tmp/imagenet"   # RAM copy — cp -r .../imagenet_dataset /dev/shm/ before training
 # img_dir: "/home/wallacelab/teba/multimodal_brain_inspired/imagenet_dataset"  # network fallback
 # baseline_checkpoint_path:
 
