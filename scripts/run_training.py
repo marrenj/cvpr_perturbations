@@ -144,8 +144,11 @@ def _prepare_single_run(config: dict, config_path: Path) -> dict:
 
     # Validate mode-specific required fields
     if training_mode == "scratch":
-        if not config.get("img_dir"):
-            raise ValueError("Config must set 'img_dir' for training_mode='scratch'.")
+        if not config.get("img_dir") and not config.get("stream_from_hf"):
+            raise ValueError(
+                "Config must set 'img_dir' for training_mode='scratch' "
+                "(or set 'stream_from_hf: true' to stream from HuggingFace)."
+            )
         if config.get("perturb_type") == "random_target":
             raise ValueError(
                 "perturb_type='random_target' requires continuous embedding targets; "

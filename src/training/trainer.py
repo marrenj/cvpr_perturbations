@@ -18,7 +18,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from datetime import datetime
-from torch.utils.data import DataLoader, random_split, Subset
+from torch.utils.data import DataLoader, IterableDataset, random_split, Subset
 from torch.nn import DataParallel
 from torch.optim import AdamW, SGD
 from torch.optim.lr_scheduler import (
@@ -37,6 +37,7 @@ from src.utils.count_parameters import count_trainable_parameters
 from src.models.clip_hba.clip_hba_utils import load_dora_checkpoint
 from src.data.things_dataset import ThingsBehavioralDataset
 from src.data.imagenet_dataset import ImagenetDataset
+from src.data.imagenet_hf_stream_dataset import ImagenetHFStreamDataset
 from src.perturbations.perturbation_utils import choose_perturbation_strategy
 
 
@@ -378,9 +379,35 @@ def setup_dataset(config, logger):
                 "and is only compatible with training_mode='finetune'."
             )
 
-        train_dataset = ImagenetDataset(img_dir=config.get('img_dir'), split='train')
-        val_dataset = ImagenetDataset(img_dir=config.get('img_dir'), split='val')
-        split_info = {'split_type': 'imagenet_predefined'}
+        if config.get('stream_from_hf'):
+            hf_name = config.get('hf_dataset_name', 'ILSVRC/imagenet-1k')
+            hf_cache_dir = config.get('hf_cache_dir')
+            shuffle_buffer = int(config.get('hf_shuffle_buffer_size', 10_000))
+            num_train_samples = int(config['num_train_samples'])
+            num_val_samples = int(config['num_val_samples'])
+            seed = int(config.get('random_seed', 0))
+
+            train_dataset = ImagenetHFStreamDataset(
+                split='train',
+                num_samples=num_train_samples,
+                hf_dataset_name=hf_name,
+                cache_dir=hf_cache_dir,
+                shuffle_buffer_size=shuffle_buffer,
+                seed=seed,
+            )
+            val_dataset = ImagenetHFStreamDataset(
+                split='val',
+                num_samples=num_val_samples,
+                hf_dataset_name=hf_name,
+                cache_dir=hf_cache_dir,
+                shuffle_buffer_size=shuffle_buffer,
+                seed=seed,
+            )
+            split_info = {'split_type': 'imagenet_hf_stream'}
+        else:
+            train_dataset = ImagenetDataset(img_dir=config.get('img_dir'), split='train')
+            val_dataset = ImagenetDataset(img_dir=config.get('img_dir'), split='val')
+            split_info = {'split_type': 'imagenet_predefined'}
 
         logger.info(
             f"ImageNet predefined splits: "
@@ -511,25 +538,38 @@ def create_dataloaders(train_dataset, val_dataset, inference_dataset, config):
     dataloader_generator = torch.Generator()
     dataloader_generator.manual_seed(config['random_seed'])
 
-    train_loader = DataLoader(
-        train_dataset,
+    # IterableDatasets shuffle internally (PyTorch rejects shuffle=True on them)
+    # and must use persistent_workers=False so that set_epoch() updates
+    # propagate when workers are re-forked at each epoch boundary.
+    train_is_iterable = isinstance(train_dataset, IterableDataset)
+    val_is_iterable = isinstance(val_dataset, IterableDataset)
+
+    train_loader_kwargs = dict(
         batch_size=config['batch_size'],
-        shuffle=True,
-        generator=dataloader_generator,
         num_workers=num_workers,
         pin_memory=pin_memory,
-        persistent_workers=persistent_workers,
         prefetch_factor=prefetch_factor,
     )
-    val_loader = DataLoader(
-        val_dataset,
+    if train_is_iterable:
+        train_loader_kwargs['shuffle'] = False
+        train_loader_kwargs['persistent_workers'] = False
+    else:
+        train_loader_kwargs['shuffle'] = True
+        train_loader_kwargs['generator'] = dataloader_generator
+        train_loader_kwargs['persistent_workers'] = persistent_workers
+
+    train_loader = DataLoader(train_dataset, **train_loader_kwargs)
+
+    val_loader_kwargs = dict(
         batch_size=config['batch_size'],
         shuffle=False,
         num_workers=num_workers,
         pin_memory=pin_memory,
-        persistent_workers=persistent_workers,
         prefetch_factor=prefetch_factor,
     )
+    val_loader_kwargs['persistent_workers'] = False if val_is_iterable else persistent_workers
+
+    val_loader = DataLoader(val_dataset, **val_loader_kwargs)
 
     if inference_dataset is not None:
         inference_loader = DataLoader(
@@ -1178,6 +1218,10 @@ def train_model(
 
     # Main training loop
     for epoch in range(start_epoch, epochs):
+        # Reseed streaming dataset shuffle for this epoch (IterableDataset path)
+        if hasattr(train_loader.dataset, 'set_epoch'):
+            train_loader.dataset.set_epoch(epoch)
+
         # Train one epoch
         avg_train_loss = train_one_epoch(
             model, train_loader, device, optimizer, criterion,

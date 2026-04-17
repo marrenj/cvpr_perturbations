@@ -15,9 +15,17 @@ training_mode: scratch
 
 ## ---PATHS--- ##
 save_path: "/home/jenkm22/perturbations/training_runs/resnet50_imagenet_baseline_with_rsa"
-img_dir: "/tmp/imagenet"   # RAM copy — cp -r .../imagenet_dataset /dev/shm/ before training
+# img_dir: "/tmp/imagenet"   # local tar-extracted copy (used when stream_from_hf: false)
 # img_dir: "/home/wallacelab/teba/multimodal_brain_inspired/imagenet_dataset"  # network fallback
 # baseline_checkpoint_path:
+
+## ---HF STREAMING--- ##
+stream_from_hf: true
+hf_dataset_name: "ILSVRC/imagenet-1k"
+hf_cache_dir: "/tmp/hf_cache"
+num_train_samples: 1281167
+num_val_samples: 50000
+hf_shuffle_buffer_size: 10000
 
 ## ---LOGGING & W&B--- ##
 wandb_project:                # Optional: W&B project name (offline if blank)

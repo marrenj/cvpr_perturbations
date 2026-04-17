@@ -71,24 +71,22 @@ echo "Started   : $(date)"
 echo "=========================================="
 
 # =============================================================================
-# Extract ImageNet tars to node-local scratch (not counted against quota)
+# HuggingFace streaming setup — dataset is pulled on demand from HF Hub
 # =============================================================================
 
-echo "Extracting ImageNet to /tmp/ directory..."
-mkdir -p /tmp/imagenet
+export HF_HOME=/tmp/hf_cache
+export HF_DATASETS_CACHE=/tmp/hf_cache/datasets
+export HF_HUB_ENABLE_HF_TRANSFER=1
+mkdir -p "${HF_HOME}" "${HF_DATASETS_CACHE}"
 
-if [[ ! -d /tmp/imagenet/train ]]; then
-  echo "Extracting imagenet_train.tar..."
-  tar -xf /nobackup/userspace/jenkm22/imagenet/imagenet_train.tar -C /tmp/imagenet/
-else
-  echo "Skipping train extraction — /tmp/imagenet/train already exists."
+if [[ -z "${HF_TOKEN:-}" && -f "${HOME}/.cache/huggingface/token" ]]; then
+  export HF_TOKEN="$(cat "${HOME}/.cache/huggingface/token")"
 fi
 
-if [[ ! -d /tmp/imagenet/val ]]; then
-  echo "Extracting imagenet_val.tar..."
-  tar -xf /nobackup/userspace/jenkm22/imagenet/imagenet_val.tar   -C /tmp/imagenet/
-else
-  echo "Skipping val extraction — /tmp/imagenet/val already exists."
+if [[ -z "${HF_TOKEN:-}" ]]; then
+  echo "ERROR: HF_TOKEN not set and ~/.cache/huggingface/token missing."
+  echo "Run 'huggingface-cli login' once and accept the ILSVRC/imagenet-1k license."
+  exit 1
 fi
 
 # =============================================================================
