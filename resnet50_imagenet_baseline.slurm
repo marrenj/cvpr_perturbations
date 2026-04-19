@@ -101,6 +101,7 @@ mkdir -p "${SAVE_PATH}"
 
 python "${SLURM_SUBMIT_DIR}/scripts/run_training.py" \
     --config "${SLURM_SUBMIT_DIR}/configs/resnet50_imagenet.yaml" \
+    --no_wandb \
 
 EXIT_CODE=$?
 

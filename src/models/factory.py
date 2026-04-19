@@ -62,7 +62,7 @@ def build_cliphba(
     
     model.to(device)
 
-    if wandb_watch_model is True:
+    if wandb_watch_model is True and wandb.run is not None:
         wandb.watch(model, log='all', log_freq=wandb_log_freq)
     
     return model
