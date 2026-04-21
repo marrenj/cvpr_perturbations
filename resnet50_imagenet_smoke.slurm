@@ -54,7 +54,9 @@ echo "=========================================="
 # --- HuggingFace token ------------------------------------------------------
 export HF_HOME=/tmp/hf_cache
 export HF_DATASETS_CACHE=/tmp/hf_cache/datasets
-export HF_HUB_ENABLE_HF_TRANSFER=1
+# hf_transfer has a known GIL-release bug on interpreter shutdown — leave it off
+# for the smoke test. Re-enable only if download speed becomes the bottleneck.
+unset HF_HUB_ENABLE_HF_TRANSFER
 mkdir -p "${HF_HOME}" "${HF_DATASETS_CACHE}"
 
 if [[ -z "${HF_TOKEN:-}" && -f "${HOME}/.cache/huggingface/token" ]]; then
@@ -89,7 +91,12 @@ ds = load_dataset("ILSVRC/imagenet-1k", split="validation",
                   streaming=True, token=token)
 sample = next(iter(ds))
 print(f"hf sample keys   : {list(sample.keys())}")
-print("preflight OK")
+print("preflight OK", flush=True)
+
+# Bypass Python's atexit/finalizer machinery. Native libraries (hf_transfer,
+# pyarrow, etc.) occasionally raise PyGILState_Release errors during cleanup;
+# the workload is done, so exit hard with status 0.
+os._exit(0)
 PY
 
 # --- Full pipeline smoke run ------------------------------------------------
