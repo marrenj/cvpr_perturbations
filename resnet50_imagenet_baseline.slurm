@@ -38,10 +38,9 @@ if [[ ! -f "${SLURM_SUBMIT_DIR}/scripts/run_training.py" ]]; then
 fi
 
 # --- Environment setup ------------------------------------------------------
-# conda activate clip-hba
-module load python/3.11.5
-module load gcc arrow/23.0.1 
-source ~/envs/clip_hba/bin/activate
+module --force purge
+module load StdEnv/2023 gcc python/3.11 arrow/23.0.1
+source ~/envs/clip_hba_cc/bin/activate
 
 echo "=========================================="
 echo "Job ID       : $SLURM_JOB_ID"
@@ -77,7 +76,9 @@ echo "=========================================="
 
 export HF_HOME=/tmp/hf_cache
 export HF_DATASETS_CACHE=/tmp/hf_cache/datasets
-export HF_HUB_ENABLE_HF_TRANSFER=1
+# hf_transfer has a known GIL-release bug on interpreter shutdown.
+# Re-enable only if HF download throughput becomes the bottleneck.
+unset HF_HUB_ENABLE_HF_TRANSFER
 mkdir -p "${HF_HOME}" "${HF_DATASETS_CACHE}"
 
 if [[ -z "${HF_TOKEN:-}" && -f "${HOME}/.cache/huggingface/token" ]]; then
