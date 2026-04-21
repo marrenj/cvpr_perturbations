@@ -284,14 +284,14 @@ def log_model_architecture(model, logger):
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     
-    wandb.config.update({
-        'total_parameters': total_params,
-        'trainable_parameters': trainable_params,
-        'trainable_percentage': 100 * trainable_params / total_params if total_params > 0 else 0
-    })
-    
-    trainable_layers = [name for name, param in model.named_parameters() if param.requires_grad]
-    wandb.config.update({'trainable_layers': trainable_layers})
+    if wandb.run is not None:
+        wandb.config.update({
+            'total_parameters': total_params,
+            'trainable_parameters': trainable_params,
+            'trainable_percentage': 100 * trainable_params / total_params if total_params > 0 else 0
+        })
+        trainable_layers = [name for name, param in model.named_parameters() if param.requires_grad]
+        wandb.config.update({'trainable_layers': trainable_layers})
     
     logger.info(f"Total parameters: {total_params:,}")
     logger.info(f"Trainable parameters: {trainable_params:,} ({100 * trainable_params / total_params:.2f}%)")
@@ -415,12 +415,13 @@ def setup_dataset(config, logger):
             f"{len(train_dataset):,} train / {len(val_dataset):,} val images"
         )
 
-        wandb.config.update({
-            'dataset_size': len(train_dataset) + len(val_dataset),
-            'train_size': len(train_dataset),
-            'val_size': len(val_dataset),
-            'train_portion': None,
-        })
+        if wandb.run is not None:
+            wandb.config.update({
+                'dataset_size': len(train_dataset) + len(val_dataset),
+                'train_size': len(train_dataset),
+                'val_size': len(val_dataset),
+                'train_portion': None,
+            })
 
         # Build a THINGS inference dataset for behavioral RSA if paths are provided
         rsa_annotations_file = config.get('rsa_annotations_file')
@@ -494,12 +495,13 @@ def setup_dataset(config, logger):
             'train_portion': config['train_portion']
         }
 
-    wandb.config.update({
-        'dataset_size':  len(dataset),
-        'train_size':    len(train_dataset),
-        'val_size':      len(val_dataset),
-        'train_portion': config['train_portion']
-    })
+    if wandb.run is not None:
+        wandb.config.update({
+            'dataset_size':  len(dataset),
+            'train_size':    len(train_dataset),
+            'val_size':      len(val_dataset),
+            'train_portion': config['train_portion']
+        })
     
     return train_dataset, val_dataset, split_info, (global_target_mean, global_target_std), inference_dataset
 
@@ -696,11 +698,12 @@ def compute_behavioral_rsa(
 
     corr, pval = compute_rdm_similarity(model_ut, target_ut, similarity_metric)
     log(f"Behavioral RSA: corr={corr:.4f}, p={pval:.4g}")
-    wandb.log({
-        'rsa_behavioral_corr': corr,
-        'rsa_behavioral_p': pval,
-        'epoch': epoch_tag,
-    })
+    if wandb.run is not None:
+        wandb.log({
+            'rsa_behavioral_corr': corr,
+            'rsa_behavioral_p': pval,
+            'epoch': epoch_tag,
+        })
     return corr, pval
 
 
@@ -1008,9 +1011,11 @@ def train_one_epoch(model, train_loader, device, optimizer, criterion,
     # Log if perturbation is active this epoch
     if perturb_strategy.is_active_epoch(epoch_idx):
         logger.info(f"Applying {perturb_strategy.__class__.__name__} perturbation during epoch {epoch_idx}")
-        wandb.log({'perturbation_active': 1, 'epoch': epoch_idx})
+        if wandb.run is not None:
+            wandb.log({'perturbation_active': 1, 'epoch': epoch_idx})
     else:
-        wandb.log({'perturbation_active': 0, 'epoch': epoch_idx})
+        if wandb.run is not None:
+            wandb.log({'perturbation_active': 0, 'epoch': epoch_idx})
     
     progress_bar = tqdm(
         enumerate(train_loader), 
@@ -1074,7 +1079,7 @@ def train_one_epoch(model, train_loader, device, optimizer, criterion,
         batch_losses.append(batch_loss)
         progress_bar.set_postfix({'loss': batch_loss})
 
-        if batch_idx % log_interval == 0:
+        if batch_idx % log_interval == 0 and wandb.run is not None:
             wandb.log({
                 'batch_loss': batch_loss,
                 'batch': epoch_idx * len(train_loader) + batch_idx,
@@ -1083,11 +1088,12 @@ def train_one_epoch(model, train_loader, device, optimizer, criterion,
     
     avg_train_loss = total_loss / len(train_loader.dataset)
 
-    wandb.log({
-        'train_loss': avg_train_loss,
-        'train_loss_std': np.std(batch_losses),
-        'epoch': epoch_idx,
-    })
+    if wandb.run is not None:
+        wandb.log({
+            'train_loss': avg_train_loss,
+            'train_loss_std': np.std(batch_losses),
+            'epoch': epoch_idx,
+        })
 
     return avg_train_loss
 
@@ -1199,10 +1205,11 @@ def train_model(
                 print(f"Initial behavioral RSA failed: {rsa_err}")
     log("*********************************\n")
 
-    wandb.log({
-        'initial_val_loss': best_val_loss,
-        'epoch': -1,
-    })
+    if wandb.run is not None:
+        wandb.log({
+            'initial_val_loss': best_val_loss,
+            'epoch': -1,
+        })
     
     # Create directories for outputs
     os.makedirs(save_path, exist_ok=True)
@@ -1245,11 +1252,12 @@ def train_model(
         if scheduler is not None:
             scheduler.step()
 
-        wandb.log({
-            'val_loss': avg_val_loss,
-            'epoch': epoch,
-            'learning_rate': optimizer.param_groups[0]['lr'],
-        })
+        if wandb.run is not None:
+            wandb.log({
+                'val_loss': avg_val_loss,
+                'epoch': epoch,
+                'learning_rate': optimizer.param_groups[0]['lr'],
+            })
 
         # Optional behavioral RSA at end of epoch
         if behavioral_rsa:
@@ -1291,67 +1299,73 @@ def train_model(
             )
         log(f"Checkpoint saved for epoch {epoch}")
 
-        save_to_wandb = (epoch < 20) or (epoch % 5 == 0)
-        if save_to_wandb:  # Save every epoch for first 10, then every 5 epochs
-            artifact = wandb.Artifact(
-                name=f"model-checkpoint-epoch-{epoch}",
-                type="model",
-                description=f"Model checkpoint at epoch {epoch}",
-                metadata={
-                    'epoch': epoch,
-                    'train_loss': avg_train_loss,
-                    'val_loss': avg_val_loss,
-                }
-            )
-            artifact.add_dir(checkpoint_dir)
-            artifact.add_file(training_results_save_path)
-            wandb.log_artifact(artifact)
-        
+        if wandb.run is not None:
+            save_to_wandb = (epoch < 20) or (epoch % 5 == 0)
+            if save_to_wandb:
+                artifact = wandb.Artifact(
+                    name=f"model-checkpoint-epoch-{epoch}",
+                    type="model",
+                    description=f"Model checkpoint at epoch {epoch}",
+                    metadata={
+                        'epoch': epoch,
+                        'train_loss': avg_train_loss,
+                        'val_loss': avg_val_loss,
+                    }
+                )
+                artifact.add_dir(checkpoint_dir)
+                artifact.add_file(training_results_save_path)
+                wandb.log_artifact(artifact)
+
         # Early stopping check
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
             epochs_no_improve = 0
-            wandb.run.summary["best_val_loss"] = best_val_loss
-            wandb.run.summary["best_epoch"] = epoch
+            if wandb.run is not None:
+                wandb.run.summary["best_val_loss"] = best_val_loss
+                wandb.run.summary["best_epoch"] = epoch
         else:
             epochs_no_improve += 1
 
-        wandb.log({
-            'epochs_no_improve': epochs_no_improve,
-            'best_val_loss': best_val_loss,
-            'epoch': epoch,
-        })
-        
+        if wandb.run is not None:
+            wandb.log({
+                'epochs_no_improve': epochs_no_improve,
+                'best_val_loss': best_val_loss,
+                'epoch': epoch,
+            })
+
         if epochs_no_improve == early_stopping_patience:
             log("\n\n*********************************")
             log(f"Early stopping triggered at epoch {epoch}")
             log("*********************************\n\n")
-            wandb.run.summary["stopped_early"] = True
-            wandb.run.summary["final_epoch"] = epoch
+            if wandb.run is not None:
+                wandb.run.summary["stopped_early"] = True
+                wandb.run.summary["final_epoch"] = epoch
             break
 
     if epochs_no_improve < early_stopping_patience:
-        wandb.run.summary["stopped_early"] = False
-        wandb.run.summary["final_epoch"] = epochs
+        if wandb.run is not None:
+            wandb.run.summary["stopped_early"] = False
+            wandb.run.summary["final_epoch"] = epochs
 
     # Log full training metrics CSV once at completion
-    try:
-        metrics_artifact = wandb.Artifact(
-            name="training-results-final",
-            type="metrics",
-            description="Full training results CSV",
-            metadata={
-                'best_val_loss': best_val_loss,
-                'final_epoch': wandb.run.summary.get("final_epoch", epochs),
-            }
-        )
-        metrics_artifact.add_file(training_results_save_path)
-        wandb.log_artifact(metrics_artifact)
-    except Exception as art_err:
-        if logger:
-            logger.warning(f"Failed to log training results artifact: {art_err}")
-        else:
-            print(f"Failed to log training results artifact: {art_err}")
+    if wandb.run is not None:
+        try:
+            metrics_artifact = wandb.Artifact(
+                name="training-results-final",
+                type="metrics",
+                description="Full training results CSV",
+                metadata={
+                    'best_val_loss': best_val_loss,
+                    'final_epoch': wandb.run.summary.get("final_epoch", epochs),
+                }
+            )
+            metrics_artifact.add_file(training_results_save_path)
+            wandb.log_artifact(metrics_artifact)
+        except Exception as art_err:
+            if logger:
+                logger.warning(f"Failed to log training results artifact: {art_err}")
+            else:
+                print(f"Failed to log training results artifact: {art_err}")
 
 
 # =============================================================================
@@ -1428,7 +1442,8 @@ def run_training_experiment(config):
     save_path, training_results_save_path, random_state_save_path = setup_paths(config)
 
     # Initialize wandb before any wandb.config updates in dataset setup
-    wandb_run = init_wandb(config, resume_epoch=0)
+    if not config.get('no_wandb'):
+        init_wandb(config, resume_epoch=0)
     
     # Setup dataset
     train_dataset, val_dataset, split_info, target_stats, inference_dataset = setup_dataset(config, logger)
@@ -1543,6 +1558,7 @@ def run_training_experiment(config):
             training_mode=training_mode,
         )
     finally:
-        wandb.finish()
+        if wandb.run is not None:
+            wandb.finish()
         if hasattr(logger, 'restore_streams'):
             logger.restore_streams()

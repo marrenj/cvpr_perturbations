@@ -205,6 +205,8 @@ def main():
         numeric_keys=TRAINING_INT_KEYS,
         float_only=TRAINING_FLOAT_ONLY,
     )
+    if args.no_wandb:
+        config['no_wandb'] = True
 
     # Regardless of experiment_type, we run a single training job; perturbation
     # behavior is controlled by perturb_epoch/perturb_length.

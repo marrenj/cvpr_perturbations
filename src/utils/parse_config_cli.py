@@ -12,4 +12,10 @@ def parse_config_cli(description: str) -> argparse.Namespace:
         required=True,
         help="Path to YAML config file (e.g., configs/run.yaml)",
     )
+    parser.add_argument(
+        "--no_wandb",
+        action="store_true",
+        default=False,
+        help="Disable Weights & Biases logging entirely.",
+    )
     return parser.parse_args()
