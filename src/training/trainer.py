@@ -253,7 +253,8 @@ def init_wandb(config, resume_epoch=0):
     entity = config.get('wandb_entity')
     offline_mode = (not project) or (entity is None or entity == "")
     if offline_mode:
-        os.environ["WANDB_MODE"] = "offline"
+        if os.environ.get("WANDB_MODE") != "disabled":
+            os.environ["WANDB_MODE"] = "offline"
         project = project or "offline-run"
 
     # Create descriptive run name (shared with filesystem path)
