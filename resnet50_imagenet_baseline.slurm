@@ -39,8 +39,11 @@ fi
 
 # --- Environment setup ------------------------------------------------------
 module --force purge
-module load StdEnv/2023 gcc python/3.11 arrow/23.0.1
+module load StdEnv/2023 gcc python/3.11 arrow/23.0.1 
 source ~/envs/clip_hba_cc/bin/activate
+
+python -c "import numpy; print(numpy.__version__); import numpy as np; print(np.dot(np.ones(4), np.ones(4)))"
+python -c "import pyarrow, datasets, torch; print(pyarrow.__version__, datasets.__version__, torch.__version__)"
 
 echo "=========================================="
 echo "Job ID       : $SLURM_JOB_ID"
