@@ -1,0 +1,26 @@
+## ---PATHS--- ##
+img_dir: "/home/wallacelab/investigating-complexity/Images/THINGS"
+annotations_file: "./data/spose_embedding66d_rescaled_48val_reordered.csv"
+inference_save_dir: "/home/wallacelab/teba/multimodal_brain_inspired/PI_dk/inference/perceptual_init_yfcc3m_vitb32"
+model_weights_path: "/home/wallacelab/teba/multimodal_brain_inspired/PI_dk/pct_checkpoints/perceptual_init_yfcc3m_vitb32"
+
+## ---MODEL PARAMETERS--- ##
+# Tells run_inference to use the perceptual-init ViT-B/32 loader instead of
+# CLIP-HBA or the timm scratch models.
+training_mode: perceptual_init
+
+## ---INFERENCE PARAMETERS--- ##
+dataset: things
+max_images_per_category: 12
+evaluation_type: behavioral
+cuda: 0
+batch_size: 48
+num_workers: 1
+
+## ---RSA OPTIONS--- ##
+# Use pearson distance for the model RDM (standard for behavioral RSA).
+model_rdm_distance_metric: pearson
+rsa_similarity_metric: spearman
+reference_rdm_paths:
+  behavioral_rdm: "./data/RDM48_triplet.mat"
+reference_rdm_distance_metric: pearson
