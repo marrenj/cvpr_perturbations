@@ -322,6 +322,49 @@ def run_inference(config):
 
         model.to(device)
 
+    elif training_mode == 'perceptual_init':
+        from src.models.perceptual_init.perceptual_init_utils import (
+            initialize_perceptual_init_model,
+            parse_epoch_from_lightning_filename,
+            sorted_lightning_checkpoints,
+        )
+
+        weights_path = Path(config['model_weights_path'])
+
+        if weights_path.is_file():
+            epoch = parse_epoch_from_lightning_filename(weights_path.name)
+            model = initialize_perceptual_init_model(
+                checkpoint_path=str(weights_path),
+                device=device,
+                logger=logger,
+            )
+        else:
+            ckpt_files = sorted_lightning_checkpoints(weights_path)
+            if not ckpt_files:
+                raise FileNotFoundError(
+                    f"No Lightning checkpoints (.ckpt) found under {weights_path}"
+                )
+            requested_epoch = config.get('epoch')
+            if requested_epoch is not None:
+                epoch = str(requested_epoch)
+                candidates = [
+                    f for f in ckpt_files
+                    if parse_epoch_from_lightning_filename(f.name) == epoch
+                ]
+                if not candidates:
+                    raise FileNotFoundError(
+                        f"No checkpoint for epoch {epoch} found under {weights_path}"
+                    )
+                ckpt_path = candidates[0]
+            else:
+                ckpt_path = ckpt_files[-1]
+                epoch = parse_epoch_from_lightning_filename(ckpt_path.name)
+            model = initialize_perceptual_init_model(
+                checkpoint_path=str(ckpt_path),
+                device=device,
+                logger=logger,
+            )
+
     else:
         # Fine-tuning: CLIP-HBA with DoRA adapters
         model = initialize_cliphba_model(
