@@ -1098,7 +1098,7 @@ def train_one_epoch(model, train_loader, device, optimizer, criterion,
     return avg_train_loss
 
 
-def save_epoch_results(epoch, train_loss, val_loss, training_results_save_path, rsa_corr=None, rsa_p=None):
+def save_epoch_results(epoch, train_loss, val_loss, results_writer, rsa_corr=None, rsa_p=None):
     """
     Save training metrics to CSV file.
     
@@ -1106,17 +1106,14 @@ def save_epoch_results(epoch, train_loss, val_loss, training_results_save_path, 
         epoch: Current epoch number
         train_loss: Training loss
         val_loss: Validation loss
-        training_results_save_path: Path to CSV file
+        results_writer: csv.writer for the already-open training results file
         rsa_corr: Optional behavioral RSA correlation
         rsa_p: Optional p-value for behavioral RSA correlation
     """
     data_row = [epoch, train_loss, val_loss]
     if rsa_corr is not None and rsa_p is not None:
         data_row.extend([rsa_corr, rsa_p])
-    
-    with open(training_results_save_path, 'a', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(data_row)
+    results_writer.writerow(data_row)
 
 
 def train_model(
@@ -1215,14 +1212,17 @@ def train_model(
     os.makedirs(save_path, exist_ok=True)
     os.makedirs(os.path.dirname(training_results_save_path), exist_ok=True)
     
-    # Initialize CSV file (only if starting from scratch)
-    if not (start_epoch > 0 and os.path.exists(training_results_save_path)):
-        with open(training_results_save_path, 'w', newline='') as file:
-            writer = csv.writer(file)
-            header = ['epoch', 'train_loss', 'val_loss']
-            if behavioral_rsa:
-                header.extend(['rsa_behavioral_corr', 'rsa_behavioral_p'])
-            writer.writerow(header)
+    # Open the CSV file once for the entire training run to avoid repeated
+    # open/close calls on network filesystems (e.g. CIFS/SMB), which can
+    # fail with EINVAL after many round-trips.
+    csv_mode = 'w' if not (start_epoch > 0 and os.path.exists(training_results_save_path)) else 'a'
+    results_file = open(training_results_save_path, csv_mode, newline='')
+    results_writer = csv.writer(results_file)
+    if csv_mode == 'w':
+        header = ['epoch', 'train_loss', 'val_loss']
+        if behavioral_rsa:
+            header.extend(['rsa_behavioral_corr', 'rsa_behavioral_p'])
+        results_writer.writerow(header)
 
     # Main training loop
     for epoch in range(start_epoch, epochs):
@@ -1278,9 +1278,10 @@ def train_model(
                 else:
                     print(f"Behavioral RSA failed at epoch {epoch}: {rsa_err}")
         
-        # Save metrics to CSV
-        save_epoch_results(epoch, avg_train_loss, avg_val_loss, training_results_save_path, rsa_corr, rsa_p)
-        
+        # Save metrics to CSV; flush to ensure each epoch is durably written
+        save_epoch_results(epoch, avg_train_loss, avg_val_loss, results_writer, rsa_corr, rsa_p)
+        results_file.flush()
+
         # Save random states for reproducibility
         save_random_states(
             optimizer, epoch, random_state_save_path, 
@@ -1341,6 +1342,8 @@ def train_model(
                 wandb.run.summary["stopped_early"] = True
                 wandb.run.summary["final_epoch"] = epoch
             break
+
+    results_file.close()
 
     if epochs_no_improve < early_stopping_patience:
         if wandb.run is not None:
