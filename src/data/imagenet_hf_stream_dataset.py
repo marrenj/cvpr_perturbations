@@ -145,7 +145,6 @@ class ImagenetHFStreamDataset(IterableDataset):
         dataset = self._open_hf_stream()
 
         worker_info = get_worker_info()
-        num_workers = worker_info.num_workers if worker_info is not None else 1
         worker_id = worker_info.id if worker_info is not None else 0
 
         if self.split == "train":
@@ -153,9 +152,6 @@ class ImagenetHFStreamDataset(IterableDataset):
                 seed=self.base_seed + self._epoch,
                 buffer_size=self.shuffle_buffer_size,
             )
-
-        if num_workers > 1:
-            dataset = dataset.shard(num_shards=num_workers, index=worker_id)
 
         local_idx = 0
         for sample in dataset:

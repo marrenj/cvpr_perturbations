@@ -7,9 +7,42 @@ the 'model.visual.' prefix inside the Lightning state dict.
 """
 from pathlib import Path
 from typing import Optional
+import pickle
 import re
 
 import torch
+
+
+class _TolerantUnpickler(pickle.Unpickler):
+    """Return a stub class for any global we can't import.
+
+    Lightning checkpoints pickle hyperparameter objects referencing the
+    training project's modules (e.g. a top-level `config` package). Those
+    modules aren't on sys.path at inference time, but we only consume the
+    tensor state_dict, so stubbing unresolved classes lets the rest of the
+    checkpoint deserialize without error.
+    """
+
+    def find_class(self, module, name):
+        try:
+            return super().find_class(module, name)
+        except (ModuleNotFoundError, AttributeError):
+            return type(
+                f"_Stub_{module}_{name}".replace(".", "_"),
+                (),
+                {
+                    "__init__": lambda self, *a, **kw: None,
+                    "__setstate__": lambda self, state: None,
+                    "__reduce__": lambda self: (object, ()),
+                },
+            )
+
+
+class _TolerantPickleModule:
+    Unpickler = _TolerantUnpickler
+    UnpicklingError = pickle.UnpicklingError
+    load = staticmethod(pickle.load)
+    loads = staticmethod(pickle.loads)
 
 from src.models.perceptual_init.model import (
     VisionTransformer,
@@ -51,7 +84,12 @@ def load_visual_state_dict_from_lightning_checkpoint(
     Strips the 'model.visual.' prefix so the returned dict loads directly
     into VisionTransformer via load_state_dict(strict=True).
     """
-    ckpt = torch.load(checkpoint_path, map_location=map_location, weights_only=False)
+    ckpt = torch.load(
+        checkpoint_path,
+        map_location=map_location,
+        weights_only=False,
+        pickle_module=_TolerantPickleModule,
+    )
     state_dict = ckpt.get("state_dict", ckpt)
 
     visual_sd = {

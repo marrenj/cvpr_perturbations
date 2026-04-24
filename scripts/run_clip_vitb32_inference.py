@@ -8,11 +8,11 @@ reference RDM.
 
 Usage
 -----
-    python scripts/run_perceptual_init_inference.py \\
-        --config  configs/perceptual_init_vitb32_inference.yaml \\
-        --checkpoint_dir /home/wallacelab/teba/multimodal_brain_inspired/PI_dk/pct_checkpoints/perceptual_init_yfcc3m_vitb32 \\
-        --save_dir       /home/wallacelab/teba/multimodal_brain_inspired/PI_dk/inference/perceptual_init_yfcc3m_vitb32 \\
-        --run_name       perceptual_init_yfcc3m_vitb32
+    python scripts/run_clip_vitb32_inference.py \\
+        --config  configs/clip_vitb32_inference.yaml \\
+        --checkpoint_dir /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/perturb_sweep_replication/random_target_perturb_seed42/training_artifacts/dora_params/dora_params_seed42 \\
+        --save_dir       /home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/perturb_sweep_replication/random_target_perturb_seed42/test_things_behavioral_inference \\
+        --run_name       clip_yfcc15m_vitb32
 """
 
 from pathlib import Path

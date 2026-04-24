@@ -7,7 +7,7 @@
 #SBATCH --qos=dgx_iacc
 #SBATCH --gres=gpu:nvidia_a100-sxm4-40gb:2
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=2
+#SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=24
 #SBATCH --mem=256G
 #SBATCH --time=30:00:00
