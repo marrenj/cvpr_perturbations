@@ -30,7 +30,7 @@ PERTURB_TYPES=("random_target" "label_shuffle")
 START_EPOCHS=(0 2 4 6 8 14 19 29 39 49 59 69 79 89 99)
 PERTURB_LENGTHS=(5 10 20 30 40 50)
 PERTURB_SEEDS=(1 2 3)
-RESUME_FROM="vit_l_14_rank32_perturb-type-random_target_epoch8_length30_perturb-seed1_init-seed1behavioral-rsa-True"
+RESUME_FROM="vit_l_14_rank32_perturb-type-random_target_epoch39_length5_perturb-seed3_init-seed3behavioral-rsa-True"
 # Empty or "None" means start from the beginning; otherwise skip until the named run.
 if [[ "$RESUME_FROM" == "None" || -z "$RESUME_FROM" ]]; then
   FOUND=true

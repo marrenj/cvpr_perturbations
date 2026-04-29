@@ -31,7 +31,7 @@ START_EPOCHS=(0 2 4 6 8 14 19 29 39 49 59 69 79 89 99)
 PERTURB_LENGTHS=(5 10 20 30 40 50)
 PERTURB_SEEDS=(1 2 3)
 # Resume control: empty or "None" means start from the beginning; otherwise skip until the named run.
-RESUME_FROM="vit_l_14_rank32_perturb-type-image_noise_epoch19_length40_perturb-seed1_init-seed1behavioral-rsa-True"
+RESUME_FROM="vit_l_14_rank32_perturb-type-image_noise_epoch69_length40_perturb-seed1_init-seed1behavioral-rsa-True"
 if [[ "$RESUME_FROM" == "None" || -z "$RESUME_FROM" ]]; then
   FOUND=true
 else
