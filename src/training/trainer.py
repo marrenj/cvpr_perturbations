@@ -6,6 +6,7 @@ Low-Rank Adaptation) on behavioral similarity data. Supports perturbation strate
 and checkpoint resumption for reproducible experiments.
 """
 
+import gc
 import os
 import sys
 import random
@@ -14,7 +15,7 @@ import yaml
 import wandb
 from tqdm import tqdm
 from numpy.random import set_state as np_set_state
-import torch 
+import torch
 import torch.nn as nn
 import numpy as np
 from datetime import datetime
@@ -1038,15 +1039,16 @@ def train_one_epoch(model, train_loader, device, optimizer, criterion,
             print("image_names (first 10):", image_names[:10])
             print("image_names shape:", len(image_names))
 
-        images_before = images.clone()
-        targets_before = targets.clone()
-        
+        if debug_logging and batch_idx == 0:
+            images_before = images.clone()
+            targets_before = targets.clone()
+
         # Apply perturbation if active
         images, targets = perturb_strategy.apply_to_batch(
             images, targets, device, epoch_idx, batch_idx
         )
 
-        if debug_logging is True and batch_idx == 0:
+        if debug_logging and batch_idx == 0:
             print("\n=== DEBUG: AFTER PERTURBATION ===")
             print("targets (first 10 values in first 10 rows):", targets[:10, :10])
             print("targets shape:", targets.shape)
@@ -1316,6 +1318,10 @@ def train_model(
                 artifact.add_dir(checkpoint_dir)
                 artifact.add_file(training_results_save_path)
                 wandb.log_artifact(artifact)
+
+        # Release any Python-held memory before the next epoch's worker forks.
+        gc.collect()
+        torch.cuda.empty_cache()
 
         # Early stopping check
         if avg_val_loss < best_val_loss:
