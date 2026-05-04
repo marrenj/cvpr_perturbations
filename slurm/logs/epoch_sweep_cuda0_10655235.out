@@ -1,0 +1,73 @@
+2026-05-04 14:44:05 - INFO - ================================================================================
+2026-05-04 14:44:05 - INFO - Starting Process
+2026-05-04 14:44:05 - INFO - Log file: /home/jenkm22/length_sweep_checkpoints/label_shuffle_perturb_seed1/epoch0_length5/vit_l_14_rank32_perturb-type-label_shuffle_epoch0_length5_perturb-seed1_init-seed1behavioral-rsa-True/training_log_label_shuffle.txt
+2026-05-04 14:44:05 - INFO - ================================================================================
+2026-05-04 14:44:05 - INFO - ================================================================================
+2026-05-04 14:44:05 - INFO - Starting Training Run
+2026-05-04 14:44:05 - INFO - Training mode : finetune
+2026-05-04 14:44:05 - INFO - Architecture  : CLIP-HBA
+2026-05-04 14:44:05 - INFO - Log file      : /home/jenkm22/length_sweep_checkpoints/label_shuffle_perturb_seed1/epoch0_length5/vit_l_14_rank32_perturb-type-label_shuffle_epoch0_length5_perturb-seed1_init-seed1behavioral-rsa-True/training_log_label_shuffle.txt
+2026-05-04 14:44:05 - INFO - ================================================================================
+2026-05-04 14:44:05 - INFO - Dataset split info saved: /home/jenkm22/length_sweep_checkpoints/label_shuffle_perturb_seed1/epoch0_length5/vit_l_14_rank32_perturb-type-label_shuffle_epoch0_length5_perturb-seed1_init-seed1behavioral-rsa-True/random_states/dataset_split_indices.pth
+2026-05-04 14:44:05 - INFO - Using GPU 0
+2026-05-04 14:44:05 - INFO - Using device: cuda:0
+pos_embedding is True
+2026-05-04 14:44:14 - INFO - Total parameters: 427,802,369
+2026-05-04 14:44:14 - INFO - Trainable parameters: 183,040 (0.04%)
+2026-05-04 14:44:14 - INFO - 
+Model Configuration:
+2026-05-04 14:44:14 - INFO - -------------------
+2026-05-04 14:44:14 - INFO - architecture: CLIP-HBA
+2026-05-04 14:44:14 - INFO - baseline_checkpoint_path: /home/jenkm22/cvpr_perturbations/checkpoints/baseline_seed1/vit_l_14_rank32_perturb-type-none_init-seed1behavioral-rsa-True
+2026-05-04 14:44:14 - INFO - batch_size: 64
+2026-05-04 14:44:14 - INFO - behavioral_rdm48_file: ./data/RDM48_triplet.mat
+2026-05-04 14:44:14 - INFO - behavioral_rsa: True
+2026-05-04 14:44:14 - INFO - clip_hba_backbone: ViT-L/14
+2026-05-04 14:44:14 - INFO - criterion: MSELoss
+2026-05-04 14:44:14 - INFO - cuda: 0
+2026-05-04 14:44:14 - INFO - dataset_type: things
+2026-05-04 14:44:14 - INFO - debug_logging: False
+2026-05-04 14:44:14 - INFO - early_stopping_patience: 20
+2026-05-04 14:44:14 - INFO - img_annotations_file: ./data/spose_embedding66d_rescaled_1806train.csv
+2026-05-04 14:44:14 - INFO - img_dir: /home/jenkm22/cvpr_perturbations/THINGS_images
+2026-05-04 14:44:14 - INFO - logger: None
+2026-05-04 14:44:14 - INFO - lr: 0.0001
+2026-05-04 14:44:14 - INFO - max_duration: 500
+2026-05-04 14:44:14 - INFO - model_rdm_distance_metric: pearson
+2026-05-04 14:44:14 - INFO - num_workers: 1
+2026-05-04 14:44:14 - INFO - opt: AdamW
+2026-05-04 14:44:14 - INFO - perturb_epoch: 0
+2026-05-04 14:44:14 - INFO - perturb_length: 5
+2026-05-04 14:44:14 - INFO - perturb_seed: 1
+2026-05-04 14:44:14 - INFO - perturb_type: label_shuffle
+2026-05-04 14:44:14 - INFO - random_seed: 1
+2026-05-04 14:44:14 - INFO - rank: 32
+2026-05-04 14:44:14 - INFO - rsa_annotations_file: ./data/spose_embedding66d_rescaled_48val_reordered.csv
+2026-05-04 14:44:14 - INFO - rsa_similarity_metric: spearman
+2026-05-04 14:44:14 - INFO - rsa_things_img_dir: /home/wallacelab/investigating-complexity/Images/THINGS
+2026-05-04 14:44:14 - INFO - save_path: /home/jenkm22/length_sweep_checkpoints/label_shuffle_perturb_seed1/epoch0_length5/vit_l_14_rank32_perturb-type-label_shuffle_epoch0_length5_perturb-seed1_init-seed1behavioral-rsa-True
+2026-05-04 14:44:14 - INFO - train_portion: 0.8
+2026-05-04 14:44:14 - INFO - training_mode: finetune
+2026-05-04 14:44:14 - INFO - transformer_layers: 1
+2026-05-04 14:44:14 - INFO - vision_layers: 2
+2026-05-04 14:44:14 - INFO - wandb_entity: None
+2026-05-04 14:44:14 - INFO - wandb_project: None
+2026-05-04 14:44:14 - INFO - no_wandb: True
+2026-05-04 14:44:14 - INFO - wandb_run_name: vit_l_14_rank32_perturb-type-label_shuffle_epoch0_length5_perturb-seed1_init-seed1behavioral-rsa-True
+2026-05-04 14:44:14 - INFO - epochs: 500
+2026-05-04 14:44:14 - INFO - 
+Training layers:
+2026-05-04 14:44:14 - INFO - clip_model.visual.transformer.resblocks.22.attn.out_proj.m
+2026-05-04 14:44:14 - INFO - clip_model.visual.transformer.resblocks.22.attn.out_proj.delta_D_A
+2026-05-04 14:44:14 - INFO - clip_model.visual.transformer.resblocks.22.attn.out_proj.delta_D_B
+2026-05-04 14:44:14 - INFO - clip_model.visual.transformer.resblocks.23.attn.out_proj.m
+2026-05-04 14:44:14 - INFO - clip_model.visual.transformer.resblocks.23.attn.out_proj.delta_D_A
+2026-05-04 14:44:14 - INFO - clip_model.visual.transformer.resblocks.23.attn.out_proj.delta_D_B
+2026-05-04 14:44:14 - INFO - clip_model.transformer.resblocks.11.attn.out_proj.m
+2026-05-04 14:44:14 - INFO - clip_model.transformer.resblocks.11.attn.out_proj.delta_D_A
+2026-05-04 14:44:14 - INFO - clip_model.transformer.resblocks.11.attn.out_proj.delta_D_B
+2026-05-04 14:44:14 - INFO - 
+Number of trainable parameters: 183040
+
+2026-05-04 14:44:14 - INFO - *********************************
+2026-05-04 14:44:14 - INFO - Evaluating initial model
