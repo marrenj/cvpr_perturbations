@@ -5,7 +5,7 @@
 #SBATCH --account=dsi_dgx_iacc
 #SBATCH --partition=interactive_gpu
 #SBATCH --qos=dgx_iacc
-#SBATCH --gres=gpu:nvidia_a100-sxm4-40gb:2
+#SBATCH --gres=gpu:nvidia_a100-sxm4-40gb:3
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=24
@@ -101,13 +101,47 @@ fi
 mkdir -p "${SAVE_PATH}"
 
 # =============================================================================
-# Two A100s are used via DataParallel (cuda: -1).
+# Two seeds in parallel — both processes share all 8 A100s via DataParallel
+# (cuda: -1). Each ResNet50 BS=256 sharded 8-way → ~BS=32/GPU per process,
+# leaving plenty of memory headroom for two co-resident trainings. Compute is
+# shared, so each seed runs slower than solo but both make progress at once.
+# Each writes to its own log under ./logs/ and to its own
+# ${SAVE_PATH}/baseline_seed${SEED} directory (suffix added by trainer).
 # =============================================================================
 
+SEED_A=1
+SEED_B=2
+
+CONFIG="${SLURM_SUBMIT_DIR}/configs/resnet50_imagenet.yaml"
+LOG_A="${SLURM_SUBMIT_DIR}/logs/resnet50_imagenet_seed${SEED_A}_${SLURM_JOB_ID}.out"
+LOG_B="${SLURM_SUBMIT_DIR}/logs/resnet50_imagenet_seed${SEED_B}_${SLURM_JOB_ID}.out"
+
 python "${SLURM_SUBMIT_DIR}/scripts/run_training.py" \
-    --config "${SLURM_SUBMIT_DIR}/configs/resnet50_imagenet.yaml" \
+    --config "${CONFIG}" \
+    --random_seed "${SEED_A}" \
     --no_wandb \
+    > "${LOG_A}" 2>&1 &
+PID_A=$!
+echo "Launched seed=${SEED_A} (pid ${PID_A}) -> ${LOG_A}"
 
-EXIT_CODE=$?
+python "${SLURM_SUBMIT_DIR}/scripts/run_training.py" \
+    --config "${CONFIG}" \
+    --random_seed "${SEED_B}" \
+    --no_wandb \
+    > "${LOG_B}" 2>&1 &
+PID_B=$!
+echo "Launched seed=${SEED_B} (pid ${PID_B}) -> ${LOG_B}"
 
-exit "${EXIT_CODE}"
+# Wait for both even if one fails so the surviving job still runs to completion.
+set +e
+wait "${PID_A}"; EXIT_A=$?
+wait "${PID_B}"; EXIT_B=$?
+set -e
+
+echo "seed=${SEED_A} exit=${EXIT_A}"
+echo "seed=${SEED_B} exit=${EXIT_B}"
+
+if [[ "${EXIT_A}" -ne 0 || "${EXIT_B}" -ne 0 ]]; then
+  exit 1
+fi
+exit 0

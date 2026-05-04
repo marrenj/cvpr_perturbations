@@ -2,7 +2,7 @@
 set -eu
 set -o pipefail
 
-export SAVE_ROOT="${SAVE_ROOT:-/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test}"
+export SAVE_ROOT="${SAVE_ROOT:-/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/checkpoints}"
 export BASE_CONFIG="configs/training_config.yaml"
 export IMG_ANNOTATIONS_FILE="./data/spose_embedding66d_rescaled_1806train.csv"
 export IMG_DIR="/home/wallacelab/investigating-complexity/Images/THINGS"
@@ -85,6 +85,7 @@ cfg["perturb_epoch"] = int(os.environ["EPOCH"])
 cfg["perturb_length"] = int(os.environ["PERTURB_LEN"])
 cfg["random_seed"] = int(os.environ["RANDOM_SEED"])
 cfg["cuda"] = int(os.environ["CUDA"])
+cfg["num_workers"] = 1
 
 with open(os.environ["TMP_CFG"], "w") as f:
     yaml.safe_dump(cfg, f)
