@@ -78,6 +78,7 @@ cfg["save_path"] = os.environ["RUN_SAVE_PATH"]
 cfg["baseline_checkpoint_path"] = os.environ["BASELINE_CHECKPOINT_PATH"]
 cfg["img_annotations_file"] = os.environ["IMG_ANNOTATIONS_FILE"]
 cfg["img_dir"] = os.environ["IMG_DIR"]
+cfg["rsa_things_img_dir"] = os.environ["IMG_DIR"]
 
 cfg["perturb_type"] = os.environ["PERTURB_TYPE"]
 cfg["perturb_seed"] = int(os.environ["PERTURB_SEED"])
