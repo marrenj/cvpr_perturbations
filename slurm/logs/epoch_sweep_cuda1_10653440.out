@@ -1,0 +1,14 @@
+2026-05-04 11:33:26 - INFO - ================================================================================
+2026-05-04 11:33:26 - INFO - Starting Process
+2026-05-04 11:33:26 - INFO - Log file: /home/jenkm22/length_sweep_checkpoints/image_noise_perturb_seed2/epoch69_length10/vit_l_14_rank32_perturb-type-image_noise_epoch69_length10_perturb-seed2_init-seed2behavioral-rsa-True/training_log_image_noise.txt
+2026-05-04 11:33:26 - INFO - ================================================================================
+2026-05-04 11:33:26 - INFO - ================================================================================
+2026-05-04 11:33:26 - INFO - Starting Training Run
+2026-05-04 11:33:26 - INFO - Training mode : finetune
+2026-05-04 11:33:26 - INFO - Architecture  : CLIP-HBA
+2026-05-04 11:33:26 - INFO - Log file      : /home/jenkm22/length_sweep_checkpoints/image_noise_perturb_seed2/epoch69_length10/vit_l_14_rank32_perturb-type-image_noise_epoch69_length10_perturb-seed2_init-seed2behavioral-rsa-True/training_log_image_noise.txt
+2026-05-04 11:33:26 - INFO - ================================================================================
+2026-05-04 11:33:27 - INFO - Dataset split info saved: /home/jenkm22/length_sweep_checkpoints/image_noise_perturb_seed2/epoch69_length10/vit_l_14_rank32_perturb-type-image_noise_epoch69_length10_perturb-seed2_init-seed2behavioral-rsa-True/random_states/dataset_split_indices.pth
+2026-05-04 11:33:27 - INFO - Using GPU 1
+2026-05-04 11:33:27 - INFO - Using device: cuda:1
+pos_embedding is True

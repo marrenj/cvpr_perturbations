@@ -10,7 +10,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=24
 #SBATCH --mem=256G
-#SBATCH --time=5-00:00:00
+#SBATCH --time=3-00:00:00
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=marren.jenkins.1@vanderbilt.edu
 

@@ -71,3 +71,6 @@ rsa_things_img_dir: "/home/jenkm22/THINGS"
 behavioral_rdm48_file: "./data/RDM48_triplet.mat"
 model_rdm_distance_metric: pearson # distance metric to use for RSA
 rsa_similarity_metric: spearman # similarity metric to use for RSA
+
+resume_checkpoint_path: "/home/jenkm22/perturbations/training_runs/resnet50_imagenet_baseline_with_rsa/baseline_seed1/rn50_scratch_perturb-type-none_init-seed1behavioral-rsa-True"
+resume_from_epoch: 43

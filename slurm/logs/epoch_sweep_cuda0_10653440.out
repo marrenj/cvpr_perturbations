@@ -1,0 +1,14 @@
+2026-05-04 11:33:26 - INFO - ================================================================================
+2026-05-04 11:33:26 - INFO - Starting Process
+2026-05-04 11:33:26 - INFO - Log file: /home/jenkm22/length_sweep_checkpoints/random_target_perturb_seed3/epoch39_length20/vit_l_14_rank32_perturb-type-random_target_epoch39_length20_perturb-seed3_init-seed3behavioral-rsa-True/training_log_random_target.txt
+2026-05-04 11:33:26 - INFO - ================================================================================
+2026-05-04 11:33:26 - INFO - ================================================================================
+2026-05-04 11:33:26 - INFO - Starting Training Run
+2026-05-04 11:33:26 - INFO - Training mode : finetune
+2026-05-04 11:33:26 - INFO - Architecture  : CLIP-HBA
+2026-05-04 11:33:26 - INFO - Log file      : /home/jenkm22/length_sweep_checkpoints/random_target_perturb_seed3/epoch39_length20/vit_l_14_rank32_perturb-type-random_target_epoch39_length20_perturb-seed3_init-seed3behavioral-rsa-True/training_log_random_target.txt
+2026-05-04 11:33:26 - INFO - ================================================================================
+2026-05-04 11:33:27 - INFO - Dataset split info saved: /home/jenkm22/length_sweep_checkpoints/random_target_perturb_seed3/epoch39_length20/vit_l_14_rank32_perturb-type-random_target_epoch39_length20_perturb-seed3_init-seed3behavioral-rsa-True/random_states/dataset_split_indices.pth
+2026-05-04 11:33:27 - INFO - Using GPU 0
+2026-05-04 11:33:27 - INFO - Using device: cuda:0
+pos_embedding is True

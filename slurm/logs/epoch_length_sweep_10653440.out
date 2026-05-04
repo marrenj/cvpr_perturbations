@@ -1,0 +1,18 @@
+==========================================
+Epoch-Length Perturbation Sweep
+==========================================
+Job ID    : 10653440
+Node      : dgx01.hw.accre.vu
+Partition : interactive_gpu
+GPUs      : 0,1
+Save root : /home/jenkm22/length_sweep_checkpoints
+Started   : Mon May  4 11:33:20 AM CDT 2026
+==========================================
+cuda0 sweep PID: 697599
+cuda1 sweep PID: 697600
+==========================================
+Finished   : Mon May  4 11:33:42 AM CDT 2026
+cuda0 exit : 1
+cuda1 exit : 1
+==========================================
+ERROR: one or both sweeps exited with a non-zero status.
