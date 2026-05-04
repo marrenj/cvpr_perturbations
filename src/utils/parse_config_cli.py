@@ -18,4 +18,10 @@ def parse_config_cli(description: str) -> argparse.Namespace:
         default=False,
         help="Disable Weights & Biases logging entirely.",
     )
+    parser.add_argument(
+        "--random_seed",
+        type=int,
+        default=None,
+        help="Override random_seed from the config (e.g. for multi-seed parallel runs).",
+    )
     return parser.parse_args()

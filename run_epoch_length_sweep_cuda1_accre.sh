@@ -2,12 +2,12 @@
 set -eu
 set -o pipefail
 
-export SAVE_ROOT="${SAVE_ROOT:-/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/checkpoints}"
+export SAVE_ROOT="${SAVE_ROOT:-/home/jenkm22/cvpr_perturbations/checkpoints}"
 export BASE_CONFIG="configs/training_config.yaml"
 export IMG_ANNOTATIONS_FILE="./data/spose_embedding66d_rescaled_1806train.csv"
-export IMG_DIR="/home/wallacelab/investigating-complexity/Images/THINGS"
+export IMG_DIR="/home/jenkm22/cvpr_perturbations/THINGS_images"
 export CUDA=1
-export PERTURB_TYPE="random_target"
+export PERTURB_TYPE="uniform_images"
 export PERTURB_SEED=0
 export RANDOM_SEED=1
 export PYTHON_CMD="${PYTHON_CMD:-python3}"
@@ -26,12 +26,12 @@ export WANDB_MODE=disabled
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-PERTURB_TYPES=("image_noise" "uniform_images")
-START_EPOCHS=(0 2 4 6 8 14 19 29 39 49 59 69 79 89 99)
+PERTURB_TYPES=("uniform_images")
+START_EPOCHS=(0 4 8 14 19 29 39 49 59 69 79 89 99)
 PERTURB_LENGTHS=(5 10 20 30 40 50)
-PERTURB_SEEDS=(1 2 3)
+PERTURB_SEEDS=(1)
 # Resume control: empty or "None" means start from the beginning; otherwise skip until the named run.
-RESUME_FROM="vit_l_14_rank32_perturb-type-image_noise_epoch69_length10_perturb-seed2_init-seed2behavioral-rsa-True"
+RESUME_FROM="None"
 if [[ "$RESUME_FROM" == "None" || -z "$RESUME_FROM" ]]; then
   FOUND=true
 else

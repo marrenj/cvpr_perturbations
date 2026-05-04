@@ -207,6 +207,8 @@ def main():
     )
     if args.no_wandb:
         config['no_wandb'] = True
+    if args.random_seed is not None:
+        config['random_seed'] = args.random_seed
 
     # Regardless of experiment_type, we run a single training job; perturbation
     # behavior is controlled by perturb_epoch/perturb_length.
