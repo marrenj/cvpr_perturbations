@@ -6,8 +6,8 @@ export SAVE_ROOT="${SAVE_ROOT:-/home/jenkm22/cvpr_perturbations/checkpoints}"
 export BASE_CONFIG="configs/training_config.yaml"
 export IMG_ANNOTATIONS_FILE="./data/spose_embedding66d_rescaled_1806train.csv"
 export IMG_DIR="/home/jenkm22/cvpr_perturbations/THINGS_images"
-export CUDA=0
-export PERTURB_TYPE="label_shuffle"
+export CUDA=1
+export PERTURB_TYPE="uniform_images"
 export PERTURB_SEED=0
 export RANDOM_SEED=1
 export PYTHON_CMD="${PYTHON_CMD:-python3}"
@@ -26,12 +26,12 @@ export WANDB_MODE=disabled
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-PERTURB_TYPES=("label_shuffle")
+PERTURB_TYPES=("uniform_images")
 START_EPOCHS=(0 4 8 14 19 29 39 49 59 69 79 89 99)
 PERTURB_LENGTHS=(5 10 20 30 40 50)
 PERTURB_SEEDS=(1)
+# Resume control: empty or "None" means start from the beginning; otherwise skip until the named run.
 RESUME_FROM="None"
-# Empty or "None" means start from the beginning; otherwise skip until the named run.
 if [[ "$RESUME_FROM" == "None" || -z "$RESUME_FROM" ]]; then
   FOUND=true
 else
@@ -52,18 +52,8 @@ for EPOCH in "${START_EPOCHS[@]}"; do
         fi
       fi
 
-      if [[ "$EPOCH" -eq 0 && "$PERTURB_LEN" -eq 2 ]]; then
-        continue
-      fi
-      # Skip epoch 0, length 1 when random_seed is 1
-      if [[ "$EPOCH" -eq 0 && "$PERTURB_LEN" -eq 1 && "$RANDOM_SEED" -eq 1 ]]; then
-        continue
-      fi
-      if [[ "$EPOCH" -eq 1 && "$PERTURB_LEN" -eq 1 && "$RANDOM_SEED" -eq 1 ]]; then
-        continue
-      fi
       # Derive and export baseline checkpoint path for this seed
-      BASELINE_CHECKPOINT_PATH="/home/jenkm22/cvpr_perturbations/checkpoints/baseline_seed${PERTURB_SEED}/vit_l_14_rank32_perturb-type-none_init-seed${PERTURB_SEED}behavioral-rsa-True"
+      BASELINE_CHECKPOINT_PATH="/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test/baseline_seed${PERTURB_SEED}/vit_l_14_rank32_perturb-type-none_init-seed${PERTURB_SEED}behavioral-rsa-True"
       export BASELINE_CHECKPOINT_PATH
 
       RUN_SAVE_PATH="${SAVE_ROOT}"

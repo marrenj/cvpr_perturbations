@@ -68,12 +68,12 @@ echo "=========================================="
 LOG_DIR="slurm/logs"
 mkdir -p "${LOG_DIR}"
 
-CUDA=0 bash "${SLURM_SUBMIT_DIR}/run_epoch_length_sweep_cuda0.sh" \
+CUDA=0 bash "${SLURM_SUBMIT_DIR}/run_epoch_length_sweep_cuda0_accre.sh" \
   > "${LOG_DIR}/epoch_sweep_cuda0_${SLURM_JOB_ID}.out" \
   2> "${LOG_DIR}/epoch_sweep_cuda0_${SLURM_JOB_ID}.err" &
 PID0=$!
 
-CUDA=1 bash "${SLURM_SUBMIT_DIR}/run_epoch_length_sweep_cuda1.sh" \
+CUDA=1 bash "${SLURM_SUBMIT_DIR}/run_epoch_length_sweep_cuda1_accre.sh" \
   > "${LOG_DIR}/epoch_sweep_cuda1_${SLURM_JOB_ID}.out" \
   2> "${LOG_DIR}/epoch_sweep_cuda1_${SLURM_JOB_ID}.err" &
 PID1=$!
