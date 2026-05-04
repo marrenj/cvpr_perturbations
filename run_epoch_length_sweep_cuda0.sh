@@ -5,7 +5,7 @@ set -o pipefail
 export SAVE_ROOT="${SAVE_ROOT:-/home/wallacelab/teba/multimodal_brain_inspired/marren/temporal_dynamics_of_human_alignment/test}"
 export BASE_CONFIG="configs/training_config.yaml"
 export IMG_ANNOTATIONS_FILE="./data/spose_embedding66d_rescaled_1806train.csv"
-export IMG_DIR="/home/wallacelab/investigating-complexity/Images/THINGS"
+export IMG_DIR="${IMG_DIR:-/home/jenkm22/cvpr_perturbations/THINGS_images}"
 export CUDA=0
 export PERTURB_TYPE="random_target"
 export PERTURB_SEED=0
